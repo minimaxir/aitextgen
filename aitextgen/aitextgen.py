@@ -15,10 +15,10 @@ class aitextgen:
                 print("Loading model from cache.")
             else:
                 print("Downloading model.")
-                self.model = AutoModelWithLMHead.from_pretrained(
-                    'distilgpt2', cache_dir=cache_dir)
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    'distilgpt2', cache_dir=cache_dir)
+            self.model = AutoModelWithLMHead.from_pretrained(
+                'distilgpt2', cache_dir=cache_dir)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                'distilgpt2', cache_dir=cache_dir)
 
     def generate(self, prefix=None, max_length=200,
                  temperature=1.0, do_sample=True,
