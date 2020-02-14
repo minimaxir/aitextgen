@@ -4,6 +4,7 @@ from torch import tensor
 from torch.utils.data import Dataset
 import csv
 import os
+import re
 
 
 class aitextgen:
@@ -20,13 +21,14 @@ class aitextgen:
             self.tokenizer = AutoTokenizer.from_pretrained(
                 'distilgpt2', cache_dir=cache_dir)
 
-    def generate(self, prefix=None, max_length=200,
+    def generate(self, prompt=None, max_length=200,
                  temperature=1.0, do_sample=True,
                  bos_token=None,
-                 eos_token=None):
+                 eos_token=None,
+                 return_as_list=False):
 
-        if prefix:
-            prefix = encode_text(prefix, self.tokenizer)
+        if prompt:
+            prompt_tokens = encode_text(prompt, self.tokenizer)
 
         if not bos_token:
             bos_token_id = self.tokenizer.bos_token_id
@@ -35,7 +37,7 @@ class aitextgen:
             eos_token_ids = self.tokenizer.eos_token_id
 
         outputs = self.model.generate(
-            input_ids=prefix,
+            input_ids=prompt_tokens,
             max_length=max_length,
             temperature=temperature,
             do_sample=do_sample,
@@ -46,7 +48,16 @@ class aitextgen:
         gen_text = self.tokenizer.decode(
             outputs[0], skip_special_tokens=True)
 
-        print(gen_text)
+        if not return_as_list:
+            if prompt is not None:
+                # Bold the prompt if printing to console
+                gen_text = re.sub(r'^' + prompt,
+                                  '\033[1m' + prompt + '\033[0m',
+                                  gen_text)
+
+            print(gen_text)
+        else:
+            return [gen_text]
 
 
 def encode_text(text, tokenizer):
