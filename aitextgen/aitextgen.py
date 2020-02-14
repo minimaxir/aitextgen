@@ -29,7 +29,8 @@ class aitextgen:
                  n=1):
 
         if prompt:
-            prompt_tokens = encode_text(prompt, self.tokenizer)
+            prompt_text = prompt
+            prompt = encode_text(prompt, self.tokenizer)
 
         if not bos_token:
             bos_token_id = self.tokenizer.bos_token_id
@@ -38,7 +39,7 @@ class aitextgen:
             eos_token_ids = self.tokenizer.eos_token_id
 
         outputs = self.model.generate(
-            input_ids=prompt_tokens,
+            input_ids=prompt,
             max_length=max_length,
             temperature=temperature,
             do_sample=do_sample,
@@ -57,13 +58,33 @@ class aitextgen:
         if not return_as_list:
             if prompt is not None:
                 # Bold the prompt if printing to console
-                gen_texts = [re.sub(r'^' + prompt,
-                                    '\033[1m' + prompt + '\033[0m',
+                gen_texts = [re.sub(r'^' + prompt_text,
+                                    '\033[1m' + prompt_text + '\033[0m',
                                     text) for text in gen_texts]
 
-            print(*gen_texts, sep='\n' + '=' * 20 + '\n')
+            print(*gen_texts, sep='\n' + '=' * 10 + '\n')
         else:
             return gen_texts
+
+    def generate_one(self, **kwargs):
+        """
+        Generates a single text, and returns it as a string.
+
+        Useful for returning a generated text within an API.
+        """
+
+        return self.generate(n=1, return_as_list=True, **kwargs)[0]
+
+    def generate_samples(self, n=3, temperatures=[0.7, 1.0, 1.2], **kwargs):
+        """
+        Prints multiple samples to console at specified temperatures.
+        """
+
+        for temperature in temperatures:
+            print('#'*20 + '\nTemperature: {}\n'.format(temperature) +
+                  '#'*20)
+            self.generate(n=n, temperature=temperature,
+                          return_as_list=False, **kwargs)
 
 
 def encode_text(text, tokenizer):
