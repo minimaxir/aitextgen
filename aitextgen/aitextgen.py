@@ -25,7 +25,8 @@ class aitextgen:
                  temperature=1.0, do_sample=True,
                  bos_token=None,
                  eos_token=None,
-                 return_as_list=False):
+                 return_as_list=False,
+                 n=1):
 
         if prompt:
             prompt_tokens = encode_text(prompt, self.tokenizer)
@@ -42,22 +43,27 @@ class aitextgen:
             temperature=temperature,
             do_sample=do_sample,
             bos_token_id=bos_token_id,
-            eos_token_ids=eos_token_ids
+            eos_token_ids=eos_token_ids,
+            num_return_sequences=n
         )
 
-        gen_text = self.tokenizer.decode(
-            outputs[0], skip_special_tokens=True)
+        if n > 1:
+            gen_texts = [self.tokenizer.decode(
+                output, skip_special_tokens=True) for output in outputs[0]]
+        else:
+            gen_texts = [self.tokenizer.decode(
+                outputs[0], skip_special_tokens=True)]
 
         if not return_as_list:
             if prompt is not None:
                 # Bold the prompt if printing to console
-                gen_text = re.sub(r'^' + prompt,
-                                  '\033[1m' + prompt + '\033[0m',
-                                  gen_text)
+                gen_texts = [re.sub(r'^' + prompt,
+                                    '\033[1m' + prompt + '\033[0m',
+                                    text) for text in gen_texts]
 
-            print(gen_text)
+            print(*gen_texts, sep='\n' + '=' * 20 + '\n')
         else:
-            return [gen_text]
+            return gen_texts
 
 
 def encode_text(text, tokenizer):
