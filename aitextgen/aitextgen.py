@@ -1,10 +1,15 @@
 from transformers import AutoModelWithLMHead, AutoTokenizer
 import torch
-from torch import tensor
 from torch.utils.data import Dataset
 import csv
 import os
 import re
+import logging
+from tqdm import trange
+from datetime import datetime
+from random import randint
+
+logger = logging.getLogger(__name__)
 
 
 class aitextgen:
@@ -13,20 +18,20 @@ class aitextgen:
 
         if model is None:
             if len(os.listdir(cache_dir)) > 0:
-                print("Loading model from cache.")
+                logger.info("Loading model from cache.")
             else:
-                print("Downloading model.")
+                logger.info("Downloading model.")
             self.model = AutoModelWithLMHead.from_pretrained(
                 'distilgpt2', cache_dir=cache_dir)
             self.tokenizer = AutoTokenizer.from_pretrained(
                 'distilgpt2', cache_dir=cache_dir)
 
-    def generate(self, prompt=None, max_length=200,
+    def generate(self, n=1, prompt=None, max_length=200,
                  temperature=1.0, do_sample=True,
                  bos_token=None,
                  eos_token=None,
                  return_as_list=False,
-                 n=1):
+                 seed=None):
 
         if prompt:
             prompt_text = prompt
@@ -45,7 +50,8 @@ class aitextgen:
             do_sample=do_sample,
             bos_token_id=bos_token_id,
             eos_token_ids=eos_token_ids,
-            num_return_sequences=n
+            num_return_sequences=n,
+            seed=seed
         )
 
         if n > 1:
@@ -86,11 +92,48 @@ class aitextgen:
             self.generate(n=n, temperature=temperature,
                           return_as_list=False, **kwargs)
 
+    def generate_to_file(self, n=20, batch_size=5, destination_path=None,
+                         sample_delim='=' * 20 + '\n',
+                         seed=None,
+                         **kwargs):
+
+        """
+        Generates a bulk amount of texts to a file.
+        """
+
+        assert n % batch_size == 0, "n must be divisible by batch_size."
+
+        if destination_path is None:
+            # Create a time-based file name to prevent overwriting.
+            # Use a 8-digit number as the seed, which is the last
+            # numeric part of the file name.
+            if seed is None:
+                seed = randint(10000000, 100000000 - 1)
+            assert isinstance(seed, int)
+            destination_path = 'aitextgen_{:%Y%m%d_%H%M%S}_{}.txt'.format(
+                datetime.utcnow(), seed)
+
+        logging.info("Generating {:,} texts to {}".format(n, destination_path))
+
+        pbar = trange(n)
+        f = open(destination_path, 'w', encoding='utf-8')
+
+        for _ in range(n // batch_size - 1):
+            gen_texts = self.generate(n=n, return_as_list=True, seed=seed,
+                                      **kwargs)
+
+            for gen_text in gen_texts:
+                f.write("{}\n{}".format(gen_text, sample_delim))
+            pbar.update(batch_size)
+
+        pbar.close()
+        f.close()
+
 
 def encode_text(text, tokenizer):
     """
     Encodes text into an id-based tensor.
     """
 
-    return tensor(tokenizer.encode(
+    return torch.tensor(tokenizer.encode(
         text)).unsqueeze(0)
