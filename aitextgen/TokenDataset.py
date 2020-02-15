@@ -9,7 +9,7 @@ import os
 logger = logging.getLogger(__name__)
 
 
-class TrainDataset(Dataset):
+class TokenDataset(Dataset):
     """
     Class that merges TextDataset and LineByLineTextDataset from
     run_language_modeling.py in transformers, plus
