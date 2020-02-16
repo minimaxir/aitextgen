@@ -5,6 +5,7 @@ from transformers import PreTrainedTokenizer
 import logging
 import csv
 import os
+import msgpack
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +15,30 @@ class TokenDataset(Dataset):
     Class that merges TextDataset and LineByLineTextDataset from
     run_language_modeling.py in transformers, plus
     adds more ways to ingest text such as with CSVs.
-
-    For user simplicity, features are not cached.
     """
 
     def __init__(self, tokenizer: PreTrainedTokenizer,
-                 texts, line_by_line: bool, file_path, header,
+                 texts=None, line_by_line=None,
+                 file_path=None, cache_path=None, header=True,
+                 save_cache=False,
+                 cache_destination=None,
                  block_size=512):
 
+        assert any([texts, file_path, cache_path]), \
+            "texts, file_path, or cache_path must be specified."
+        assert tokenizer is not None, "A tokenizer must be specified."
+
+        # If a cache path is provided, load it.
+        if cache_path is not None:
+            with open(cache_path, 'r', encoding="utf-8") as f:
+                self.examples = msgpack.unpack(f)
+            self.str_suffix = "via cache."
+
         # if texts are present, just tokenize them.
-        if texts is not None:
+        elif texts is not None:
             self.examples = tokenizer.batch_encode_plus(
                 texts, add_special_tokens=True, max_length=block_size)["input_ids"]
+            self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
         # the text must be processed line-by-line
@@ -36,6 +49,9 @@ class TokenDataset(Dataset):
 
             self.examples = tokenizer.batch_encode_plus(
                 texts, add_special_tokens=True, max_length=block_size)["input_ids"]
+
+            self.str_suffix = "from line-by-line file at {}.".format(
+                file_path)
 
         # if a file is specified, and it's not line-delimited,
         # the texts must be parsed in chunks.
@@ -56,13 +72,34 @@ class TokenDataset(Dataset):
                 self.examples.append(tokenizer.build_inputs_with_special_tokens(
                     tokenized_text[i:i + block_size]))
 
+            self.str_suffix = "from file at {}.".format(
+                file_path)
+
         logger.info("{:,} samples loaded.".format(len(self.examples)))
+
+        if save_cache:
+            self.save(cache_destination)
+
+    def save(self, cache_destination):
+        assert len(self.examples) > 0, "No data loaded to save."
+
+        if cache_destination is None:
+            cache_destination = 'model_cache.msgpack'
+
+        logger.info("Caching dataset to {}".format(cache_destination))
+
+        with open(cache_destination, 'w', encoding="utf-8") as f:
+            msgpack.pack(self.examples, f)
 
     def __len__(self):
         return len(self.examples)
 
     def __getitem__(self, item):
         return torch.tensor(self.examples[item], dtype=torch.long)
+
+    def __repr__(self):
+        return "TokenDataset containing {} examples loaded {}".format(
+            len(self.examples), self.str_suffix)
 
 
 def read_lines_from_file(file_path, header=True):
