@@ -8,13 +8,13 @@ import logging
 from tqdm import trange
 from datetime import datetime
 from random import randint
+from .TokenDataset import TokenDataset
 
 logger = logging.getLogger(__name__)
 
 
 class aitextgen:
-
-    def __init__(self, model=None, config=None, cache_dir='distilgpt2'):
+    def __init__(self, model=None, config=None, cache_dir="distilgpt2"):
 
         if model is None:
             if len(os.listdir(cache_dir)) > 0:
@@ -22,16 +22,24 @@ class aitextgen:
             else:
                 logger.info("Downloading model.")
             self.model = AutoModelWithLMHead.from_pretrained(
-                'distilgpt2', cache_dir=cache_dir)
+                "distilgpt2", cache_dir=cache_dir
+            )
             self.tokenizer = AutoTokenizer.from_pretrained(
-                'distilgpt2', cache_dir=cache_dir)
+                "distilgpt2", cache_dir=cache_dir
+            )
 
-    def generate(self, n=1, prompt=None, max_length=200,
-                 temperature=1.0, do_sample=True,
-                 bos_token=None,
-                 eos_token=None,
-                 return_as_list=False,
-                 seed=None):
+    def generate(
+        self,
+        n=1,
+        prompt=None,
+        max_length=200,
+        temperature=1.0,
+        do_sample=True,
+        bos_token=None,
+        eos_token=None,
+        return_as_list=False,
+        seed=None,
+    ):
 
         if prompt:
             prompt_text = prompt
@@ -51,24 +59,32 @@ class aitextgen:
             bos_token_id=bos_token_id,
             eos_token_ids=eos_token_ids,
             num_return_sequences=n,
-            seed=seed
+            seed=seed,
         )
 
         if n > 1:
-            gen_texts = [self.tokenizer.decode(
-                output, skip_special_tokens=True) for output in outputs[0]]
+            gen_texts = [
+                self.tokenizer.decode(output, skip_special_tokens=True)
+                for output in outputs[0]
+            ]
         else:
-            gen_texts = [self.tokenizer.decode(
-                outputs[0], skip_special_tokens=True)]
+            gen_texts = [
+                self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            ]
 
         if not return_as_list:
             if prompt is not None:
                 # Bold the prompt if printing to console
-                gen_texts = [re.sub(r'^' + prompt_text,
-                                    '\033[1m' + prompt_text + '\033[0m',
-                                    text) for text in gen_texts]
+                gen_texts = [
+                    re.sub(
+                        r"^" + prompt_text,
+                        "\033[1m" + prompt_text + "\033[0m",
+                        text,
+                    )
+                    for text in gen_texts
+                ]
 
-            print(*gen_texts, sep='\n' + '=' * 10 + '\n')
+            print(*gen_texts, sep="\n" + "=" * 10 + "\n")
         else:
             return gen_texts
 
@@ -87,15 +103,22 @@ class aitextgen:
         """
 
         for temperature in temperatures:
-            print('#'*20 + '\nTemperature: {}\n'.format(temperature) +
-                  '#'*20)
-            self.generate(n=n, temperature=temperature,
-                          return_as_list=False, **kwargs)
+            print(
+                "#" * 20 + "\nTemperature: {}\n".format(temperature) + "#" * 20
+            )
+            self.generate(
+                n=n, temperature=temperature, return_as_list=False, **kwargs
+            )
 
-    def generate_to_file(self, n=20, batch_size=5, destination_path=None,
-                         sample_delim='=' * 20 + '\n',
-                         seed=None,
-                         **kwargs):
+    def generate_to_file(
+        self,
+        n=20,
+        batch_size=5,
+        destination_path=None,
+        sample_delim="=" * 20 + "\n",
+        seed=None,
+        **kwargs
+    ):
 
         """
         Generates a bulk amount of texts to a file.
@@ -110,17 +133,19 @@ class aitextgen:
             if seed is None:
                 seed = randint(10000000, 100000000 - 1)
             assert isinstance(seed, int)
-            destination_path = 'aitextgen_{:%Y%m%d_%H%M%S}_{}.txt'.format(
-                datetime.utcnow(), seed)
+            destination_path = "aitextgen_{:%Y%m%d_%H%M%S}_{}.txt".format(
+                datetime.utcnow(), seed
+            )
 
         logging.info("Generating {:,} texts to {}".format(n, destination_path))
 
         pbar = trange(n)
-        f = open(destination_path, 'w', encoding='utf-8')
+        f = open(destination_path, "w", encoding="utf-8")
 
         for _ in range(n // batch_size - 1):
-            gen_texts = self.generate(n=n, return_as_list=True, seed=seed,
-                                      **kwargs)
+            gen_texts = self.generate(
+                n=n, return_as_list=True, seed=seed, **kwargs
+            )
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))
@@ -135,5 +160,4 @@ def encode_text(text, tokenizer):
     Encodes text into an id-based tensor.
     """
 
-    return torch.tensor(tokenizer.encode(
-        text)).unsqueeze(0)
+    return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
