@@ -27,7 +27,7 @@ class TokenDataset(Dataset):
         header=True,
         save_cache=False,
         cache_destination=None,
-        block_size=512,
+        block_size=1024,
     ):
 
         assert any(
@@ -110,7 +110,7 @@ class TokenDataset(Dataset):
         return torch.tensor(self.examples[item], dtype=torch.long)
 
     def __repr__(self):
-        return "TokenDataset containing {} examples loaded {}".format(
+        return "TokenDataset containing {:,} examples loaded {}".format(
             len(self.examples), self.str_suffix
         )
 
@@ -120,15 +120,15 @@ def read_lines_from_file(file_path, header=True):
     Retrieves texts from a newline-delimited file/CSV and returns as a list.
     """
 
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         if header:
             f.readline()
         if file_path.endswith(".csv"):
             reader = csv.reader(f)
-            texts = [line for line in reader]
+            texts = [str(line) for line in reader]
         else:
             texts = [
-                line
+                str(line)
                 for line in f.read().splitlines()
                 if (len(line) > 0 and not line.isspace())
             ]
