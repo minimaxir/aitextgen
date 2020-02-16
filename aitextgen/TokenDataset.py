@@ -19,25 +19,24 @@ class TokenDataset(Dataset):
 
     def __init__(
         self,
-        tokenizer: PreTrainedTokenizer,
+        tokenizer=None,
         texts=None,
         line_by_line=None,
         file_path=None,
-        cache_path=None,
+        from_cache=False,
         header=True,
         save_cache=False,
         cache_destination=None,
         block_size=1024,
     ):
 
-        assert any(
-            [texts, file_path, cache_path]
-        ), "texts, file_path, or cache_path must be specified."
-        assert tokenizer is not None, "A tokenizer must be specified."
+        assert any([texts, file_path]), "texts or file_path must be specified."
+        if not from_cache:
+            assert tokenizer is not None, "A tokenizer must be specified."
 
         # If a cache path is provided, load it.
-        if cache_path is not None:
-            with open(cache_path, "r", encoding="utf-8") as f:
+        if from_cache:
+            with open(file_path, "rb") as f:
                 self.examples = msgpack.unpack(f)
             self.str_suffix = "via cache."
 
@@ -92,15 +91,12 @@ class TokenDataset(Dataset):
         if save_cache:
             self.save(cache_destination)
 
-    def save(self, cache_destination):
+    def save(self, cache_destination="model_cache.msgpack"):
         assert len(self.examples) > 0, "No data loaded to save."
-
-        if cache_destination is None:
-            cache_destination = "model_cache.msgpack"
 
         logger.info("Caching dataset to {}".format(cache_destination))
 
-        with open(cache_destination, "w", encoding="utf-8") as f:
+        with open(cache_destination, "wb") as f:
             msgpack.pack(self.examples, f)
 
     def __len__(self):
