@@ -1,4 +1,12 @@
-from transformers import AutoModelWithLMHead, AutoTokenizer
+from transformers import (
+    AutoModelWithLMHead,
+    AutoTokenizer,
+    GPT2Config,
+    AutoModelForPreTraining,
+)
+from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
+    convert_gpt2_checkpoint_to_pytorch,
+)
 import torch
 from torch.utils.data import Dataset
 import csv
@@ -9,14 +17,47 @@ from tqdm import trange
 from datetime import datetime
 from random import randint
 from .TokenDataset import TokenDataset
+from .utils import *
 
 logger = logging.getLogger(__name__)
 
 
 class aitextgen:
-    def __init__(self, model=None, config=None, cache_dir="distilgpt2"):
+    def __init__(
+        self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None
+    ):
 
-        if model is None:
+        if tf_gpt2 is not None:
+            if model is None:
+                assert tf_gpt2 in [
+                    "124M",
+                    "355M",
+                    "774M",
+                    "1558M",
+                ], "Invalid GPT-2 model size."
+
+                download_gpt2(cache_dir, tf_gpt2)
+
+                gpt2_path = os.path.join(cache_dir, tf_gpt2)
+
+                if not os.path.isfile(
+                    os.path.join(gpt2_path, "pytorch_model.bin")
+                ):
+                    logger.info(
+                        "Converting the GPT-2 TensorFlow weights to PyTorch."
+                    )
+                    convert_gpt2_checkpoint_to_pytorch(gpt2_path, "", gpt2_path)
+
+                model = gpt2_path
+            logger.info("Loading GPT-2 model from %s.", model)
+            self.model = AutoModelWithLMHead.from_pretrained(
+                model, config=GPT2Config(),
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                "gpt2", cache_dir=cache_dir
+            )
+
+        elif model is None:
             if len(os.listdir(cache_dir)) > 0:
                 logger.info("Loading model from cache.")
             else:
@@ -38,7 +79,6 @@ class aitextgen:
         bos_token=None,
         eos_token=None,
         return_as_list=False,
-        seed=None,
     ):
 
         if prompt:
@@ -59,7 +99,6 @@ class aitextgen:
             bos_token_id=bos_token_id,
             eos_token_ids=eos_token_ids,
             num_return_sequences=n,
-            seed=seed,
         )
 
         if n > 1:
