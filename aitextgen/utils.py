@@ -48,7 +48,7 @@ def download_file_with_progress(url_base, sub_dir, model_name, file_name):
     # set to download 1MB at a time. This could be much larger with no issue
     DOWNLOAD_CHUNK_SIZE = 1024 * 1024
     r = requests.get(
-        url_base + "/models/" + model_name + "/" + file_name, stream=True
+        os.path.join(url_base, "models", model_name, file_name), stream=True
     )
     with open(os.path.join(sub_dir, file_name), "wb") as f:
         file_size = int(r.headers["content-length"])

@@ -38,17 +38,17 @@ class aitextgen:
 
                 download_gpt2(cache_dir, tf_gpt2)
 
-                gpt2_path = os.path.join(cache_dir, tf_gpt2)
-
                 if not os.path.isfile(
-                    os.path.join(gpt2_path, "pytorch_model.bin")
+                    os.path.join(cache_dir, "pytorch_model.bin")
                 ):
                     logger.info(
                         "Converting the GPT-2 TensorFlow weights to PyTorch."
                     )
-                    convert_gpt2_checkpoint_to_pytorch(gpt2_path, "", gpt2_path)
+                    convert_gpt2_checkpoint_to_pytorch(
+                        os.path.join(cache_dir, tf_gpt2), "", cache_dir
+                    )
 
-                model = gpt2_path
+                model = os.path.join(cache_dir, "pytorch_model.bin")
             logger.info("Loading GPT-2 model from %s.", model)
             self.model = AutoModelWithLMHead.from_pretrained(
                 model, config=GPT2Config(),
