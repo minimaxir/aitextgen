@@ -76,7 +76,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def set_seed(args):
+def set_seed(seed, n_gpu):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -85,7 +85,7 @@ def set_seed(args):
 
 
 def _sorted_checkpoints(
-    args, checkpoint_prefix="checkpoint", use_mtime=False
+    output_dir, checkpoint_prefix="checkpoint", use_mtime=False
 ) -> List[str]:
     ordering_and_checkpoint_path = []
 
@@ -111,7 +111,7 @@ def _sorted_checkpoints(
 
 
 def _rotate_checkpoints(
-    args, checkpoint_prefix="checkpoint", use_mtime=False
+    save_total_limit, checkpoint_prefix="checkpoint", use_mtime=False
 ) -> None:
     if not save_total_limit:
         return
@@ -119,7 +119,9 @@ def _rotate_checkpoints(
         return
 
     # Check if we should delete older checkpoint(s)
-    checkpoints_sorted = _sorted_checkpoints(args, checkpoint_prefix, use_mtime)
+    checkpoints_sorted = _sorted_checkpoints(
+        output_dir, checkpoint_prefix, use_mtime
+    )
     if len(checkpoints_sorted) <= save_total_limit:
         return
 
@@ -143,25 +145,22 @@ def train(
     train_dataset,
     tokenizer,
     model_type,
-    output_dir,
-    should_continue,
-    block_size,
-    per_gpu_train_batch_size,
-    local_rank,
-    gradient_accumulation_steps,
-    n_gpu,
+    output_dir="",
+    should_continue=False,
+    block_size=-1,
+    per_gpu_train_batch_size=1,
+    gradient_accumulation_steps=1,
+    n_gpu=-1,
     max_steps=-1,
     num_train_epochs=1.0,
-    model_name_or_path,
-    learning_rate,
+    model_name_or_path=None,
+    learning_rate=5e-5,
     adam_epsilon=1e-8,
-    device,
-    save_steps,
+    save_steps=500,
     weight_decay=0.0,
     max_grad_norm=1.0,
     warmup_steps=0,
     logging_steps=500,
-    save_steps=500,
     save_total_limit=None,
     no_cuda=False,
     overwrite_output_dir=False,
@@ -169,9 +168,9 @@ def train(
     seed=None,
     fp16=False,
     fp16_opt_level="O1",
-    local_rank=-1
+    local_rank=-1,
 ):
-    """ Train the model """
+    """Trains the provided model on the provided train_dataset """
     if local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
 
@@ -233,9 +232,7 @@ def train(
         optimizer_grouped_parameters, lr=learning_rate, eps=adam_epsilon,
     )
     scheduler = get_linear_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=warmup_steps,
-        num_training_steps=t_total,
+        optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total,
     )
 
     # Check if saved optimizer or scheduler states exist
@@ -353,9 +350,7 @@ def train(
                 continue
 
             inputs, labels = (
-                mask_tokens(batch, tokenizer, args)
-                if mlm
-                else (batch, batch)
+                mask_tokens(batch, tokenizer, args) if mlm else (batch, batch)
             )
             inputs = inputs.to(device)
             labels = labels.to(device)
@@ -439,9 +434,7 @@ def train(
                     model_to_save.save_pretrained(output_dir)
                     tokenizer.save_pretrained(output_dir)
 
-                    torch.save(
-                        args, os.path.join(output_dir, "training_bin")
-                    )
+                    torch.save(args, os.path.join(output_dir, "training_bin"))
                     logger.info("Saving model checkpoint to %s", output_dir)
 
                     _rotate_checkpoints(args, checkpoint_prefix)
@@ -533,9 +526,7 @@ def train_setup(local_rank, output_dir, no_cuda, config_name):
     config_class, model_class, tokenizer_class = MODEL_CLASSES[model_type]
 
     if config_name:
-        config = config_class.from_pretrained(
-            config_name, cache_dir=cache_dir
-        )
+        config = config_class.from_pretrained(config_name, cache_dir=cache_dir)
     elif model_name_or_path:
         config = config_class.from_pretrained(
             model_name_or_path, cache_dir=cache_dir
@@ -599,9 +590,7 @@ def train_setup(local_rank, output_dir, no_cuda, config_name):
         )
 
     # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
-    if do_train and (
-        local_rank == -1 or torch.distributed.get_rank() == 0
-    ):
+    if do_train and (local_rank == -1 or torch.distributed.get_rank() == 0):
         # Create output directory if needed
         if local_rank in [-1, 0]:
             os.makedirs(output_dir, exist_ok=True)
