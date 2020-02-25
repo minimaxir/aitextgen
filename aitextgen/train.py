@@ -140,7 +140,7 @@ def _rotate_checkpoints(
         shutil.rmtree(checkpoint)
 
 
-def train(
+def train_execute(
     model,
     train_dataset,
     tokenizer,
@@ -335,7 +335,7 @@ def train(
         desc="Epoch",
         disable=local_rank not in [-1, 0],
     )
-    set_seed(args)  # Added here for reproducibility
+    set_seed(seed, n_gpu)  # Added here for reproducibility
     for _ in train_iterator:
         epoch_iterator = tqdm(
             train_dataloader,
@@ -349,17 +349,11 @@ def train(
                 steps_trained_in_current_epoch -= 1
                 continue
 
-            inputs, labels = (
-                mask_tokens(batch, tokenizer, args) if mlm else (batch, batch)
-            )
+            inputs, labels = (batch, batch)
             inputs = inputs.to(device)
             labels = labels.to(device)
             model.train()
-            outputs = (
-                model(inputs, masked_lm_labels=labels)
-                if mlm
-                else model(inputs, labels=labels)
-            )
+            outputs = model(inputs, labels=labels)
             loss = outputs[
                 0
             ]  # model outputs are always tuple in transformers (see doc)
@@ -465,10 +459,41 @@ def train(
     return global_step, tr_loss / global_step
 
 
-def train_setup(local_rank, output_dir, no_cuda, config_name):
+def train_model(
+    model,
+    train_dataset,
+    tokenizer,
+    model_type,
+    output_dir="",
+    should_continue=False,
+    block_size=-1,
+    per_gpu_train_batch_size=1,
+    gradient_accumulation_steps=1,
+    n_gpu=-1,
+    max_steps=-1,
+    num_train_epochs=1.0,
+    model_name_or_path=None,
+    learning_rate=5e-5,
+    adam_epsilon=1e-8,
+    save_steps=500,
+    weight_decay=0.0,
+    max_grad_norm=1.0,
+    warmup_steps=0,
+    logging_steps=500,
+    save_total_limit=None,
+    no_cuda=False,
+    overwrite_output_dir=False,
+    overwrite_cache=False,
+    seed=None,
+    fp16=False,
+    fp16_opt_level="O1",
+    local_rank=-1,
+):
 
     if should_continue:
-        sorted_checkpoints = _sorted_checkpoints(args)
+        sorted_checkpoints = _sorted_checkpoints(
+            output_dir, checkpoint_prefix, use_mtime
+        )
         if len(sorted_checkpoints) == 0:
             raise ValueError(
                 "Used --should_continue but no checkpoint was found in --output_dir."
@@ -479,7 +504,6 @@ def train_setup(local_rank, output_dir, no_cuda, config_name):
     if (
         os.path.exists(output_dir)
         and os.listdir(output_dir)
-        and do_train
         and not overwrite_output_dir
     ):
         raise ValueError(
@@ -517,38 +541,11 @@ def train_setup(local_rank, output_dir, no_cuda, config_name):
     )
 
     # Set seed
-    set_seed(args)
+    set_seed(seed, n_gpu)
 
     # Load pretrained model and tokenizer
     if local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Barrier to make sure only the first process in distributed training download model & vocab
-
-    config_class, model_class, tokenizer_class = MODEL_CLASSES[model_type]
-
-    if config_name:
-        config = config_class.from_pretrained(config_name, cache_dir=cache_dir)
-    elif model_name_or_path:
-        config = config_class.from_pretrained(
-            model_name_or_path, cache_dir=cache_dir
-        )
-    else:
-        config = config_class()
-
-    if tokenizer_name:
-        tokenizer = tokenizer_class.from_pretrained(
-            tokenizer_name, cache_dir=cache_dir
-        )
-    elif model_name_or_path:
-        tokenizer = tokenizer_class.from_pretrained(
-            model_name_or_path, cache_dir=cache_dir
-        )
-    else:
-        raise ValueError(
-            "You are instantiating a new {} tokenizer. This is not supported, but you can do it from another script, save it,"
-            "and load it from here, using --tokenizer_name".format(
-                tokenizer_class.__name__
-            )
-        )
 
     if block_size <= 0:
         block_size = tokenizer.max_len
@@ -556,14 +553,7 @@ def train_setup(local_rank, output_dir, no_cuda, config_name):
     else:
         block_size = min(block_size, tokenizer.max_len)
 
-    if model_name_or_path:
-        model = model_class.from_pretrained(
-            model_name_or_path,
-            from_tf=bool(".ckpt" in model_name_or_path),
-            config=config,
-            cache_dir=cache_dir,
-        )
-    else:
+    if new_model:
         logger.info("Training new model from scratch")
         model = model_class(config=config)
 
@@ -572,25 +562,18 @@ def train_setup(local_rank, output_dir, no_cuda, config_name):
     if local_rank == 0:
         torch.distributed.barrier()  # End of barrier to make sure only the first process in distributed training download model & vocab
 
-    logger.info("Training/evaluation parameters %s", args)
-
     # Training
-    if do_train:
-        if local_rank not in [-1, 0]:
-            torch.distributed.barrier()  # Barrier to make sure only the first process in distributed training process the dataset, and the others will use the cache
+    if local_rank not in [-1, 0]:
+        torch.distributed.barrier()  # Barrier to make sure only the first process in distributed training process the dataset, and the others will use the cache
 
-        train_dataset = load_and_cache_examples(args, tokenizer, evaluate=False)
+    if local_rank == 0:
+        torch.distributed.barrier()
 
-        if local_rank == 0:
-            torch.distributed.barrier()
-
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
-        logger.info(
-            " global_step = %s, average loss = %s", global_step, tr_loss
-        )
+    global_step, tr_loss = train_execute(**kwargs)
+    logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
-    if do_train and (local_rank == -1 or torch.distributed.get_rank() == 0):
+    if local_rank == -1 or torch.distributed.get_rank() == 0:
         # Create output directory if needed
         if local_rank in [-1, 0]:
             os.makedirs(output_dir, exist_ok=True)
