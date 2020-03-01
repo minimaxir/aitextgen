@@ -18,6 +18,7 @@ from datetime import datetime
 from random import randint
 from .TokenDataset import TokenDataset
 from .utils import *
+from .train import *
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +193,26 @@ class aitextgen:
 
         pbar.close()
         f.close()
+
+    def train(self, dataset=None, file_path=None, **kwargs):
+        """
+        Trains/finetunes the model on the provided file/dataset.
+        """
+
+        assert any(
+            [dataset, file_path]
+        ), "Either dataset or file_path must be specified"
+
+        if file_path:
+            dataset = TokenDataset(
+                tokenizer=self.tokenizer, file_path=file_path, **kwargs
+            )
+
+        # Wrap the model in a pytorch-lightning module
+        train_model = ATGTransformer(self.model, dataset, hparams)
+
+        # Begin training
+        self.model = generic_train(train_model, **kwargs)
 
 
 def encode_text(text, tokenizer):
