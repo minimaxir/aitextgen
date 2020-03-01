@@ -24,9 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class aitextgen:
-    def __init__(
-        self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None
-    ):
+    def __init__(self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None):
 
         if tf_gpt2 is not None:
             if model is None:
@@ -39,12 +37,8 @@ class aitextgen:
 
                 download_gpt2(cache_dir, tf_gpt2)
 
-                if not os.path.isfile(
-                    os.path.join(cache_dir, "pytorch_model.bin")
-                ):
-                    logger.info(
-                        "Converting the GPT-2 TensorFlow weights to PyTorch."
-                    )
+                if not os.path.isfile(os.path.join(cache_dir, "pytorch_model.bin")):
+                    logger.info("Converting the GPT-2 TensorFlow weights to PyTorch.")
                     convert_gpt2_checkpoint_to_pytorch(
                         os.path.join(cache_dir, tf_gpt2), "", cache_dir
                     )
@@ -54,9 +48,7 @@ class aitextgen:
             self.model = AutoModelWithLMHead.from_pretrained(
                 model, config=GPT2Config(),
             )
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                "gpt2", cache_dir=cache_dir
-            )
+            self.tokenizer = AutoTokenizer.from_pretrained("gpt2", cache_dir=cache_dir)
 
         elif model is None:
             if len(os.listdir(cache_dir)) > 0:
@@ -108,18 +100,14 @@ class aitextgen:
                 for output in outputs[0]
             ]
         else:
-            gen_texts = [
-                self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            ]
+            gen_texts = [self.tokenizer.decode(outputs[0], skip_special_tokens=True)]
 
         if not return_as_list:
             if prompt is not None:
                 # Bold the prompt if printing to console
                 gen_texts = [
                     re.sub(
-                        r"^" + prompt_text,
-                        "\033[1m" + prompt_text + "\033[0m",
-                        text,
+                        r"^" + prompt_text, "\033[1m" + prompt_text + "\033[0m", text,
                     )
                     for text in gen_texts
                 ]
@@ -143,12 +131,8 @@ class aitextgen:
         """
 
         for temperature in temperatures:
-            print(
-                "#" * 20 + "\nTemperature: {}\n".format(temperature) + "#" * 20
-            )
-            self.generate(
-                n=n, temperature=temperature, return_as_list=False, **kwargs
-            )
+            print("#" * 20 + "\nTemperature: {}\n".format(temperature) + "#" * 20)
+            self.generate(n=n, temperature=temperature, return_as_list=False, **kwargs)
 
     def generate_to_file(
         self,
@@ -183,9 +167,7 @@ class aitextgen:
         f = open(destination_path, "w", encoding="utf-8")
 
         for _ in range(n // batch_size - 1):
-            gen_texts = self.generate(
-                n=n, return_as_list=True, seed=seed, **kwargs
-            )
+            gen_texts = self.generate(n=n, return_as_list=True, seed=seed, **kwargs)
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))

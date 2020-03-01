@@ -44,26 +44,20 @@ class BaseTransformer(pl.LightningModule):
             if self.hparams.config_name
             else self.hparams.model_name_or_path,
             num_labels=num_labels,
-            cache_dir=self.hparams.cache_dir
-            if self.hparams.cache_dir
-            else None,
+            cache_dir=self.hparams.cache_dir if self.hparams.cache_dir else None,
         )
         tokenizer = tokenizer_class.from_pretrained(
             self.hparams.tokenizer_name
             if self.hparams.tokenizer_name
             else self.hparams.model_name_or_path,
             do_lower_case=self.hparams.do_lower_case,
-            cache_dir=self.hparams.cache_dir
-            if self.hparams.cache_dir
-            else None,
+            cache_dir=self.hparams.cache_dir if self.hparams.cache_dir else None,
         )
         model = model_class.from_pretrained(
             self.hparams.model_name_or_path,
             from_tf=bool(".ckpt" in self.hparams.model_name_or_path),
             config=config,
-            cache_dir=self.hparams.cache_dir
-            if self.hparams.cache_dir
-            else None,
+            cache_dir=self.hparams.cache_dir if self.hparams.cache_dir else None,
         )
         self.config, self.tokenizer, self.model = config, tokenizer, model
 
@@ -102,12 +96,7 @@ class BaseTransformer(pl.LightningModule):
         return [optimizer]
 
     def optimizer_step(
-        self,
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        second_order_closure=None,
+        self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None,
     ):
         if self.trainer.use_tpu:
             xm.optimizer_step(optimizer)
@@ -135,10 +124,7 @@ class BaseTransformer(pl.LightningModule):
         dataloader = self.load_dataset("train", train_batch_size)
 
         t_total = (
-            (
-                len(dataloader.dataset)
-                // (train_batch_size * max(1, self.hparams.n_gpu))
-            )
+            (len(dataloader.dataset) // (train_batch_size * max(1, self.hparams.n_gpu)))
             // self.hparams.gradient_accumulation_steps
             * float(self.hparams.num_train_epochs)
         )
@@ -163,8 +149,7 @@ class BaseTransformer(pl.LightningModule):
             default=None,
             type=str,
             required=True,
-            help="Model type selected in the list: "
-            + ", ".join(MODEL_CLASSES.keys()),
+            help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
         )
         parser.add_argument(
             "--config_name",

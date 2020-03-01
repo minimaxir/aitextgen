@@ -42,9 +42,7 @@ class ATGTransformer(BaseTransformer):
         }
         if self.hparams.model_type != "distilbert":
             inputs["token_type_ids"] = (
-                batch[2]
-                if self.hparams.model_type in ["bert", "xlnet"]
-                else None
+                batch[2] if self.hparams.model_type in ["bert", "xlnet"] else None
             )  # XLM and RoBERTa don"t use segment_ids
 
         outputs = self.forward(**inputs)
@@ -60,9 +58,7 @@ class ATGTransformer(BaseTransformer):
             self.hparams.data_dir,
             "cached_{}_{}_{}".format(
                 mode,
-                list(
-                    filter(None, self.hparams.model_name_or_path.split("/"))
-                ).pop(),
+                list(filter(None, self.hparams.model_name_or_path.split("/"))).pop(),
                 str(self.hparams.max_seq_length),
             ),
         )
@@ -73,9 +69,7 @@ class ATGTransformer(BaseTransformer):
         for mode in ["train", "dev", "test"]:
             cached_features_file = self._feature_file(mode)
             if not os.path.exists(cached_features_file):
-                logger.info(
-                    "Creating features from dataset file at %s", args.data_dir
-                )
+                logger.info("Creating features from dataset file at %s", args.data_dir)
                 examples = read_examples_from_file(args.data_dir, mode)
                 features = convert_examples_to_features(
                     examples,
@@ -84,23 +78,17 @@ class ATGTransformer(BaseTransformer):
                     self.tokenizer,
                     cls_token_at_end=bool(args.model_type in ["xlnet"]),
                     cls_token=self.tokenizer.cls_token,
-                    cls_token_segment_id=2
-                    if args.model_type in ["xlnet"]
-                    else 0,
+                    cls_token_segment_id=2 if args.model_type in ["xlnet"] else 0,
                     sep_token=self.tokenizer.sep_token,
                     sep_token_extra=bool(args.model_type in ["roberta"]),
                     pad_on_left=bool(args.model_type in ["xlnet"]),
                     pad_token=self.tokenizer.convert_tokens_to_ids(
                         [self.tokenizer.pad_token]
                     )[0],
-                    pad_token_segment_id=4
-                    if args.model_type in ["xlnet"]
-                    else 0,
+                    pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0,
                     pad_token_label_id=self.pad_token_label_id,
                 )
-                logger.info(
-                    "Saving features into cached file %s", cached_features_file
-                )
+                logger.info("Saving features into cached file %s", cached_features_file)
                 torch.save(features, cached_features_file)
 
     def load_dataset(self, mode, batch_size):

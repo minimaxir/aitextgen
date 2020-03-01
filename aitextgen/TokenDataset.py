@@ -28,17 +28,22 @@ class TokenDataset(Dataset):
         save_cache=False,
         cache_destination=None,
         block_size=1024,
+        is_text_samples=True,
     ):
 
         assert any([texts, file_path]), "texts or file_path must be specified."
         if not from_cache:
             assert tokenizer is not None, "A tokenizer must be specified."
 
+        # Assume that texts are per-sample unless stated otherwise
+        self.is_text_samples = True
+
         # If a cache path is provided, load it.
         if from_cache:
             with open(file_path, "rb") as f:
                 self.examples = msgpack.unpack(f)
             self.str_suffix = "via cache."
+            self.is_text_samples = is_text_samples
 
         # if texts are present, just tokenize them.
         elif texts is not None:
@@ -73,9 +78,7 @@ class TokenDataset(Dataset):
             with open(file_path, encoding="utf-8") as f:
                 text = f.read()
 
-            tokenized_text = tokenizer.convert_tokens_to_ids(
-                tokenizer.tokenize(text)
-            )
+            tokenized_text = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(text))
 
             for i in range(0, len(tokenized_text) - block_size + 1, block_size):
                 self.examples.append(
@@ -85,6 +88,7 @@ class TokenDataset(Dataset):
                 )
 
             self.str_suffix = "from file at {}.".format(file_path)
+            self.is_text_samples = False
 
         logger.info("{:,} samples loaded.".format(len(self.examples)))
 
