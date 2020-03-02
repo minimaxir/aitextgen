@@ -20,14 +20,6 @@ from transformers import (
 logger = logging.getLogger(__name__)
 
 
-def set_seed(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
-
-
 class BaseTransformer(pl.LightningModule):
     def __init__(self, hparams, num_labels=None):
         "Initialize a model."
@@ -145,25 +137,6 @@ class BaseTransformer(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parser, root_dir):
         parser.add_argument(
-            "--model_type",
-            default=None,
-            type=str,
-            required=True,
-            help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
-        )
-        parser.add_argument(
-            "--config_name",
-            default="",
-            type=str,
-            help="Pretrained config name or path if not the same as model_name",
-        )
-        parser.add_argument(
-            "--tokenizer_name",
-            default="",
-            type=str,
-            help="Pretrained tokenizer name or path if not the same as model_name",
-        )
-        parser.add_argument(
             "--cache_dir",
             default="",
             type=str,
@@ -200,9 +173,6 @@ class BaseTransformer(pl.LightningModule):
             help="Total number of training epochs to perform.",
         )
 
-        parser.add_argument("--train_batch_size", default=32, type=int)
-        parser.add_argument("--eval_batch_size", default=32, type=int)
-
 
 def add_generic_args(parser, root_dir):
     parser.add_argument(
@@ -233,9 +203,6 @@ def add_generic_args(parser, root_dir):
         "--max_grad_norm", default=1.0, type=float, help="Max gradient norm."
     )
     parser.add_argument(
-        "--do_train", action="store_true", help="Whether to run training."
-    )
-    parser.add_argument(
         "--gradient_accumulation_steps",
         type=int,
         default=1,
@@ -244,55 +211,3 @@ def add_generic_args(parser, root_dir):
     parser.add_argument(
         "--seed", type=int, default=42, help="random seed for initialization"
     )
-
-
-def generic_train(model, args):
-    # init model
-    set_seed(args)
-
-    if (
-        os.path.exists(args.output_dir)
-        and os.listdir(args.output_dir)
-        and args.do_train
-    ):
-        raise ValueError(
-            "Output directory ({}) already exists and is not empty.".format(
-                args.output_dir
-            )
-        )
-
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filepath=args.output_dir,
-        prefix="checkpoint",
-        monitor="train_loss",
-        mode="min",
-        save_top_k=1,
-    )
-
-    train_params = dict(
-        accumulate_grad_batches=args.gradient_accumulation_steps,
-        gpus=args.n_gpu,
-        max_epochs=args.num_train_epochs,
-        early_stop_callback=False,
-        gradient_clip_val=args.max_grad_norm,
-        checkpoint_callback=checkpoint_callback,
-    )
-
-    if args.fp16:
-        train_params["use_amp"] = args.fp16
-        train_params["amp_level"] = args.fp16_opt_level
-
-    if args.n_tpu_cores > 0:
-        global xm
-        import torch_xla.core.xla_model as xm
-
-        train_params["num_tpu_cores"] = args.n_tpu_cores
-        train_params["gpus"] = 0
-
-    if args.n_gpu > 1:
-        train_params["distributed_backend"] = "ddp"
-
-    trainer = pl.Trainer(**train_params)
-    trainer.fit(model)
-
-    return trainer

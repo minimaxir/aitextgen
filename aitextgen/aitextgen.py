@@ -17,6 +17,9 @@ from tqdm import trange
 from datetime import datetime
 from random import randint
 from .TokenDataset import TokenDataset
+import pytorch_lightning as pl
+import random
+import numpy as np
 from .utils import *
 from .train import *
 
@@ -167,7 +170,7 @@ class aitextgen:
         f = open(destination_path, "w", encoding="utf-8")
 
         for _ in range(n // batch_size - 1):
-            gen_texts = self.generate(n=n, return_as_list=True, seed=seed, **kwargs)
+            gen_texts = self.generate(n=n, return_as_list=True, **kwargs)
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))
@@ -176,7 +179,24 @@ class aitextgen:
         pbar.close()
         f.close()
 
-    def train(self, dataset=None, file_path=None, **kwargs):
+    def train(
+        self,
+        dataset=None,
+        file_path=None,
+        output_dir="",
+        fp16=False,
+        fp16_opt_level="O1",
+        n_gpu=-1,
+        n_tpu_cores=0,
+        max_grad_norm=1.0,
+        gradient_accumulation_steps=1,
+        seed=42,
+        learning_rate=5e-3,
+        weight_decay=0.0,
+        adam_epsilon=1e-8,
+        warmup_steps=0,
+        num_epochs=3,
+    ):
         """
         Trains/finetunes the model on the provided file/dataset.
         """
@@ -194,7 +214,53 @@ class aitextgen:
         train_model = ATGTransformer(self.model, dataset, hparams)
 
         # Begin training
-        self.model = generic_train(train_model, **kwargs)
+        set_seed(seed, n_gpu)
+
+        if os.path.exists(output_dir) and os.listdir(output_dir):
+            raise ValueError(
+                "Output directory ({}) already exists and is not empty.".format(
+                    output_dir
+                )
+            )
+
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            filepath=output_dir,
+            prefix="checkpoint",
+            monitor="train_loss",
+            mode="min",
+            save_top_k=1,
+        )
+
+        train_params = dict(
+            accumulate_grad_batches=gradient_accumulation_steps,
+            gpus=n_gpu,
+            max_epochs=num_epochs,
+            early_stop_callback=False,
+            gradient_clip_val=max_grad_norm,
+            checkpoint_callback=checkpoint_callback,
+        )
+
+        if fp16:
+            train_params["use_amp"] = fp16
+            train_params["amp_level"] = fp16_opt_level
+
+        if n_tpu_cores > 0:
+            try:
+                global xm
+                import torch_xla.core.xla_model as xm
+            except ImportError as error:
+                logging.error(error)
+
+            train_params["num_tpu_cores"] = n_tpu_cores
+            train_params["gpus"] = 0
+
+        if n_gpu > 1:
+            train_params["distributed_backend"] = "ddp"
+
+        trainer = pl.Trainer(**train_params)
+        trainer.fit(train_model)
+
+        self.model = trainer
 
 
 def encode_text(text, tokenizer):
@@ -203,3 +269,11 @@ def encode_text(text, tokenizer):
     """
 
     return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
+
+
+def set_seed(seed, n_gpu):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if n_gpu > 0:
+        torch.cuda.manual_seed_all(seed)
