@@ -16,7 +16,7 @@ Here is a list of features, in no particular order, of what I *hope* to add to a
 * Cross-training / training schedules
 * Sample weighting, so network can weight earlier text in the sequence stronger than later text (e.g. recent tweets than older tweets!)
 * Replace tokens in a tokenizer, e.g. replace rare tokens in a tweet generator with <|startoftext|> to save space, or allow a manual replacement (store replacement dict in a JSON config
-* Support any CLM model, not just BERT.
+* Support any CLM model, not just GPT2.
 * Support training model from scratch (will need to add tokenizer export)
 * Include a small model trainable on a CPU, trained from a distilled larger model
 * Allow excluding of tokens by index (e.g. allow model generation without the letter e)
@@ -26,8 +26,6 @@ Here is a list of features, in no particular order, of what I *hope* to add to a
     * Use dimensionality to calculate a similarity score from generated texts to real texts; scores below a threshold may be considered incoherent and can be discarded.
 * Dedupe existing texts when generating using token id matching.
     * Allow users to load data outside of finetuning, which will be necessary for blending training.
-* Use ANSI escape sequences to color text output in terminal. Bold for prefix. Only output if printing to console, do not do if saving as a list.
-* Pass tqdm progress bar instance to multigenerate
 * Async generation, for batch generation
 * Tensorboard support as a parameter
 * Allow cycling context tokens when generating
@@ -36,3 +34,8 @@ Here is a list of features, in no particular order, of what I *hope* to add to a
 * Use pytorch-lightning for easy TPU support
     * https://github.com/huggingface/transformers/pull/3053
 * Unlimited text generation regardless of model window size.
+
+## Completed Features
+
+* Use ANSI escape sequences to color text output in terminal. Bold for prefix. Only output if printing to console, do not do if saving as a list.
+* Pass tqdm progress bar instance to multigenerate
