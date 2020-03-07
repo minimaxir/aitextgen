@@ -9,7 +9,7 @@ from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
 )
 import torch
 from torch.utils.data import Dataset
-import csv
+import time
 import os
 import re
 import logging
@@ -75,6 +75,7 @@ class aitextgen:
         bos_token=None,
         eos_token=None,
         return_as_list=False,
+        seed=None,
     ):
 
         if prompt:
@@ -87,6 +88,9 @@ class aitextgen:
         if not eos_token:
             eos_token_ids = self.tokenizer.eos_token_id
 
+        if seed:
+            set_seed(seed)
+
         outputs = self.model.generate(
             input_ids=prompt,
             max_length=max_length,
@@ -96,6 +100,10 @@ class aitextgen:
             eos_token_ids=eos_token_ids,
             num_return_sequences=n,
         )
+
+        # Reset seed if used
+        if seed:
+            reset_seed()
 
         if n > 1:
             gen_texts = [
@@ -158,11 +166,14 @@ class aitextgen:
             # Use a 8-digit number as the seed, which is the last
             # numeric part of the file name.
             if seed is None:
-                seed = randint(10000000, 100000000 - 1)
-            assert isinstance(seed, int)
-            destination_path = "aitextgen_{:%Y%m%d_%H%M%S}_{}.txt".format(
+                seed = randint(10 ** 7, 10 ** 8 - 1)
+
+            destination_path = "ATG_{:%Y%m%d_%H%M%S}_{}.txt".format(
                 datetime.utcnow(), seed
             )
+
+        if seed:
+            set_seed(seed)
 
         logging.info("Generating {:,} texts to {}".format(n, destination_path))
 
@@ -178,6 +189,9 @@ class aitextgen:
 
         pbar.close()
         f.close()
+
+        if seed():
+            reset_seed()
 
     def train(
         self,
@@ -271,9 +285,16 @@ def encode_text(text, tokenizer):
     return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
 
 
-def set_seed(seed, n_gpu):
+def set_seed(seed):
+    assert isinstance(seed, int), "seed must be an integer."
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if n_gpu > 0:
-        torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def reset_seed():
+    random.seed()
+    np.random.seed()
+    torch.seed()
+    torch.cuda.seed_all()
