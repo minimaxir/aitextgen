@@ -63,7 +63,7 @@ class TokenDataset(Dataset):
                 texts, add_special_tokens=True, max_length=block_size
             )["input_ids"]
 
-            self.str_suffix = "from line-by-line file at {}.".format(file_path)
+            self.str_suffix = f"from line-by-line file at {file_path}."
 
         # if a file is specified, and it's not line-delimited,
         # the texts must be parsed in chunks.
@@ -87,7 +87,7 @@ class TokenDataset(Dataset):
                     )
                 )
 
-            self.str_suffix = "from file at {}.".format(file_path)
+            self.str_suffix = f"from file at {file_path}."
             self.is_text_samples = False
 
         logger.info("{:,} samples loaded.".format(len(self.examples)))
@@ -110,9 +110,7 @@ class TokenDataset(Dataset):
         return torch.tensor(self.examples[item], dtype=torch.long)
 
     def __repr__(self):
-        return "TokenDataset containing {:,} examples loaded {}".format(
-            len(self.examples), self.str_suffix
-        )
+        return f"TokenDataset containing {len(self.examples):,} examples loaded {self.str_suffix}"
 
 
 def read_lines_from_file(file_path, header=True):

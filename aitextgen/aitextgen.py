@@ -47,7 +47,7 @@ class aitextgen:
                     )
 
                 model = os.path.join(cache_dir, "pytorch_model.bin")
-            logger.info("Loading GPT-2 model from %s.", model)
+            logger.info(f"Loading GPT-2 model from {model}.")
             self.model = AutoModelWithLMHead.from_pretrained(
                 model, config=GPT2Config(),
             )
@@ -142,7 +142,7 @@ class aitextgen:
         """
 
         for temperature in temperatures:
-            print("#" * 20 + "\nTemperature: {}\n".format(temperature) + "#" * 20)
+            print("#" * 20 + f"\nTemperature: {temperature}\n" + "#" * 20)
             self.generate(n=n, temperature=temperature, return_as_list=False, **kwargs)
 
     def generate_to_file(
@@ -152,7 +152,7 @@ class aitextgen:
         destination_path=None,
         sample_delim="=" * 20 + "\n",
         seed=None,
-        **kwargs
+        **kwargs,
     ):
 
         """
@@ -168,14 +168,12 @@ class aitextgen:
             if seed is None:
                 seed = randint(10 ** 7, 10 ** 8 - 1)
 
-            destination_path = "ATG_{:%Y%m%d_%H%M%S}_{}.txt".format(
-                datetime.utcnow(), seed
-            )
+            destination_path = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}_{seed}.txt"
 
         if seed:
             set_seed(seed)
 
-        logging.info("Generating {:,} texts to {}".format(n, destination_path))
+        logging.info(f"Generating {n:,} texts to {destination_path}")
 
         pbar = trange(n)
         f = open(destination_path, "w", encoding="utf-8")
