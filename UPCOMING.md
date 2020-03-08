@@ -2,7 +2,7 @@
 
 Here is a list of features, in no particular order, of what I *hope* to add to aitextgen, given that it's feasible.
 
-* Must be TPU compatible (work with SavedModel + GCP gpu)
+* Must be TPU compatible
     * Must be able to train using Colab's free TPU, if possible
 * Sparse Transformers?
 * Have a super minimal version that can be distributed with a package. (< 3MB)
@@ -26,14 +26,15 @@ Here is a list of features, in no particular order, of what I *hope* to add to a
     * Use dimensionality to calculate a similarity score from generated texts to real texts; scores below a threshold may be considered incoherent and can be discarded.
 * Dedupe existing texts when generating using token id matching.
     * Allow users to load data outside of finetuning, which will be necessary for blending training.
-* Async generation, for batch generation
 * Tensorboard support as a parameter
 * Allow cycling context tokens when generating
 * Use ray for async generation. May need a custom generation function.
-    * Use web sockets in starlette so output can be returned token by token.
+    * Use websockets in [starlette](https://www.starlette.io) so output can be returned token by token.
 * Use pytorch-lightning for easy TPU support
     * https://github.com/huggingface/transformers/pull/3053
 * Unlimited text generation regardless of model window size.
+* Support CPU-based XLA for faster PyTorch CPU Train/Predict performance
+* Export function: PyTorch trace, TensorFlow Serving, TensorFlow.js, CoreML
 
 ## Completed Features
 
