@@ -1,0 +1,32 @@
+site_name: aitextgen
+site_description: Making AI Text Generation Easy.
+
+theme:
+  name: "material"
+  palette:
+    primary: "indigo"
+    accent: "indigo"
+  font:
+    text: "Source Sans Pro"
+    code: "Fira Code"
+  feature:
+    tabs: true
+
+repo_name: minimaxir/aitextgen
+repo_url: https://github.com/minimaxir/aitextgen
+edit_uri: ""
+
+copyright: "Copyright &copy; 2019 - 2020 Max Woolf"
+
+extra:
+  social:
+    - type: "github"
+      link: "hhttps://github.com/minimaxir/aitextgen"
+    - type: "twitter"
+      link: "https://twitter.com/minimaxir"
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - mkautodoc
+  - admonition
