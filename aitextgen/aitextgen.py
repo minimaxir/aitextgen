@@ -27,6 +27,18 @@ logger = logging.getLogger(__name__)
 
 
 class aitextgen:
+    """
+    Class that serves as the main aitextgen object for training and generation.
+
+    ## Parameters
+
+    * **model**: transformers model. If None, uses distilgpt2.
+    * **config**: transformers config for the model. If None, uses distilgpt2.
+    * **cache_dir**: folder path which has the current model alredy
+    * tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
+    will convert the model to PyTorch if not present.
+    """
+
     def __init__(self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None):
 
         if tf_gpt2 is not None:
@@ -77,6 +89,30 @@ class aitextgen:
         return_as_list=False,
         seed=None,
     ):
+        """
+        Generates texts using the stored Transformers model.
+        Currently generates text using the model's generate() function.
+
+        ## Parameters
+
+        * **n**: Numbers of texts to generate.
+        * **prompt**: Text to force the generated text to start with
+        * **max_length**: Maximum length for the generated text
+        * **temperature**: Determines the "creativity" of the generated text.
+        The value range is different for each type of Transformer.
+        * **do_sample**: Samples the text, which is what we want. If False,
+        the generated text will be the optimal prediction at each time,
+        and therefore deterministic.
+        * **bos_token**: Token which indicates the start of a text.
+        Uses model setting if not set.
+        * **bos_token**: Token which indicates the end of a text.
+        Uses model setting if not set.
+        * **return_as_list**: Boolean which determine if text should be returned
+        as a list. If False, the generated texts will be print to console.
+        * **seed**: A numeric seed which sets all randomness, allowing the
+        generate text to be reprodible if rerunning with same parameters
+        and model.
+        """
 
         if prompt:
             prompt_text = prompt
@@ -129,9 +165,10 @@ class aitextgen:
 
     def generate_one(self, **kwargs):
         """
-        Generates a single text, and returns it as a string.
+        Generates a single text, and returns it as a string. Useful for
+        returning a generated text within an API.
 
-        Useful for returning a generated text within an API.
+        See generate() for more parameters.
         """
 
         return self.generate(n=1, return_as_list=True, **kwargs)[0]
@@ -156,7 +193,20 @@ class aitextgen:
     ):
 
         """
-        Generates a bulk amount of texts to a file.
+        Generates a bulk amount of texts to a file, into a format
+        good for manually inspecting and curating the texts.
+
+        ## Parameters
+
+        * **n**: Number of texts to generate
+        * **batch_size**: Number of texts to generate simultaneously, taking
+        advantage of CPU/GPU parallelization.
+        * **destination_path**: File name of the file. If None, a timestampped
+        file name is automatically used.
+        * **sample_delim**: The text used to delimit each generated text.
+        * **seed**: Seed used for the generation.
+
+        See generate() for more parameters.
         """
 
         assert n % batch_size == 0, "n must be divisible by batch_size."
@@ -277,13 +327,17 @@ class aitextgen:
 
 def encode_text(text, tokenizer):
     """
-    Encodes text into an id-based tensor.
+    Encodes text into an id-based tensor using the given tokenizer.
     """
 
     return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
 
 
 def set_seed(seed):
+    """
+    Sets the seed for all potential generation libraries.
+    """
+
     assert isinstance(seed, int), "seed must be an integer."
     random.seed(seed)
     np.random.seed(seed)
@@ -292,6 +346,9 @@ def set_seed(seed):
 
 
 def reset_seed():
+    """
+    Resets the seed for all potential generation libraries.
+    """
     random.seed()
     np.random.seed()
     torch.seed()

@@ -15,20 +15,36 @@ class TokenDataset(Dataset):
     Class that merges TextDataset and LineByLineTextDataset from
     run_language_modeling.py in transformers, plus
     adds more ways to ingest text such as with CSVs.
+
+    ## Parameters
+
+    * **tokenizer**: Tokenizer for the corresponding model.
+    * **texts**: A list of input texts (if providing texts manually)
+    * **file_path**: A string indicating the relative file path of the text
+    to be tokenized.
+    * **line_by_line**: A boolean to indicate if the input file should be read
+    line by line (True) or as a full text (False).
+    * **from_cache**: A string indicating if loading from a pregenerated MsgPack
+    dump.
+    * **header**: A boolean indicating if loading from a CSV, if it has a header.
+    * **save_cache**: A boolean indicating whether to save the tokenized
+    dataset as a MsgPack dump to load later.
+    * **cache_destination**: A string indicating where to save the cache.
+    * **block_size**: An integer indicating maximum length of the text document
+    (usually set by the model architecture)
     """
 
     def __init__(
         self,
         tokenizer=None,
         texts=None,
-        line_by_line=None,
         file_path=None,
+        line_by_line=None,
         from_cache=False,
         header=True,
         save_cache=False,
         cache_destination=None,
         block_size=1024,
-        is_text_samples=True,
     ):
 
         assert any([texts, file_path]), "texts or file_path must be specified."
