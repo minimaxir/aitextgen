@@ -6,6 +6,7 @@ import logging
 import csv
 import os
 import msgpack
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ class TokenDataset(Dataset):
     * **cache_destination**: A string indicating where to save the cache.
     * **block_size**: An integer indicating maximum length of the text document
     (usually set by the model architecture)
+    * **tokenized_texts**: Texts that are already tokenized; only should
+    be used by merge_datasets().
     """
 
     def __init__(
@@ -45,7 +48,14 @@ class TokenDataset(Dataset):
         save_cache=False,
         cache_destination=None,
         block_size=1024,
+        tokenized_texts=None,
     ):
+
+        # Special case; load tokenized texts immediately
+        if tokenized_texts:
+            self.examples = tokenized_texts
+            self.str_suffix = "by merging TokenDatasets."
+            return
 
         assert any([texts, file_path]), "texts or file_path must be specified."
         if not from_cache:
@@ -148,3 +158,37 @@ def read_lines_from_file(file_path, header=True):
             ]
 
     return texts
+
+
+def merge_datasets(datasets, equalize=True, seed=None):
+    """
+    Merges multiple TokenDatasets into a single TokenDataset.
+    This assumes that you are using the same tokenizer for all TokenDatasets.
+
+    ## Parameters
+
+    * **datasets**: A list of TokenDatasets.
+    * **equalize**: Whether to take an equal amount of samples from all
+    input datasets (by taking random samples from each dataset equal to the smallest dataset) in order to balance out the result dataset.
+    * **seed**: Seed to control the random sampling, if using equalize.
+    """
+
+    len_smallest = min([len(dataset) for dataset in datasets])
+
+    if seed:
+        random.seed(seed)
+
+    tokenized_texts = []
+
+    for dataset in datasets:
+        if equalize:
+            texts_subset = random.sample(dataset.examples, len_smallest)
+            tokenized_texts.append(texts_subset)
+        else:
+            tokenized_texts.append(dataset.examples)
+
+    # Reset seed
+    if seed:
+        random.seed()
+
+    return TokenDataset(tokenized_texts=tokenized_texts)
