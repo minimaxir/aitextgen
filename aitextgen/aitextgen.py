@@ -252,15 +252,41 @@ class aitextgen:
         n_tpu_cores=0,
         max_grad_norm=1.0,
         gradient_accumulation_steps=1,
-        seed=42,
+        seed=None,
         learning_rate=5e-3,
         weight_decay=0.0,
         adam_epsilon=1e-8,
         warmup_steps=0,
-        num_epochs=3,
+        num_steps=5000,
+        optimizer=None,
+        loggers=None,
     ):
         """
-        Trains/finetunes the model on the provided file/dataset.
+        Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
+
+        ## Parameters
+
+        * **dataset**: A TokenDataset containing the samples to be trained.
+        * **file_path**: A string containing the text to be trained (shortcut
+        instead of dataset)
+        * **output_dir**: A string indicating where to store the resulting
+        model file folder.
+        * **fp16**: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
+        * **fp16_opt_level**: Option level for FP16/APEX training.
+        * **n_gpu**: Number of GPU to use (-1 implies all available GPUs)
+        * **n_tpu_cores**: Number of TPU cores to use (should be a multiple of 8)
+        * **max_grad_norm**: Maximum gradient normalization
+        * **gradient_accumulation_steps**: Number of gradient acc steps; can be increased
+        to avoid going out-of-memory
+        * **seed**: Interger representing the training seed.
+        * **learning_rate**: Training learnign rate for the default AdamW optimizer.
+        * **weight_decay**: Weight decay for the default AdamW optimizer.
+        * **warmup_steps**: Warmrup steps for the default AdamW optimizer.
+        * **num_steps**: Number of samples through the dataset.
+        * **optimizer**: A PyTorch optimizer for the training, which will
+        override the default AdamW optimizer + parameter settings.
+        * **callbacks**: pytorch-lightning callbacks.
+        * **loggers**: pytorch-lightning logger(s) to log results.
         """
 
         assert any(
@@ -276,7 +302,8 @@ class aitextgen:
         train_model = ATGTransformer(self.model, dataset, hparams)
 
         # Begin training
-        set_seed(seed, n_gpu)
+        if seed:
+            set_seed(seed)
 
         if os.path.exists(output_dir) and os.listdir(output_dir):
             raise ValueError(
@@ -296,25 +323,24 @@ class aitextgen:
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
-            max_epochs=num_epochs,
-            early_stop_callback=False,
+            max_steps=max_steps,
+            show_progress_bar=True,
             gradient_clip_val=max_grad_norm,
             checkpoint_callback=checkpoint_callback,
+            check_val_every_n_epoch=0,
         )
 
         if fp16:
-            train_params["use_amp"] = fp16
+            train_params["precision"] = 16 if fp16 else 32
             train_params["amp_level"] = fp16_opt_level
 
         if n_tpu_cores > 0:
-            try:
-                global xm
-                import torch_xla.core.xla_model as xm
-            except ImportError as error:
-                logging.error(error)
-
             train_params["num_tpu_cores"] = n_tpu_cores
             train_params["gpus"] = 0
+
+        # benchmark gives a boost for GPUs if input size is constant
+        if n_gpu > 0:
+            train_params["benchmark"] = True
 
         if n_gpu > 1:
             train_params["distributed_backend"] = "ddp"
@@ -322,7 +348,10 @@ class aitextgen:
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
 
-        self.model = trainer
+        self.model = trainer.model
+
+        if seed:
+            reset_seed()
 
 
 def encode_text(text, tokenizer):

@@ -53,11 +53,6 @@ class ATGTransformer(BaseTransformer):
                 examples, batch_first=True, padding_value=self.tokenizer.pad_token_id
             )
 
-        if self.hparams.n_gpu > 1 or self.hparams.n_tpu_cores > 0:
-            train_sampler = DistributedSampler(self.dataset)
-        else:
-            train_sampler = RandomSampler(self.dataset)
-
         return DataLoader(
             self.dataset,
             sampler=train_sampler,
