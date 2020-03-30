@@ -4,10 +4,9 @@
 import logging
 
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import DataLoader, RandomSampler
-from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from transformers import get_linear_schedule_with_warmup
+from transformers import AdamW, get_linear_schedule_with_warmup
 
 
 logger = logging.getLogger(__name__)
@@ -18,13 +17,13 @@ class ATGTransformer(pl.LightningModule):
     A training module for aitextgen.
     """
 
-    def __init__(self, model, config, dataset, hparams):
+    def __init__(self, model, dataset, hparams, pad):
         super(ATGTransformer, self).__init__()
-        self.model, self.config, self.dataset, self.hparams = (
+        self.model, self.dataset, self.hparams, self.pad = (
             model,
-            config,
             dataset,
             hparams,
+            pad,
         )
 
     def forward(self, **inputs):
@@ -34,25 +33,26 @@ class ATGTransformer(pl.LightningModule):
         "Compute loss and log."
         inputs = {
             "input_ids": batch[0],
-            "labels": batch[1],
         }
 
-        outputs = self.forward(**inputs)
+        outputs = self(**inputs)
         loss = outputs[0]
 
         return {"loss": loss}
 
-    def train_dataloader(self, batch_size):
+    def train_dataloader(self):
         "Load datasets. Called after prepare data."
 
         def collate(examples):
-            if self.tokenizer._pad_token is None:
+            if self.pad["pad_token"] is None:
                 return pad_sequence(examples, batch_first=True)
             return pad_sequence(
-                examples, batch_first=True, padding_value=self.tokenizer.pad_token_id
+                examples, batch_first=True, padding_value=self.pad["pad_token_id"]
             )
 
-        return DataLoader(self.dataset, batch_size=batch_size, collate_fn=collate,)
+        return DataLoader(
+            self.dataset, batch_size=self.hparams["batch_size"], collate_fn=collate,
+        )
 
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
@@ -66,7 +66,7 @@ class ATGTransformer(pl.LightningModule):
                     for n, p in model.named_parameters()
                     if not any(nd in n for nd in no_decay)
                 ],
-                "weight_decay": self.hparams.weight_decay,
+                "weight_decay": self.hparams["weight_decay"],
             },
             {
                 "params": [
@@ -79,14 +79,14 @@ class ATGTransformer(pl.LightningModule):
         ]
         optimizer = AdamW(
             optimizer_grouped_parameters,
-            lr=self.hparams.learning_rate,
-            eps=self.hparams.adam_epsilon,
+            lr=self.hparams["learning_rate"],
+            eps=self.hparams["adam_epsilon"],
         )
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=self.hparams.warmup_steps,
-            num_training_steps=args.num_steps,
+            num_warmup_steps=self.hparams["warmup_steps"],
+            num_training_steps=self.hparams["num_steps"],
         )
 
         return [optimizer], [scheduler]
@@ -101,7 +101,7 @@ class ATGTransformer(pl.LightningModule):
     def get_tqdm_dict(self):
         tqdm_dict = {
             "loss": f"{self.trainer.avg_loss:.3f}",
-            "lr": self.lr_scheduler.get_last_lr()[-1],
+            # "lr": self.lr_scheduler.get_last_lr()[-1],
         }
 
         return tqdm_dict

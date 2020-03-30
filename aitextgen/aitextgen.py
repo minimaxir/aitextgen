@@ -259,6 +259,8 @@ class aitextgen:
         warmup_steps=0,
         num_steps=5000,
         loggers=None,
+        batch_size=1,
+        **kwargs,
     ):
         """
         Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
@@ -300,10 +302,17 @@ class aitextgen:
             learning_rate=learning_rate,
             adam_epsilon=adam_epsilon,
             warmup_steps=warmup_steps,
+            batch_size=batch_size,
+            num_steps=num_steps,
+        )
+
+        pad = dict(
+            pad_token=self.tokenizer._pad_token,
+            pad_token_id=self.tokenizer.pad_token_id,
         )
 
         # Wrap the model in a pytorch-lightning module
-        train_model = ATGTransformer(self.model, self.config, dataset, hparams)
+        train_model = ATGTransformer(self.model, dataset, hparams, pad)
 
         # Begin training
         if seed:
@@ -319,11 +328,12 @@ class aitextgen:
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
-            max_steps=max_steps,
+            max_steps=num_steps,
             show_progress_bar=True,
             gradient_clip_val=max_grad_norm,
-            checkpoint_callback=checkpoint_callback,
+            # checkpoint_callback=checkpoint_callback,
             check_val_every_n_epoch=0,
+            logger=False,
         )
 
         if fp16:
