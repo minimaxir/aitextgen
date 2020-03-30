@@ -105,7 +105,7 @@ class aitextgen:
         and therefore deterministic.
         * **bos_token**: Token which indicates the start of a text.
         Uses model setting if not set.
-        * **bos_token**: Token which indicates the end of a text.
+        * **eos_token**: Token which indicates the end of a text.
         Uses model setting if not set.
         * **return_as_list**: Boolean which determine if text should be returned
         as a list. If False, the generated texts will be print to console.
@@ -122,7 +122,7 @@ class aitextgen:
             bos_token_id = self.tokenizer.bos_token_id
 
         if not eos_token:
-            eos_token_ids = self.tokenizer.eos_token_id
+            eos_token_id = self.tokenizer.eos_token_id
 
         if seed:
             set_seed(seed)
@@ -133,7 +133,7 @@ class aitextgen:
             temperature=temperature,
             do_sample=do_sample,
             bos_token_id=bos_token_id,
-            eos_token_ids=eos_token_ids,
+            eos_token_id=eos_token_id,
             num_return_sequences=n,
         )
 
@@ -144,7 +144,7 @@ class aitextgen:
         if n > 1:
             gen_texts = [
                 self.tokenizer.decode(output, skip_special_tokens=True)
-                for output in outputs[0]
+                for output in outputs
             ]
         else:
             gen_texts = [self.tokenizer.decode(outputs[0], skip_special_tokens=True)]
@@ -258,7 +258,6 @@ class aitextgen:
         adam_epsilon=1e-8,
         warmup_steps=0,
         num_steps=5000,
-        optimizer=None,
         loggers=None,
     ):
         """
@@ -283,8 +282,6 @@ class aitextgen:
         * **weight_decay**: Weight decay for the default AdamW optimizer.
         * **warmup_steps**: Warmrup steps for the default AdamW optimizer.
         * **num_steps**: Number of samples through the dataset.
-        * **optimizer**: A PyTorch optimizer for the training, which will
-        override the default AdamW optimizer + parameter settings.
         * **callbacks**: pytorch-lightning callbacks.
         * **loggers**: pytorch-lightning logger(s) to log results.
         """
@@ -298,8 +295,15 @@ class aitextgen:
                 tokenizer=self.tokenizer, file_path=file_path, **kwargs
             )
 
+        hparams = dict(
+            weight_decay=weight_decay,
+            learning_rate=learning_rate,
+            adam_epsilon=adam_epsilon,
+            warmup_steps=warmup_steps,
+        )
+
         # Wrap the model in a pytorch-lightning module
-        train_model = ATGTransformer(self.model, dataset, hparams)
+        train_model = ATGTransformer(self.model, self.config, dataset, hparams)
 
         # Begin training
         if seed:
@@ -311,14 +315,6 @@ class aitextgen:
                     output_dir
                 )
             )
-
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            filepath=output_dir,
-            prefix="checkpoint",
-            monitor="train_loss",
-            mode="min",
-            save_top_k=1,
-        )
 
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
