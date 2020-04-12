@@ -31,9 +31,7 @@ class ATGTransformer(pl.LightningModule):
 
     def training_step(self, batch, batch_num):
         "Compute loss and log."
-        inputs = {
-            "input_ids": batch[0],
-        }
+        inputs = {"input_ids": batch[0], "labels": batch[0]}
 
         outputs = self(**inputs)
         loss = outputs[0]
@@ -98,10 +96,10 @@ class ATGTransformer(pl.LightningModule):
     #     optimizer.zero_grad()
     #     self.lr_scheduler.step()
 
-    def get_tqdm_dict(self):
-        tqdm_dict = {
-            "loss": f"{self.trainer.avg_loss:.3f}",
-            # "lr": self.lr_scheduler.get_last_lr()[-1],
-        }
+    # def get_tqdm_dict(self):
+    #     tqdm_dict = {
+    #         "loss": f"{self.trainer.avg_loss:.3f}",
+    #         # "lr": self.lr_scheduler.get_last_lr()[-1],
+    #     }
 
-        return tqdm_dict
+    #     return tqdm_dict

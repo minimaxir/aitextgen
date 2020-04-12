@@ -332,8 +332,9 @@ class aitextgen:
             show_progress_bar=True,
             gradient_clip_val=max_grad_norm,
             # checkpoint_callback=checkpoint_callback,
-            check_val_every_n_epoch=0,
+            # check_val_every_n_epoch=0,
             logger=False,
+            disable_validation=True,
         )
 
         if fp16:
