@@ -49,7 +49,11 @@ class ATGTransformer(pl.LightningModule):
             )
 
         return DataLoader(
-            self.dataset, batch_size=self.hparams["batch_size"], collate_fn=collate,
+            self.dataset,
+            batch_size=self.hparams["batch_size"],
+            collate_fn=collate,
+            shuffle=True,
+            pin_memory=self.hparams["pin_memory"],
         )
 
     def configure_optimizers(self):

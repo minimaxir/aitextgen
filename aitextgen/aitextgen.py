@@ -260,6 +260,7 @@ class aitextgen:
         num_steps=5000,
         loggers=None,
         batch_size=1,
+        num_workers=0,
         **kwargs,
     ):
         """
@@ -304,6 +305,8 @@ class aitextgen:
             warmup_steps=warmup_steps,
             batch_size=batch_size,
             num_steps=num_steps,
+            pin_memory=True if n_gpu > 0 else False,
+            num_workers=num_workers,
         )
 
         pad = dict(
@@ -335,6 +338,7 @@ class aitextgen:
             # check_val_every_n_epoch=0,
             logger=False,
             disable_validation=True,
+            weights_summary=None,
         )
 
         if fp16:
