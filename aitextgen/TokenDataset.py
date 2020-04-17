@@ -7,6 +7,7 @@ import csv
 import os
 import msgpack
 import random
+import gzip
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,8 @@ class TokenDataset(Dataset):
         from_cache=False,
         header=True,
         save_cache=False,
-        cache_destination=None,
+        cache_destination="model_cache.tar.gz",
+        compress=True,
         block_size=1024,
         tokenized_texts=None,
     ):
@@ -63,7 +65,9 @@ class TokenDataset(Dataset):
 
         # If a cache path is provided, load it.
         if from_cache:
-            with open(file_path, "rb") as f:
+            open_func = gzip.open if file_path.endswith(".gz") else open
+
+            with open_func(file_path, "rb") as f:
                 self.examples = msgpack.unpack(f)
             self.str_suffix = "via cache."
 
@@ -114,14 +118,26 @@ class TokenDataset(Dataset):
         logger.info("{:,} samples loaded.".format(len(self.examples)))
 
         if save_cache:
-            self.save(cache_destination)
+            self.save(cache_destination, compress=compress)
 
-    def save(self, cache_destination="model_cache.msgpack"):
+    def save(self, cache_destination="model_cache.tar.gz", compress=True):
         assert len(self.examples) > 0, "No data loaded to save."
 
-        logger.info("Caching dataset to {}".format(cache_destination))
+        if compress:
+            open_func = gzip.open
+            compress_str = "and compressing "
+        else:
+            open_func = open
+            cache_destination = (
+                "model_cache.msgpack"
+                if cache_destination == "model_cache.tar.gz"
+                else cache_destination
+            )
+            compress_str = ""
 
-        with open(cache_destination, "wb") as f:
+        logger.info(f"Caching {compress_str}dataset to {cache_destination}")
+
+        with open_func(cache_destination, "wb") as f:
             msgpack.pack(self.examples, f)
 
     def __len__(self):
