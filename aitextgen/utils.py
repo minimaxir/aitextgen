@@ -1,6 +1,6 @@
 import os
 import requests
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 def download_gpt2(model_dir="tf_model", model_name="124M"):

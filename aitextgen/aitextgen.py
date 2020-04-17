@@ -2,14 +2,11 @@ from transformers import (
     AutoModelWithLMHead,
     AutoTokenizer,
     GPT2Config,
-    AutoModelForPreTraining,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
 )
 import torch
-from torch.utils.data import Dataset
-import time
 import os
 import re
 import logging
@@ -20,8 +17,8 @@ from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
 import random
 import numpy as np
-from .utils import *
-from .train import *
+from .utils import download_gpt2
+from .train import ATGTransformer
 
 logger = logging.getLogger(__name__)
 
