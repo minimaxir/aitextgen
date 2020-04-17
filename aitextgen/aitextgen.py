@@ -36,7 +36,9 @@ class aitextgen:
     will convert the model to PyTorch if not present.
     """
 
-    def __init__(self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None):
+    def __init__(
+        self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None, to_gpu=False
+    ):
 
         if tf_gpt2 is not None:
             if model is None:
@@ -73,6 +75,9 @@ class aitextgen:
             self.tokenizer = AutoTokenizer.from_pretrained(
                 "distilgpt2", cache_dir=cache_dir
             )
+
+        if to_gpu:
+            self.to_gpu()
 
     def generate(
         self,
@@ -356,10 +361,22 @@ class aitextgen:
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
 
-        self.model = trainer.model
+        self.model = train_model.model
 
         if seed:
             reset_seed()
+
+    def to_gpu(self, index=0):
+        """Moves the model to the specified GPU."""
+
+        assert torch.cuda.is_available(), "CUDA is not installed."
+
+        self.model.to(torch.device("cuda", index))
+
+    def to_cpu(self, index=0):
+        """Moves the model to the specified CPU."""
+
+        self.model.to(torch.device("cpu", index))
 
 
 def encode_text(text, tokenizer):
