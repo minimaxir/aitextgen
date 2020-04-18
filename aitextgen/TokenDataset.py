@@ -5,6 +5,7 @@ import os
 import msgpack
 import random
 import gzip
+from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class TokenDataset(Dataset):
         from_cache=False,
         header=True,
         save_cache=False,
-        cache_destination="model_cache.tar.gz",
+        cache_destination="dataset_cache.tar.gz",
         compress=True,
         block_size=1024,
         tokenized_texts=None,
@@ -93,9 +94,7 @@ class TokenDataset(Dataset):
         else:
             assert os.path.isfile(file_path)
 
-            block_size = block_size - (
-                tokenizer.max_len - tokenizer.max_len_single_sentence
-            )
+            block_size = block_size - tokenizer.num_special_tokens_to_add(pair=False)
 
             self.examples = []
             with open(file_path, encoding="utf-8") as f:
@@ -117,7 +116,7 @@ class TokenDataset(Dataset):
         if save_cache:
             self.save(cache_destination, compress=compress)
 
-    def save(self, cache_destination="model_cache.tar.gz", compress=True):
+    def save(self, cache_destination="dataset_cache.tar.gz", compress=True):
         assert len(self.examples) > 0, "No data loaded to save."
 
         if compress:
@@ -126,8 +125,8 @@ class TokenDataset(Dataset):
         else:
             open_func = open
             cache_destination = (
-                "model_cache.msgpack"
-                if cache_destination == "model_cache.tar.gz"
+                "dataset_cache.msgpack"
+                if cache_destination == "dataset_cache.tar.gz"
                 else cache_destination
             )
             compress_str = ""
