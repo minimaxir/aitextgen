@@ -1,0 +1,5 @@
+__pycache__
+test_notebooks/
+/build
+/dist
+*.egg-info
