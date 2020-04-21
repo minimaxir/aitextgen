@@ -284,7 +284,7 @@ class aitextgen:
         num_steps=5000,
         loggers=None,
         batch_size=1,
-        num_workers=0,
+        num_workers=None,
         **kwargs,
     ):
         """
@@ -321,6 +321,13 @@ class aitextgen:
             dataset = TokenDataset(
                 tokenizer=self.tokenizer, file_path=file_path, **kwargs
             )
+
+        if num_workers is None:
+            # Use all CPU cores as workers if not training on CPU
+            if n_gpu > 0 or n_tpu_cores > 0:
+                num_workers = os.cpu_count()
+            else:
+                num_workers = 0
 
         hparams = dict(
             weight_decay=weight_decay,
