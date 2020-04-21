@@ -2,6 +2,7 @@ from transformers import (
     AutoModelWithLMHead,
     AutoTokenizer,
     GPT2Config,
+    PretrainedConfig,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
@@ -21,6 +22,7 @@ from .utils import download_gpt2
 from .train import ATGTransformer
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class aitextgen:
@@ -37,7 +39,13 @@ class aitextgen:
     """
 
     def __init__(
-        self, model=None, config=None, cache_dir="aitextgen", tf_gpt2=None, to_gpu=False
+        self,
+        model=None,
+        config=None,
+        tokenizer=None,
+        cache_dir="aitextgen",
+        tf_gpt2=None,
+        to_gpu=False,
     ):
 
         if tf_gpt2 is not None:
@@ -59,6 +67,7 @@ class aitextgen:
 
                 model = os.path.join(cache_dir, "pytorch_model.bin")
             logger.info(f"Loading GPT-2 model from {model}.")
+
             self.model = AutoModelWithLMHead.from_pretrained(
                 model, config=GPT2Config(),
             )
@@ -69,12 +78,25 @@ class aitextgen:
                 logger.info("Loading model from cache.")
             else:
                 logger.info("Downloading model.")
-            self.model = AutoModelWithLMHead.from_pretrained(
-                "distilgpt2", cache_dir=cache_dir
+
+            if config is not None:
+                config = build_config(config, cache_dir)
+            else:
+                config = GPT2Config()
+
+            self.model = AutoModelWithLMHead.from_config(
+                config=config, cache_dir=cache_dir
             )
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                "distilgpt2", cache_dir=cache_dir
-            )
+
+            if tokenizer is not None:
+                logger.info(
+                    "Using a custom tokenizer: it will be saved while training the model. "
+                )
+                self.tokenizer = tokenizer
+            else:
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    "gpt2", cache_dir=cache_dir
+                )
 
         if to_gpu:
             self.to_gpu()
@@ -407,3 +429,30 @@ def reset_seed():
     np.random.seed()
     torch.seed()
     torch.cuda.seed_all()
+
+
+def build_config(changes, cache_dir, base_config="gpt2"):
+    """
+    Builds a custom config based on a given Transformers config,
+    with a few more user-friendly aliases.
+    """
+
+    # Download but don't cache yet
+    config = PretrainedConfig.from_pretrained(
+        base_config, cache_dir=cache_dir
+    ).to_dict()
+
+    # use max_length as an alias for context window
+    if "max_length" in changes:
+        for key in ["n_positions", "n_ctx"]:
+            changes[key] = changes["max_length"]
+
+    # use dropout for relevant dropouts during training only
+    if "dropout" in changes:
+        for key in ["resid_pdrop", "embd_pdrop", "attn_pdrop"]:
+            changes[key] = changes["dropout"]
+
+    config.update(changes)
+    new_config = PretrainedConfig.from_dict(config)
+
+    return new_config
