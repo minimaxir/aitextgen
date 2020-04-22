@@ -46,7 +46,11 @@ class aitextgen:
         cache_dir="aitextgen",
         tf_gpt2=None,
         to_gpu=False,
+        verbose=False,
     ):
+
+        if not verbose:
+            logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)
 
         if tf_gpt2 is not None:
             if model is None:
