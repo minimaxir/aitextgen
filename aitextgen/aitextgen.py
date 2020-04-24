@@ -20,6 +20,13 @@ import random
 import numpy as np
 from .utils import download_gpt2
 from .train import ATGTransformer
+from .colab import (
+    mount_gdrive,
+    copy_checkpoint_to_gdrive,
+    copy_checkpoint_from_gdrive,
+    copy_file_to_gdrive,
+    copy_file_from_gdrive,
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
