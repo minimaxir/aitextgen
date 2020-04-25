@@ -2,7 +2,6 @@ from transformers import (
     AutoModelWithLMHead,
     AutoTokenizer,
     GPT2Config,
-    PretrainedConfig,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
@@ -16,8 +15,6 @@ from datetime import datetime
 from random import randint
 from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
-import random
-import numpy as np
 from .utils import download_gpt2, encode_text, set_seed, reset_seed, build_config
 from .train import ATGTransformer
 from .colab import (
@@ -436,6 +433,22 @@ class aitextgen:
                 num_steps=num_steps[i],
                 **kwargs,
             )
+
+    def export(self, for_gpu=False):
+        """Exports the model to TorchScript.
+
+        for_gpu should be set to True if the resulting model is intended to
+        be run on a GPU.
+        """
+
+        if for_gpu:
+            self.to_gpu()
+        else:
+            self.to_cpu()
+
+        example = torch.tensor([self.tokenizer.encode("")])
+        traced_model = torch.jit.trace(self.model, example)
+        traced_model.save("model.pt")
 
     def to_gpu(self, index=0):
         """Moves the model to the specified GPU."""
