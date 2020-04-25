@@ -406,6 +406,38 @@ class aitextgen:
         if seed:
             reset_seed()
 
+    def cross_train(self, inputs, learning_rate=5e-3, num_steps=5000, **kwargs):
+        """Trains a model across multiple input datasets, with automatic
+        decay after each run."""
+
+        files = True if all([isinstance(x, str) for x in inputs]) else False
+
+        if files:
+            inputs = [
+                TokenDataset(tokenizer=self.tokenizer, file_path=x, **kwargs)
+                for x in inputs
+            ]
+
+        if not isinstance(learning_rate, list):
+            learning_rate = [learning_rate / x for x in range(len(inputs))]
+
+        if not isinstance(num_steps, list):
+            num_steps = [int(num_steps / x) for x in range(len(inputs))]
+
+        assert len(inputs) == len(learning_rate) == len(num_steps), (
+            "The provided learning_rates or num_steps"
+            + " is not equal to the number of inputs."
+        )
+
+        for i, dataset in enumerate(inputs):
+            logger.info(f"Now training on {dataset} for {num_steps[i]:,} steps.")
+            self.train(
+                dataset=dataset,
+                learning_rate=learning_rate[i],
+                num_steps=num_steps[i],
+                **kwargs,
+            )
+
     def to_gpu(self, index=0):
         """Moves the model to the specified GPU."""
 

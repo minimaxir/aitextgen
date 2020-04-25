@@ -87,6 +87,7 @@ class TokenDataset(Dataset):
                 texts, add_special_tokens=True, max_length=block_size
             )["input_ids"]
 
+            self.file_path = file_path
             self.str_suffix = f"from line-by-line file at {file_path}."
 
         # if a file is specified, and it's not line-delimited,
@@ -109,6 +110,7 @@ class TokenDataset(Dataset):
                     )
                 )
 
+            self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
         logger.info("{:,} samples loaded.".format(len(self.examples)))
@@ -141,6 +143,9 @@ class TokenDataset(Dataset):
 
     def __getitem__(self, item):
         return torch.tensor(self.examples[item], dtype=torch.long)
+
+    def __str__(self):
+        return self.file_path if self.file_path is not None else "loaded dataset"
 
     def __repr__(self):
         return f"TokenDataset containing {len(self.examples):,} examples loaded {self.str_suffix}"
