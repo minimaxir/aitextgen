@@ -410,26 +410,25 @@ class aitextgen:
         """Trains a model across multiple input datasets, with automatic
         decay after each run."""
 
-        files = True if all([isinstance(x, str) for x in inputs]) else False
-
-        if files:
-            inputs = [
-                TokenDataset(tokenizer=self.tokenizer, file_path=x, **kwargs)
-                for x in inputs
-            ]
+        datasets = [
+            TokenDataset(tokenizer=self.tokenizer, file_path=x, **kwargs)
+            if isinstance(x, str)
+            else x
+            for x in inputs
+        ]
 
         if not isinstance(learning_rate, list):
-            learning_rate = [learning_rate / x for x in range(len(inputs))]
+            learning_rate = [learning_rate / x for x in range(len(datasets))]
 
         if not isinstance(num_steps, list):
-            num_steps = [int(num_steps / x) for x in range(len(inputs))]
+            num_steps = [int(num_steps / x) for x in range(len(datasets))]
 
-        assert len(inputs) == len(learning_rate) == len(num_steps), (
+        assert len(datasets) == len(learning_rate) == len(num_steps), (
             "The provided learning_rates or num_steps"
             + " is not equal to the number of inputs."
         )
 
-        for i, dataset in enumerate(inputs):
+        for i, dataset in enumerate(datasets):
             logger.info(f"Now training on {dataset} for {num_steps[i]:,} steps.")
             self.train(
                 dataset=dataset,
