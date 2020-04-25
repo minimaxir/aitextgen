@@ -18,7 +18,7 @@ from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
 import random
 import numpy as np
-from .utils import download_gpt2
+from .utils import download_gpt2, encode_text, set_seed, reset_seed, build_config
 from .train import ATGTransformer
 from .colab import (
     mount_gdrive,
@@ -448,60 +448,3 @@ class aitextgen:
         """Moves the model to the specified CPU."""
 
         self.model.to(torch.device("cpu", index))
-
-
-def encode_text(text, tokenizer):
-    """
-    Encodes text into an id-based tensor using the given tokenizer.
-    """
-
-    return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
-
-
-def set_seed(seed):
-    """
-    Sets the seed for all potential generation libraries.
-    """
-
-    assert isinstance(seed, int), "seed must be an integer."
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-
-def reset_seed():
-    """
-    Resets the seed for all potential generation libraries.
-    """
-    random.seed()
-    np.random.seed()
-    torch.seed()
-    torch.cuda.seed_all()
-
-
-def build_config(changes, cache_dir, base_config="gpt2"):
-    """
-    Builds a custom config based on a given Transformers config,
-    with a few more user-friendly aliases.
-    """
-
-    # Download but don't cache yet
-    config = PretrainedConfig.from_pretrained(
-        base_config, cache_dir=cache_dir
-    ).to_dict()
-
-    # use max_length as an alias for context window
-    if "max_length" in changes:
-        for key in ["n_positions", "n_ctx"]:
-            changes[key] = changes["max_length"]
-
-    # use dropout for relevant dropouts during training only
-    if "dropout" in changes:
-        for key in ["resid_pdrop", "embd_pdrop", "attn_pdrop"]:
-            changes[key] = changes["dropout"]
-
-    config.update(changes)
-    new_config = PretrainedConfig.from_dict(config)
-
-    return new_config

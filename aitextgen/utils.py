@@ -1,6 +1,10 @@
 import os
 import requests
 from tqdm.auto import tqdm
+import torch
+import numpy as np
+import random
+from transformers import PretrainedConfig
 
 
 def download_gpt2(model_dir="tf_model", model_name="124M"):
@@ -58,3 +62,60 @@ def download_file_with_progress(url_base, sub_dir, model_name, file_name):
             for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 f.write(chunk)
                 pbar.update(DOWNLOAD_CHUNK_SIZE)
+
+
+def encode_text(text, tokenizer):
+    """
+    Encodes text into an id-based tensor using the given tokenizer.
+    """
+
+    return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
+
+
+def set_seed(seed):
+    """
+    Sets the seed for all potential generation libraries.
+    """
+
+    assert isinstance(seed, int), "seed must be an integer."
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def reset_seed():
+    """
+    Resets the seed for all potential generation libraries.
+    """
+    random.seed()
+    np.random.seed()
+    torch.seed()
+    torch.cuda.seed_all()
+
+
+def build_config(changes, cache_dir, base_config="gpt2"):
+    """
+    Builds a custom config based on a given Transformers config,
+    with a few more user-friendly aliases.
+    """
+
+    # Download but don't cache yet
+    config = PretrainedConfig.from_pretrained(
+        base_config, cache_dir=cache_dir
+    ).to_dict()
+
+    # use max_length as an alias for context window
+    if "max_length" in changes:
+        for key in ["n_positions", "n_ctx"]:
+            changes[key] = changes["max_length"]
+
+    # use dropout for relevant dropouts during training only
+    if "dropout" in changes:
+        for key in ["resid_pdrop", "embd_pdrop", "attn_pdrop"]:
+            changes[key] = changes["dropout"]
+
+    config.update(changes)
+    new_config = PretrainedConfig.from_dict(config)
+
+    return new_config
