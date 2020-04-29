@@ -4,17 +4,13 @@ Here is a list of features, in no particular order, of what I _hope_ to add to a
 
 ## Training Features
 
-- Must be TPU compatible
-  - Must be able to train using Colab's free TPU, if possible
 - Sparse Transformers?
 - Include keyword conditioning as well
 - - For vocab prefix, use heuristics on tokens, since very speedy and can scale high with strong tokenizers
-- Cross-training multiple distinct text datasets
+- - Can use a custom `coalate` function to sample keywords out of a `<<text>>` block, and also shuffle the schema to augment text.
 - Context support, provided as a named dict to a generation function
 - Sample weighting, so network can weight earlier text in the sequence stronger than later text (e.g. recent tweets than older tweets!)
 - Replace tokens in a tokenizer, e.g. replace rare tokens in a tweet generator with <|startoftext|> to save space, or allow a manual replacement (store replacement dict in a JSON config)
-- Use pytorch-lightning for easy TPU support (https://github.com/huggingface/transformers/pull/3053)
-- Tensorboard/third-party training logging support via pytorch-lightning
 
 ## Generation Features
 
