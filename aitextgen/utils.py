@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 import torch
 import numpy as np
 import random
-from transformers import PretrainedConfig
+from transformers import PretrainedConfig, GPT2Config
 
 
 def download_gpt2(model_dir="tf_model", model_name="124M"):
@@ -119,3 +119,13 @@ def build_config(changes, cache_dir, base_config="gpt2"):
     new_config = PretrainedConfig.from_dict(config)
 
     return new_config
+
+
+def GPT2ConfigCPU(**kwargs):
+    """
+    Returns a GPT-2 config more suitable for training on a regular consumer CPU.
+    """
+
+    return GPT2Config(
+        n_positions=64, n_ctx=64, n_embd=128, n_layer=3, n_head=3, **kwargs
+    )
