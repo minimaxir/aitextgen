@@ -4,7 +4,7 @@ A robust tool for advanced AI text generation.
 
 aitextgen is a Python package that leverages [Huggingface Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation, plus _many_ added features. It is the successor to textgenrnn and gpt-2-simple, merging the advantages of both packages.
 
-- Finetunes on a pretrained GPT-2 model...or create your own GPT-2 model + tokenizer and train from scratch, even on your local computer!
+- Finetunes on a pretrained GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch, even on your local computer without a GPU!
 - Generates text faster than gpt-2-simple and with better memory efficiency.
 - Model agnostic and future-proofed to support new developments in the Transformers-based world.
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repository. Uses the `generate()` function to allow a massive amount of control over the generated text.
@@ -29,9 +29,43 @@ aitextgen can be installed from PyPI:
 pip3 install aitextgen
 ```
 
-## Quick Demo
+## Quick Example
 
-Here's how you can quickly
+Here's how you can quickly test out aitextgen on your own computer! Open up a Python console and go:
+
+```python
+import requests
+import os
+from aitextgen.tokenizers import train_tokenizer
+from aitextgen.utils import GPT2ConfigCPU
+from aitextgen import aitextgen
+
+# Download a Shakespeare text for training
+file_name = "shakespeare.txt"
+if not os.path.isfile(file_name):
+	url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+	data = requests.get(url)
+
+	with open(file_name, 'w') as f:
+		f.write(data.text)
+
+# Train a custom BPE Tokenizer on the downloaded text
+tokenizer = train_tokenizer(file_name)
+
+# GPT2ConfigCPU is a microvariant of GPT-2 optimized for CPU-training
+config = GPT2ConfigCPU()
+
+# Instantiate aitextgen using the created tokenizer and config
+ai = aitextgen(tokenizer=tokenizer, config=config)
+
+# Train the model! It will save to the /aitextgen folder after completion
+ai.train(file_name)
+
+# Generate text from it!
+ai.generate(5)
+```
+
+Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or follow the documentation to see how you can run these tools on Google Cloud Platform at maximum cost efficiency!
 
 ## Helpful Notes
 
@@ -56,7 +90,7 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 - If the generated human-curated, or if it's unsupervised random output
 - Indicating who is maintaining/curating the AI-generated text.
 
-It's fun to anthropomorphise the nameless "AI" as an absent genius, but part of the reason I made aitextgen is to make the technology more accessible and _accurate_ demonstrate both its promise, and its limitations. **AI text generation projects that are deliberately deceptive will not be signal-boosted by myself.**
+It's fun to anthropomorphise the nameless "AI" as an absent genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive will not be signal-boosted by myself.**
 
 ## Maintainer/Creator
 
