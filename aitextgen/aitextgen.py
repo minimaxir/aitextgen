@@ -17,13 +17,6 @@ from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
 from .utils import download_gpt2, encode_text, set_seed, reset_seed, build_config
 from .train import ATGTransformer
-from .colab import (
-    mount_gdrive,
-    copy_model_to_gdrive,
-    copy_model_from_gdrive,
-    copy_file_to_gdrive,
-    copy_file_from_gdrive,
-)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -42,6 +35,8 @@ class aitextgen:
     will convert the model to PyTorch if not present.
     """
 
+    torchscript = False
+
     def __init__(
         self,
         model=None,
@@ -51,10 +46,14 @@ class aitextgen:
         tf_gpt2=None,
         to_gpu=False,
         verbose=False,
+        torchscript=False,
     ):
 
         if not verbose:
             logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)
+
+        if torchscript:
+            self.torchscript = True
 
         if tf_gpt2 is not None:
             if model is None:
@@ -83,12 +82,13 @@ class aitextgen:
 
         elif model is None:
             if len(os.listdir(cache_dir)) > 0:
-                logger.info("Loading model from cache.")
+                logger.info(f"Loading model from {cache_dir}.")
             else:
                 logger.info("Downloading model.")
 
             if config is not None:
-                config = build_config(config, cache_dir)
+                if config is not isinstance(config, GPT2Config):
+                    config = build_config(config, cache_dir)
             else:
                 config = GPT2Config()
 
@@ -142,7 +142,7 @@ class aitextgen:
         * **return_as_list**: Boolean which determine if text should be returned
         as a list. If False, the generated texts will be print to console.
         * **seed**: A numeric seed which sets all randomness, allowing the
-        generate text to be reprodible if rerunning with same parameters
+        generate text to be reproducible if rerunning with same parameters
         and model.
         """
 
@@ -236,12 +236,15 @@ class aitextgen:
         * **destination_path**: File name of the file. If None, a timestampped
         file name is automatically used.
         * **sample_delim**: The text used to delimit each generated text.
-        * **seed**: Seed used for the generation.
+        * **seed**: Seed used for the generation. The last part of a file name
+        will be the seed used to reproduce a generation.
 
         See generate() for more parameters.
         """
 
         assert n % batch_size == 0, "n must be divisible by batch_size."
+
+        self.model = self.model.eval()
 
         if destination_path is None:
             # Create a time-based file name to prevent overwriting.
@@ -324,10 +327,16 @@ class aitextgen:
         assert any(
             [dataset, file_path]
         ), "Either dataset or file_path must be specified"
+        assert not self.torchscript, "You cannot train a traced TorchScript model."
+
+        self.model = self.model.train()
 
         if file_path:
             dataset = TokenDataset(
-                tokenizer=self.tokenizer, file_path=file_path, **kwargs
+                tokenizer=self.tokenizer,
+                file_path=file_path,
+                block_size=self.model.config["n_positions"],
+                **kwargs,
             )
 
         if num_workers is None:
@@ -447,7 +456,7 @@ class aitextgen:
             self.to_cpu()
 
         example = torch.tensor([self.tokenizer.encode("")])
-        traced_model = torch.jit.trace(self.model, example)
+        traced_model = torch.jit.trace(self.model.eval(), example)
         traced_model.save("model.pt")
 
     def to_gpu(self, index=0):
