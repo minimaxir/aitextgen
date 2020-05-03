@@ -17,6 +17,7 @@ from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
 from .utils import download_gpt2, encode_text, set_seed, reset_seed, build_config
 from .train import ATGTransformer
+from typing import Union, Optional, List
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -26,12 +27,10 @@ class aitextgen:
     """
     Class that serves as the main aitextgen object for training and generation.
 
-    ## Parameters
-
-    * **model**: transformers model. If None, uses distilgpt2.
-    * **config**: transformers config for the model. If None, uses distilgpt2.
-    * **cache_dir**: folder path which has the current model alredy
-    * tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
+    * :param model: transformers model. If None, uses distilgpt2.
+    * :param config: transformers config for the model. If None, uses distilgpt2.
+    * :param cache_dir: folder path which has the current model alredy
+    * :param tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
     will convert the model to PyTorch if not present.
     """
 
@@ -39,15 +38,15 @@ class aitextgen:
 
     def __init__(
         self,
-        model=None,
-        config=None,
-        tokenizer=None,
-        cache_dir="aitextgen",
-        tf_gpt2=None,
-        to_gpu=False,
-        verbose=False,
-        torchscript=False,
-    ):
+        model: str = None,
+        config: Union[str, GPT2Config] = None,
+        tokenizer: AutoTokenizer = None,
+        cache_dir: str = "aitextgen",
+        tf_gpt2: str = None,
+        to_gpu: bool = False,
+        verbose: bool = False,
+        torchscript: bool = False,
+    ) -> None:
 
         if not verbose:
             logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)
@@ -84,13 +83,13 @@ class aitextgen:
             if len(os.listdir(cache_dir)) > 0:
                 logger.info(f"Loading model from {cache_dir}.")
             else:
-                logger.info("Downloading model.")
+                logger.info("Downloading distilgpt2 model.")
 
             if config is not None:
                 if config is not isinstance(config, GPT2Config):
                     config = build_config(config, cache_dir)
             else:
-                config = GPT2Config()
+                config = GPT2Config("distilgpt2")
 
             self.model = AutoModelWithLMHead.from_config(
                 config=config, cache_dir=cache_dir
@@ -103,7 +102,7 @@ class aitextgen:
                 self.tokenizer = tokenizer
             else:
                 self.tokenizer = AutoTokenizer.from_pretrained(
-                    "gpt2", cache_dir=cache_dir
+                    "distilgpt2", cache_dir=cache_dir
                 )
 
         if to_gpu:
@@ -111,21 +110,19 @@ class aitextgen:
 
     def generate(
         self,
-        n=1,
-        prompt=None,
-        max_length=200,
-        temperature=1.0,
-        do_sample=True,
-        bos_token=None,
-        eos_token=None,
-        return_as_list=False,
-        seed=None,
-    ):
+        n: int = 1,
+        prompt: str = None,
+        max_length: int = 200,
+        temperature: float = 1.0,
+        do_sample: bool = True,
+        bos_token: str = None,
+        eos_token: str = None,
+        return_as_list: bool = False,
+        seed: int = None,
+    ) -> Optional[str]:
         """
         Generates texts using the stored Transformers model.
         Currently generates text using the model's generate() function.
-
-        ## Parameters
 
         * **n**: Numbers of texts to generate.
         * **prompt**: Text to force the generated text to start with
@@ -195,7 +192,7 @@ class aitextgen:
         else:
             return gen_texts
 
-    def generate_one(self, **kwargs):
+    def generate_one(self, **kwargs) -> None:
         """
         Generates a single text, and returns it as a string. Useful for
         returning a generated text within an API.
@@ -205,7 +202,9 @@ class aitextgen:
 
         return self.generate(n=1, return_as_list=True, **kwargs)[0]
 
-    def generate_samples(self, n=3, temperatures=[0.7, 1.0, 1.2], **kwargs):
+    def generate_samples(
+        self, n: int = 3, temperatures: List[float] = [0.7, 1.0, 1.2], **kwargs
+    ) -> None:
         """
         Prints multiple samples to console at specified temperatures.
         """
@@ -216,13 +215,13 @@ class aitextgen:
 
     def generate_to_file(
         self,
-        n=20,
-        batch_size=5,
-        destination_path=None,
-        sample_delim="=" * 20 + "\n",
-        seed=None,
+        n: int = 20,
+        batch_size: int = 5,
+        destination_path: str = None,
+        sample_delim: str = "=" * 20 + "\n",
+        seed: int = None,
         **kwargs,
-    ):
+    ) -> None:
 
         """
         Generates a bulk amount of texts to a file, into a format
@@ -278,26 +277,26 @@ class aitextgen:
 
     def train(
         self,
-        dataset=None,
-        file_path=None,
-        output_dir="",
-        fp16=False,
-        fp16_opt_level="O1",
-        n_gpu=-1,
-        n_tpu_cores=0,
-        max_grad_norm=1.0,
-        gradient_accumulation_steps=1,
-        seed=None,
-        learning_rate=5e-3,
-        weight_decay=0.0,
-        adam_epsilon=1e-8,
-        warmup_steps=0,
-        num_steps=5000,
-        loggers=None,
-        batch_size=1,
-        num_workers=None,
+        dataset: TokenDataset = None,
+        file_path: str = None,
+        output_dir: str = "",
+        fp16: bool = False,
+        fp16_opt_level: str = "O1",
+        n_gpu: int = -1,
+        n_tpu_cores: int = 0,
+        max_grad_norm: float = 1.0,
+        gradient_accumulation_steps: int = 1,
+        seed: int = None,
+        learning_rate: float = 5e-3,
+        weight_decay: float = 0.0,
+        adam_epsilon: float = 1e-8,
+        warmup_steps: int = 0,
+        num_steps: int = 5000,
+        loggers: List = None,
+        batch_size: int = 1,
+        num_workers: int = None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
 
@@ -412,7 +411,13 @@ class aitextgen:
         if seed:
             reset_seed()
 
-    def cross_train(self, inputs, learning_rate=5e-3, num_steps=5000, **kwargs):
+    def cross_train(
+        self,
+        inputs: List[TokenDataset],
+        learning_rate: Union[float, List[float]] = 5e-3,
+        num_steps: Union[int, List[int]] = 5000,
+        **kwargs,
+    ) -> None:
         """Trains a model across multiple input datasets, with automatic
         decay after each run."""
 
@@ -443,7 +448,7 @@ class aitextgen:
                 **kwargs,
             )
 
-    def export(self, for_gpu=False):
+    def export(self, for_gpu: bool = False) -> None:
         """Exports the model to TorchScript.
 
         for_gpu should be set to True if the resulting model is intended to
@@ -459,14 +464,14 @@ class aitextgen:
         traced_model = torch.jit.trace(self.model.eval(), example)
         traced_model.save("model.pt")
 
-    def to_gpu(self, index=0):
+    def to_gpu(self, index: int = 0) -> None:
         """Moves the model to the specified GPU."""
 
         assert torch.cuda.is_available(), "CUDA is not installed."
 
         self.model.to(torch.device("cuda", index))
 
-    def to_cpu(self, index=0):
+    def to_cpu(self, index: int = 0) -> None:
         """Moves the model to the specified CPU."""
 
         self.model.to(torch.device("cpu", index))

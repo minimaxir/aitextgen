@@ -7,7 +7,7 @@ import random
 from transformers import PretrainedConfig, GPT2Config
 
 
-def download_gpt2(model_dir="tf_model", model_name="124M"):
+def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None:
     """
     Downloads the GPT-2 model (weights only) into the specified directory
     from Google Cloud Storage.
@@ -41,7 +41,9 @@ def download_gpt2(model_dir="tf_model", model_name="124M"):
             )
 
 
-def download_file_with_progress(url_base, sub_dir, model_name, file_name):
+def download_file_with_progress(
+    url_base: str, sub_dir: str, model_name: str, file_name: str
+):
     """
     General utility for incrementally downloading files from the internet
     with progress bar.
@@ -64,7 +66,7 @@ def download_file_with_progress(url_base, sub_dir, model_name, file_name):
                 pbar.update(DOWNLOAD_CHUNK_SIZE)
 
 
-def encode_text(text, tokenizer):
+def encode_text(text: str, tokenizer):
     """
     Encodes text into an id-based tensor using the given tokenizer.
     """
@@ -72,7 +74,7 @@ def encode_text(text, tokenizer):
     return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
 
 
-def set_seed(seed):
+def set_seed(seed: int):
     """
     Sets the seed for all potential generation libraries.
     """
@@ -94,7 +96,7 @@ def reset_seed():
     torch.cuda.seed_all()
 
 
-def build_config(changes, cache_dir, base_config="gpt2"):
+def build_config(changes: dict, cache_dir: str, base_config: str = "gpt2"):
     """
     Builds a custom config based on a given Transformers config,
     with a few more user-friendly aliases.

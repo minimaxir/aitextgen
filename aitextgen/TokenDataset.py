@@ -6,6 +6,7 @@ import msgpack
 import random
 import gzip
 from torch.utils.data import Dataset
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +40,17 @@ class TokenDataset(Dataset):
     def __init__(
         self,
         tokenizer=None,
-        texts=None,
-        file_path=None,
-        line_by_line=None,
-        from_cache=False,
-        header=True,
-        save_cache=False,
-        cache_destination="dataset_cache.tar.gz",
-        compress=True,
-        block_size=1024,
-        tokenized_texts=None,
-    ):
+        texts: List[str] = None,
+        file_path: str = None,
+        line_by_line: bool = False,
+        from_cache: bool = False,
+        header: bool = True,
+        save_cache: bool = False,
+        cache_destination: str = "dataset_cache.tar.gz",
+        compress: bool = True,
+        block_size: int = 1024,
+        tokenized_texts: bool = False,
+    ) -> None:
 
         # Special case; load tokenized texts immediately
         if tokenized_texts:
@@ -118,7 +119,9 @@ class TokenDataset(Dataset):
         if save_cache:
             self.save(cache_destination, compress=compress)
 
-    def save(self, cache_destination="dataset_cache.tar.gz", compress=True):
+    def save(
+        self, cache_destination: str = "dataset_cache.tar.gz", compress: bool = True
+    ) -> None:
         assert len(self.examples) > 0, "No data loaded to save."
 
         if compress:
@@ -141,7 +144,7 @@ class TokenDataset(Dataset):
     def __len__(self):
         return len(self.examples)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int):
         return torch.tensor(self.examples[item], dtype=torch.long)
 
     def __str__(self):
@@ -151,7 +154,7 @@ class TokenDataset(Dataset):
         return f"TokenDataset containing {len(self.examples):,} examples loaded {self.str_suffix}"
 
 
-def read_lines_from_file(file_path, header=True):
+def read_lines_from_file(file_path: str, header: bool = True) -> List[str]:
     """
     Retrieves texts from a newline-delimited file/CSV and returns as a list.
     """
@@ -172,7 +175,9 @@ def read_lines_from_file(file_path, header=True):
     return texts
 
 
-def merge_datasets(datasets, equalize=True, seed=None):
+def merge_datasets(
+    datasets: List[TokenDataset], equalize: bool = True, seed: int = None
+) -> TokenDataset:
     """
     Merges multiple TokenDatasets into a single TokenDataset.
     This assumes that you are using the same tokenizer for all TokenDatasets.
