@@ -7,6 +7,7 @@ import random
 import gzip
 from torch.utils.data import Dataset
 from typing import List
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -17,31 +18,29 @@ class TokenDataset(Dataset):
     run_language_modeling.py in transformers, plus
     adds more ways to ingest text such as with CSVs.
 
-    ## Parameters
-
-    * **tokenizer**: Tokenizer for the corresponding model.
-    * **texts**: A list of input texts (if providing texts manually)
-    * **file_path**: A string indicating the relative file path of the text
+    :param file_path: A string indicating the relative file path of the text
     to be tokenized.
-    * **line_by_line**: A boolean to indicate if the input file should be read
+    :param tokenizer: Tokenizer for the corresponding model. Defaults to GPT-2 if not specified
+    :param texts: A list of input texts (if providing texts manually)
+    :param line_by_line: A boolean to indicate if the input file should be read
     line by line (True) or as a full text (False).
-    * **from_cache**: A string indicating if loading from a pregenerated MsgPack
+    :param from_cache: A string indicating if loading from a pregenerated MsgPack
     dump.
-    * **header**: A boolean indicating if loading from a CSV, if it has a header.
-    * **save_cache**: A boolean indicating whether to save the tokenized
+    :param header: A boolean indicating if loading from a CSV, if it has a header.
+    :param save_cache: A boolean indicating whether to save the tokenized
     dataset as a MsgPack dump to load later.
-    * **cache_destination**: A string indicating where to save the cache.
-    * **block_size**: An integer indicating maximum length of the text document
+    :param cache_destination: A string indicating where to save the cache.
+    :param block_size: An integer indicating maximum length of the text document
     (usually set by the model architecture)
-    * **tokenized_texts**: Texts that are already tokenized; only should
+    :param tokenized_texts: Texts that are already tokenized; only should
     be used by merge_datasets().
     """
 
     def __init__(
         self,
+        file_path: str = None,
         tokenizer=None,
         texts: List[str] = None,
-        file_path: str = None,
         line_by_line: bool = False,
         from_cache: bool = False,
         header: bool = True,
@@ -59,8 +58,10 @@ class TokenDataset(Dataset):
             return
 
         assert any([texts, file_path]), "texts or file_path must be specified."
-        if not from_cache:
-            assert tokenizer is not None, "A tokenizer must be specified."
+
+        if tokenizer is None:
+            logger.info("Using default GPT-2 tokenizer.")
+            tokenizer = AutoTokenizer("gpt2")
 
         # If a cache path is provided, load it.
         if from_cache:
@@ -114,7 +115,7 @@ class TokenDataset(Dataset):
             self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
-        logger.info("{:,} samples loaded.".format(len(self.examples)))
+        logger.info(f"{len(self.examples):,} samples loaded.")
 
         if save_cache:
             self.save(cache_destination, compress=compress)
@@ -189,6 +190,10 @@ def merge_datasets(
     input datasets (by taking random samples from each dataset equal to the smallest dataset) in order to balance out the result dataset.
     * **seed**: Seed to control the random sampling, if using equalize.
     """
+
+    assert (
+        isinstance(datasets, list) and len(datasets) > 1
+    ), "datasets must be a list of multiple TokenDatasets."
 
     len_smallest = min([len(dataset) for dataset in datasets])
 
