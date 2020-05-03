@@ -10,6 +10,7 @@ def train_tokenizer(
     bos_token: str = "<<<start>>>",
     eos_token: str = "<<<end>>>",
     unk_token: str = "<<<unk>>>",
+    pad_token: str = "<<<pad>>>",
 ):
     """
     Tokenizes the text(s) as a tokenizer, wrapping the tokenizer package.
@@ -24,8 +25,13 @@ def train_tokenizer(
     tokenizer = ByteLevelBPETokenizer(dropout=dropout)
     tokenizer.train(files, vocab_size=vocab_size, min_frequency=min_frequency)
 
-    tokenizer.bos_token = bos_token
-    tokenizer.eos_token = eos_token
-    tokenizer.unk_token - unk_token
+    tokenizer.add_special_tokens(
+        {
+            "bos_token": bos_token,
+            "eos_token": eos_token,
+            "unk_token": unk_token,
+            "pad_token": pad_token,
+        }
+    )
 
     return tokenizer
