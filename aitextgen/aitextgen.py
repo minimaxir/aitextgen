@@ -1,6 +1,6 @@
 from transformers import (
-    AutoModelWithLMHead,
-    AutoTokenizer,
+    GPT2Model,
+    GPT2TokenizerFast,
     GPT2Config,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
@@ -27,10 +27,10 @@ class aitextgen:
     """
     Class that serves as the main aitextgen object for training and generation.
 
-    * :param model: transformers model. If None, uses distilgpt2.
-    * :param config: transformers config for the model. If None, uses distilgpt2.
-    * :param cache_dir: folder path which has the current model alredy
-    * :param tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
+    :param model: transformers model, as a string. If None, uses distilgpt2.
+    :param config: transformers config for the model. If None, uses distilgpt2.
+    :param cache_dir: folder path which has the current model alredy
+    :param tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
     will convert the model to PyTorch if not present.
     """
 
@@ -40,7 +40,7 @@ class aitextgen:
         self,
         model: str = None,
         config: Union[str, GPT2Config] = None,
-        tokenizer: AutoTokenizer = None,
+        tokenizer: GPT2TokenizerFast = None,
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
@@ -66,18 +66,18 @@ class aitextgen:
                 download_gpt2(cache_dir, tf_gpt2)
 
                 if not os.path.isfile(os.path.join(cache_dir, "pytorch_model.bin")):
-                    logger.info("Converting the GPT-2 TensorFlow weights to PyTorch.")
+                    logger.info(
+                        f"Converting the {tf_gpt2} GPT-2 TensorFlow weights to PyTorch."
+                    )
                     convert_gpt2_checkpoint_to_pytorch(
                         os.path.join(cache_dir, tf_gpt2), "", cache_dir
                     )
 
                 model = os.path.join(cache_dir, "pytorch_model.bin")
-            logger.info(f"Loading GPT-2 model from {model}.")
+            logger.info(f"Loading GPT-2 model from {cache_dir}.")
 
-            self.model = AutoModelWithLMHead.from_pretrained(
-                model, config=GPT2Config(),
-            )
-            self.tokenizer = AutoTokenizer.from_pretrained("gpt2", cache_dir=cache_dir)
+            self.model = GPT2Model.from_pretrained(model, config=GPT2Config())
+            self.tokenizer = GPT2TokenizerFast(cache_dir=cache_dir)
 
         elif model is None:
             if len(os.listdir(cache_dir)) > 0:
@@ -91,9 +91,7 @@ class aitextgen:
             else:
                 config = GPT2Config("distilgpt2")
 
-            self.model = AutoModelWithLMHead.from_config(
-                config=config, cache_dir=cache_dir
-            )
+            self.model = GPT2Model.from_config(config=config, cache_dir=cache_dir)
 
             if tokenizer is not None:
                 logger.info(
@@ -101,9 +99,7 @@ class aitextgen:
                 )
                 self.tokenizer = tokenizer
             else:
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    "distilgpt2", cache_dir=cache_dir
-                )
+                self.tokenizer = GPT2TokenizerFast(cache_dir=cache_dir)
 
         if to_gpu:
             self.to_gpu()
@@ -124,21 +120,21 @@ class aitextgen:
         Generates texts using the stored Transformers model.
         Currently generates text using the model's generate() function.
 
-        * **n**: Numbers of texts to generate.
-        * **prompt**: Text to force the generated text to start with
-        * **max_length**: Maximum length for the generated text
-        * **temperature**: Determines the "creativity" of the generated text.
+        :param n: Numbers of texts to generate.
+        :param prompt: Text to force the generated text to start with
+        :param max_length: Maximum length for the generated text
+        :param temperature: Determines the "creativity" of the generated text.
         The value range is different for each type of Transformer.
-        * **do_sample**: Samples the text, which is what we want. If False,
+        :param do_sample: Samples the text, which is what we want. If False,
         the generated text will be the optimal prediction at each time,
         and therefore deterministic.
-        * **bos_token**: Token which indicates the start of a text.
+        :param bos_token: Token which indicates the start of a text.
         Uses model setting if not set.
-        * **eos_token**: Token which indicates the end of a text.
+        :param eos_token: Token which indicates the end of a text.
         Uses model setting if not set.
-        * **return_as_list**: Boolean which determine if text should be returned
+        :param return_as_list: Boolean which determine if text should be returned
         as a list. If False, the generated texts will be print to console.
-        * **seed**: A numeric seed which sets all randomness, allowing the
+        :param seed: A numeric seed which sets all randomness, allowing the
         generate text to be reproducible if rerunning with same parameters
         and model.
         """
@@ -227,15 +223,13 @@ class aitextgen:
         Generates a bulk amount of texts to a file, into a format
         good for manually inspecting and curating the texts.
 
-        ## Parameters
-
-        * **n**: Number of texts to generate
-        * **batch_size**: Number of texts to generate simultaneously, taking
+        :param n: Number of texts to generate
+        :param batch_size: Number of texts to generate simultaneously, taking
         advantage of CPU/GPU parallelization.
-        * **destination_path**: File name of the file. If None, a timestampped
+        :param destination_path: File name of the file. If None, a timestampped
         file name is automatically used.
-        * **sample_delim**: The text used to delimit each generated text.
-        * **seed**: Seed used for the generation. The last part of a file name
+        :param sample_delim: The text used to delimit each generated text.
+        :param seed: Seed used for the generation. The last part of a file name
         will be the seed used to reproduce a generation.
 
         See generate() for more parameters.
@@ -300,27 +294,25 @@ class aitextgen:
         """
         Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
 
-        ## Parameters
-
-        * **dataset**: A TokenDataset containing the samples to be trained.
-        * **file_path**: A string containing the text to be trained (shortcut
+        :param dataset: A TokenDataset containing the samples to be trained.
+        :param file_path: A string containing the text to be trained (shortcut
         instead of dataset)
-        * **output_dir**: A string indicating where to store the resulting
+        :param output_dir: A string indicating where to store the resulting
         model file folder.
-        * **fp16**: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
-        * **fp16_opt_level**: Option level for FP16/APEX training.
-        * **n_gpu**: Number of GPU to use (-1 implies all available GPUs)
-        * **n_tpu_cores**: Number of TPU cores to use (should be a multiple of 8)
-        * **max_grad_norm**: Maximum gradient normalization
-        * **gradient_accumulation_steps**: Number of gradient acc steps; can be increased
+        :param fp16: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
+        :param fp16_opt_level: Option level for FP16/APEX training.
+        :param n_gpu: Number of GPU to use (-1 implies all available GPUs)
+        :param n_tpu_cores: Number of TPU cores to use (should be a multiple of 8)
+        :param max_grad_norm: Maximum gradient normalization
+        :param gradient_accumulation_steps: Number of gradient acc steps; can be increased
         to avoid going out-of-memory
-        * **seed**: Interger representing the training seed.
-        * **learning_rate**: Training learnign rate for the default AdamW optimizer.
-        * **weight_decay**: Weight decay for the default AdamW optimizer.
-        * **warmup_steps**: Warmrup steps for the default AdamW optimizer.
-        * **num_steps**: Number of samples through the dataset.
-        * **callbacks**: pytorch-lightning callbacks.
-        * **loggers**: pytorch-lightning logger(s) to log results.
+        :param seed: Interger representing the training seed.
+        :param learning_rate: Training learnign rate for the default AdamW optimizer.
+        :param weight_decay: Weight decay for the default AdamW optimizer.
+        :param warmup_steps: Warmrup steps for the default AdamW optimizer.
+        :param num_steps: Number of samples through the dataset.
+        :param callbacks: pytorch-lightning callbacks.
+        :param loggers: pytorch-lightning logger(s) to log results.
         """
 
         assert any(
