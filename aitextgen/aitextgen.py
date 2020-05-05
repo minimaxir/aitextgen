@@ -86,7 +86,7 @@ class aitextgen:
 
             self.model = GPT2LMHeadModel.from_pretrained(model, config=GPT2Config())
             self.tokenizer = AutoTokenizer.from_pretrained(
-                "gpt2", cache_dir=cache_dir, use_fast=True
+                "gpt2", cache_dir=cache_dir, use_fast=False
             )
 
         elif model is None:
@@ -116,7 +116,7 @@ class aitextgen:
                 self.tokenizer = tokenizer
             else:
                 self.tokenizer = AutoTokenizer.from_pretrained(
-                    "gpt2", cache_dir=cache_dir
+                    "gpt2", cache_dir=cache_dir, use_fast=False
                 )
 
         if to_gpu:
@@ -129,8 +129,6 @@ class aitextgen:
         max_length: int = 200,
         temperature: float = 1.0,
         do_sample: bool = True,
-        bos_token: str = None,
-        eos_token: str = None,
         return_as_list: bool = False,
         seed: int = None,
         **kwargs,
@@ -147,10 +145,6 @@ class aitextgen:
         :param do_sample: Samples the text, which is what we want. If False,
         the generated text will be the optimal prediction at each time,
         and therefore deterministic.
-        :param bos_token: Token which indicates the start of a text.
-        Uses model setting if not set.
-        :param eos_token: Token which indicates the end of a text.
-        Uses model setting if not set.
         :param return_as_list: Boolean which determine if text should be returned
         as a list. If False, the generated texts will be print to console.
         :param seed: A numeric seed which sets all randomness, allowing the
@@ -162,12 +156,6 @@ class aitextgen:
             prompt_text = prompt
             prompt = encode_text(prompt, self.tokenizer)
 
-        if not bos_token:
-            bos_token_id = self.tokenizer.bos_token_id
-
-        if not eos_token:
-            eos_token_id = self.tokenizer.eos_token_id
-
         if seed:
             set_seed(seed)
 
@@ -176,8 +164,6 @@ class aitextgen:
             max_length=max_length,
             temperature=temperature,
             do_sample=do_sample,
-            bos_token_id=bos_token_id,
-            eos_token_id=eos_token_id,
             num_return_sequences=n,
             **kwargs,
         )
