@@ -1,6 +1,7 @@
 from transformers import (
-    GPT2Model,
-    GPT2TokenizerFast,
+    GPT2LMHeadModel,
+    AutoTokenizer,
+    AutoModel,
     GPT2Config,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
@@ -40,7 +41,7 @@ class aitextgen:
         self,
         model: str = None,
         config: Union[str, GPT2Config] = None,
-        tokenizer: GPT2TokenizerFast = None,
+        tokenizer: AutoTokenizer = None,
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
@@ -49,7 +50,14 @@ class aitextgen:
     ) -> None:
 
         if not verbose:
-            logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)
+            for module in [
+                "transformers.file_utils",
+                "transformers.configuration_utils",
+                "transformers.tokenization_utils",
+                "filelock",
+            ]:
+                logging.getLogger(module).setLevel(logging.WARN)
+            logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
         if torchscript:
             self.torchscript = True
@@ -76,22 +84,30 @@ class aitextgen:
                 model = os.path.join(cache_dir, "pytorch_model.bin")
             logger.info(f"Loading GPT-2 model from {cache_dir}.")
 
-            self.model = GPT2Model.from_pretrained(model, config=GPT2Config())
-            self.tokenizer = GPT2TokenizerFast(cache_dir=cache_dir)
+            self.model = GPT2LMHeadModel.from_pretrained(model, config=GPT2Config())
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                "gpt2", cache_dir=cache_dir, use_fast=True
+            )
 
         elif model is None:
-            if len(os.listdir(cache_dir)) > 0:
-                logger.info(f"Loading model from {cache_dir}.")
+            # if no model is provided, the user is either using a custom
+            # model w/ a custom config, or base distilGPT2.
+            if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
+                logger.info(f"Loading model from /{cache_dir}.")
             else:
-                logger.info("Downloading distilgpt2 model.")
+                logger.info("Downloading gpt2 model.")
 
             if config is not None:
                 if config is not isinstance(config, GPT2Config):
                     config = build_config(config, cache_dir)
+                self.model = AutoModel.from_config(
+                    config=config, cache_dir=cache_dir, torchscript=torchscript
+                )
             else:
-                config = GPT2Config("distilgpt2")
-
-            self.model = GPT2Model.from_config(config=config, cache_dir=cache_dir)
+                config = GPT2Config("gpt2")
+                self.model = GPT2LMHeadModel.from_pretrained(
+                    "gpt2", cache_dir=cache_dir
+                )
 
             if tokenizer is not None:
                 logger.info(
@@ -99,7 +115,9 @@ class aitextgen:
                 )
                 self.tokenizer = tokenizer
             else:
-                self.tokenizer = GPT2TokenizerFast(cache_dir=cache_dir)
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    "gpt2", cache_dir=cache_dir
+                )
 
         if to_gpu:
             self.to_gpu()
@@ -115,6 +133,7 @@ class aitextgen:
         eos_token: str = None,
         return_as_list: bool = False,
         seed: int = None,
+        **kwargs,
     ) -> Optional[str]:
         """
         Generates texts using the stored Transformers model.
@@ -160,6 +179,7 @@ class aitextgen:
             bos_token_id=bos_token_id,
             eos_token_id=eos_token_id,
             num_return_sequences=n,
+            **kwargs,
         )
 
         # Reset seed if used
@@ -212,7 +232,7 @@ class aitextgen:
     def generate_to_file(
         self,
         n: int = 20,
-        batch_size: int = 5,
+        batch_size: int = 1,
         destination_path: str = None,
         sample_delim: str = "=" * 20 + "\n",
         seed: int = None,
@@ -235,7 +255,7 @@ class aitextgen:
         See generate() for more parameters.
         """
 
-        assert n % batch_size == 0, "n must be divisible by batch_size."
+        assert n % batch_size == 0, f"n must be divisible by batch_size ({batch_size})."
 
         self.model = self.model.eval()
 
@@ -256,8 +276,8 @@ class aitextgen:
         pbar = trange(n)
         f = open(destination_path, "w", encoding="utf-8")
 
-        for _ in range(n // batch_size - 1):
-            gen_texts = self.generate(n=n, return_as_list=True, **kwargs)
+        for _ in range(n // batch_size):
+            gen_texts = self.generate(n=batch_size, return_as_list=True, **kwargs)
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))
@@ -266,7 +286,7 @@ class aitextgen:
         pbar.close()
         f.close()
 
-        if seed():
+        if seed:
             reset_seed()
 
     def train(

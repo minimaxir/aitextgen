@@ -38,13 +38,13 @@ For generating text from a pretrained GPT-2 "small" (124M) model:
 ```python
 from aitextgen import aitextgen
 
-# Without any parameters, aitextgen() will download, cache, and load 124M GPT-2
+# Without any parameters, aitextgen() will download, cache, and load the 124M GPT-2 "small" model
 ai = aitextgen()
 
 ai.generate()
 ai.generate(n=3)
 ai.generate(n=3, prompt="I believe in unicorns because")
-ai.generate_to_file(n=3, prompt="I believe in unicorns because", temperature=1.2, top_p=0.9)
+ai.generate_to_file(n=5, prompt="I believe in unicorns because", temperature=1.2, top_p=0.9)
 ```
 
 Want to train your own model on your own computer? Open up a Python console and go:
@@ -85,7 +85,7 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 ## Helpful Notes
 
-- To convert a GPT-2 model trained using earlier TensorFlow-based finetuning tools such as gpt-2-simple to PyTorch, use the transformers-cli command and the [instructions here](https://huggingface.co/transformers/converting_tensorflow_models.html) to convert the checkpoint (where `OPENAI_GPT2_CHECKPOINT_PATH` is the _folder_ containing the model)
+- To convert a GPT-2 model trained using earlier TensorFlow-based finetuning tools such as gpt-2-simple to the PyTorch format, use the transformers-cli command and the [instructions here](https://huggingface.co/transformers/converting_tensorflow_models.html) to convert the checkpoint (where `OPENAI_GPT2_CHECKPOINT_PATH` is the _folder_ containing the model)
 - When running on Google Cloud Platform (including Google Colab), it's recommended to download the TF-based GPT-2 from the Google API vs. downloading the PyTorch GPT-2 from Huggingface as the download will be _much_ faster and also saves Huggingface some bandwidth.
 - If you want to generate text from a GPU, you must manually move the model to the GPU (it will not be done automatically to save GPU VRAM for training). Either call `to_gpu=True` when loading the model or call `to_gpu()` on the aitextgen object.
 
