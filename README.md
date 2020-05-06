@@ -33,7 +33,7 @@ pip3 install aitextgen
 
 Here's how you can quickly test out aitextgen on your own computer, even if you don't have a GPU!
 
-For generating text from a pretrained GPT-2 "small" (124M) model:
+For generating text from a pretrained GPT-2 model ([Jupyter Notebook](/notebooks/generation_hello_world.ipynb)):
 
 ```python
 from aitextgen import aitextgen
@@ -42,9 +42,9 @@ from aitextgen import aitextgen
 ai = aitextgen()
 
 ai.generate()
-ai.generate(n=3)
-ai.generate(n=3, prompt="I believe in unicorns because")
-ai.generate_to_file(n=5, prompt="I believe in unicorns because", temperature=1.2, top_p=0.9)
+ai.generate(n=3, max_length=100)
+ai.generate(n=3, prompt="I believe in unicorns because", max_length=100)
+ai.generate_to_file(n=10, prompt="I believe in unicorns because", max_length=100, temperature=1.2)
 ```
 
 Want to train your own model on your own computer? Open up a Python console and go:
@@ -66,13 +66,17 @@ if not os.path.isfile(file_name):
 		f.write(data.text)
 
 # Train a custom BPE Tokenizer on the downloaded text
-tokenizer = train_tokenizer(file_name)
+# This will save two files: aitextgen-vocab.json and aitextgen-merges.txt,
+# which are needed to rebuild the tokenizer.
+train_tokenizer(file_name)
 
 # GPT2ConfigCPU is a microvariant of GPT-2 optimized for CPU-training
 config = GPT2ConfigCPU()
 
 # Instantiate aitextgen using the created tokenizer and config
-ai = aitextgen(tokenizer=tokenizer, config=config)
+ai = aitextgen(vocab_file="aitextgen-vocab.json",
+			   merges_file="aitextgen-merges.txt",
+			   config=config)
 
 # Train the model! It will save to the /aitextgen folder after completion
 ai.train(file_name)
