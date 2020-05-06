@@ -1,9 +1,6 @@
 from tokenizers import ByteLevelBPETokenizer
 from typing import Union, List
-from transformers import GPT2Tokenizer
 import logging
-import os
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +10,11 @@ def train_tokenizer(
     dropout: float = None,
     vocab_size: int = 10000,
     min_frequency: int = 2,
-    save_path: str = "aitextgen",
-    bos_token: str = "<<<start>>>",
-    eos_token: str = "<<<end>>>",
-    unk_token: str = "<<<unk>>>",
-):
+    save_path: str = "",
+    bos_token: str = "<|endoftext|>",
+    eos_token: str = "<|endoftext|>",
+    unk_token: str = "<|endoftext|>",
+) -> None:
     """
     Tokenizes the text(s) as a tokenizer, wrapping the tokenizer package.
     See: https://huggingface.co/blog/how-to-train
@@ -35,23 +32,10 @@ def train_tokenizer(
         files, vocab_size=vocab_size, min_frequency=min_frequency, show_progress=True
     )
 
-    # The saved files must have "gpt2" in its name.
-    PREFIX = "gpt2-aitextgen"
-    tokenizer.save(save_path, PREFIX)
-
-    # Reload the generated vocab + merge file into a GPT2Tokenizer,
-    # then resave so the Tokenizer is in the correct format
-    tokenizer_gpt2 = GPT2Tokenizer(
-        os.path.join(save_path, f"{PREFIX}-vocab.json"),
-        os.path.join(save_path, f"{PREFIX}-merges.txt"),
-        bos_token=bos_token,
-        eos_token=eos_token,
-        unk_token=unk_token,
+    PREFIX = "aitextgen"
+    save_path_str = "the current directory" if save_path == "" else save_path
+    logger.info(
+        f"Saving {PREFIX}-vocab.json and {PREFIX}-merges.txt to {save_path_str}. "
+        + "You will need both files to build the GPT2Tokenizer."
     )
-
-    tokenizer_gpt2.save_pretrained(save_path)
-
-    with open("config.json", "w"):
-        json.dumps({"model_type": "gpt2"})
-
-    return tokenizer_gpt2
+    tokenizer.save(save_path, PREFIX)

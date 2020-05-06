@@ -1,6 +1,6 @@
 from transformers import (
     GPT2LMHeadModel,
-    AutoTokenizer,
+    GPT2Tokenizer,
     AutoModel,
     GPT2Config,
 )
@@ -11,7 +11,7 @@ import torch
 import os
 import re
 import logging
-from tqdm import trange
+from tqdm.auto import trange
 from datetime import datetime
 from random import randint
 from .TokenDataset import TokenDataset
@@ -19,17 +19,20 @@ import pytorch_lightning as pl
 from .utils import download_gpt2, encode_text, set_seed, reset_seed, build_config
 from .train import ATGTransformer
 from typing import Union, Optional, List
+from pkg_resources import resource_filename
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+STATIC_PATH = resource_filename(__name__, "static")
 
 
 class aitextgen:
     """
     Class that serves as the main aitextgen object for training and generation.
 
-    :param model: transformers model, as a string. If None, uses distilgpt2.
-    :param config: transformers config for the model. If None, uses distilgpt2.
+    :param model: transformers model, as a string. If None, uses gpt2.
+    :param config: transformers config for the model. If None, uses gpt2.
     :param cache_dir: folder path which has the current model alredy
     :param tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
     will convert the model to PyTorch if not present.
@@ -37,16 +40,27 @@ class aitextgen:
 
     torchscript = False
 
+    # default values for GPT2Tokenizer
+    vocab_file = os.path.join(STATIC_PATH, "gpt2_vocab.json")
+    merges_file = os.path.join(STATIC_PATH, "gpt2_merges.txt")
+    bos_token = "<|endoftext|>"
+    eos_token = "<|endoftext|>"
+    unk_token = "<|endoftext|>"
+
     def __init__(
         self,
         model: str = None,
         config: Union[str, GPT2Config] = None,
-        tokenizer: AutoTokenizer = None,
+        vocab_file: str = None,
+        merges_file: str = None,
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
         verbose: bool = False,
         torchscript: bool = False,
+        bos_token: str = None,
+        eos_token: str = None,
+        unk_token: str = None,
     ) -> None:
 
         if not verbose:
@@ -85,13 +99,8 @@ class aitextgen:
             logger.info(f"Loading GPT-2 model from {cache_dir}.")
 
             self.model = GPT2LMHeadModel.from_pretrained(model, config=GPT2Config())
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                "gpt2", cache_dir=cache_dir, use_fast=False
-            )
 
         elif model is None:
-            # if no model is provided, the user is either using a custom
-            # model w/ a custom config, or base distilGPT2.
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
                 logger.info(f"Loading model from /{cache_dir}.")
             else:
@@ -109,15 +118,32 @@ class aitextgen:
                     "gpt2", cache_dir=cache_dir
                 )
 
-            if tokenizer is not None:
-                logger.info(
-                    "Using a custom tokenizer: it will be saved while training the model. "
-                )
-                self.tokenizer = tokenizer
+            # Update tokenizer settings
+            args = locals()
+            custom_tokenizer = False
+            for attr in [
+                "vocab_file",
+                "merges_file",
+                "bos_token",
+                "eos_token",
+                "unk_token",
+            ]:
+                if args[attr] is not None:
+                    custom_tokenizer = True
+                    setattr(self, attr, args["attr"])
+
+            if custom_tokenizer:
+                logger.info("Using a custom tokenizer.")
             else:
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    "gpt2", cache_dir=cache_dir, use_fast=False
-                )
+                logger.info("Using the default GPT-2 Tokenizer.")
+
+            self.tokenizer = GPT2Tokenizer(
+                vocab_file=self.vocab_file,
+                merges_file=self.merges_file,
+                bos_token=self.bos_token,
+                eos_token=self.eos_token,
+                unk_token=self.unk_token,
+            )
 
         if to_gpu:
             self.to_gpu()
@@ -330,7 +356,11 @@ class aitextgen:
 
         if file_path:
             dataset = TokenDataset(
-                tokenizer=self.tokenizer,
+                vocab_file=self.vocab_file,
+                merges_file=self.merges_file,
+                bos_token=self.bos_token,
+                eos_token=self.eos_token,
+                unk_token=self.unk_token,
                 file_path=file_path,
                 block_size=self.model.config["n_positions"],
                 **kwargs,
@@ -420,7 +450,15 @@ class aitextgen:
         decay after each run."""
 
         datasets = [
-            TokenDataset(tokenizer=self.tokenizer, file_path=x, **kwargs)
+            TokenDataset(
+                vocab_file=self.vocab_file,
+                merges_file=self.merges_file,
+                bos_token=self.bos_token,
+                eos_token=self.eos_token,
+                unk_token=self.unk_token,
+                file_path=x,
+                **kwargs,
+            )
             if isinstance(x, str)
             else x
             for x in inputs

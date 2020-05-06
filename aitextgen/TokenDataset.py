@@ -7,7 +7,7 @@ import random
 import gzip
 from torch.utils.data import Dataset
 from typing import List
-from transformers import AutoTokenizer
+from transformers import GPT2TokenizerFast
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,8 @@ class TokenDataset(Dataset):
     def __init__(
         self,
         file_path: str = None,
-        tokenizer=None,
+        vocab_file: str = None,
+        merges_file: str = None,
         texts: List[str] = None,
         line_by_line: bool = False,
         from_cache: bool = False,
@@ -49,6 +50,9 @@ class TokenDataset(Dataset):
         compress: bool = True,
         block_size: int = 1024,
         tokenized_texts: bool = False,
+        bos_token: str = None,
+        eos_token: str = None,
+        unk_token: str = None,
     ) -> None:
 
         # Special case; load tokenized texts immediately
@@ -59,9 +63,13 @@ class TokenDataset(Dataset):
 
         assert any([texts, file_path]), "texts or file_path must be specified."
 
-        if tokenizer is None:
-            logger.info("Using default GPT-2 tokenizer.")
-            tokenizer = AutoTokenizer("gpt2")
+        tokenizer = GPT2TokenizerFast(
+            vocab_file=vocab_file,
+            merges_file=merges_file,
+            bos_token=bos_token,
+            eos_token=eos_token,
+            unk_token=unk_token,
+        )
 
         # If a cache path is provided, load it.
         if from_cache:
@@ -100,7 +108,7 @@ class TokenDataset(Dataset):
             block_size = block_size - tokenizer.num_special_tokens_to_add(pair=False)
 
             self.examples = []
-            with open(file_path, encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
 
             tokenized_text = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(text))
