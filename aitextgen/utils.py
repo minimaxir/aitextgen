@@ -129,5 +129,11 @@ def GPT2ConfigCPU(**kwargs):
     """
 
     return GPT2Config(
-        n_positions=64, n_ctx=64, n_embd=128, n_layer=2, n_head=2, **kwargs
+        vocab_size=10000,
+        n_positions=64,
+        n_ctx=64,
+        n_embd=128,
+        n_layer=2,
+        n_head=2,
+        **kwargs
     )

@@ -8,8 +8,11 @@ import gzip
 from torch.utils.data import Dataset
 from typing import List
 from transformers import GPT2TokenizerFast
+from pkg_resources import resource_filename
 
 logger = logging.getLogger(__name__)
+
+STATIC_PATH = resource_filename(__name__, "static")
 
 
 class TokenDataset(Dataset):
@@ -39,8 +42,8 @@ class TokenDataset(Dataset):
     def __init__(
         self,
         file_path: str = None,
-        vocab_file: str = None,
-        merges_file: str = None,
+        vocab_file: str = os.path.join(STATIC_PATH, "gpt2_vocab.json"),
+        merges_file: str = os.path.join(STATIC_PATH, "gpt2_merges.txt"),
         texts: List[str] = None,
         line_by_line: bool = False,
         from_cache: bool = False,
@@ -53,6 +56,7 @@ class TokenDataset(Dataset):
         bos_token: str = "<|endoftext|>",
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
+        pad_token: str = "<|endoftext|>",
     ) -> None:
 
         # Special case; load tokenized texts immediately
@@ -69,6 +73,7 @@ class TokenDataset(Dataset):
             bos_token=bos_token,
             eos_token=eos_token,
             unk_token=unk_token,
+            pad_token=pad_token,
         )
 
         # If a cache path is provided, load it.

@@ -3,10 +3,13 @@
 
 import logging
 
-from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import (
+    AdamW,
+    get_linear_schedule_with_warmup,
+    DataCollatorForLanguageModeling,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -17,23 +20,22 @@ class ATGTransformer(pl.LightningModule):
     A training module for aitextgen.
     """
 
-    def __init__(self, model, dataset, hparams, pad):
+    def __init__(self, model, dataset, hparams, tokenizer):
         super(ATGTransformer, self).__init__()
-        self.model, self.dataset, self.hparams, self.pad = (
+        self.model, self.dataset, self.hparams, self.tokenizer = (
             model,
             dataset,
             hparams,
-            pad,
+            tokenizer,
         )
 
-    def forward(self, **inputs):
+    def forward(self, inputs):
         return self.model(**inputs)
 
     def training_step(self, batch, batch_num):
         "Compute loss and log."
-        inputs = {"input_ids": batch[0], "labels": batch[0]}
 
-        outputs = self(**inputs)
+        outputs = self(batch)  # batch is a dict containing w/ "input_ids" and "labels"
         loss = outputs[0]
 
         return {"loss": loss}
@@ -41,17 +43,14 @@ class ATGTransformer(pl.LightningModule):
     def train_dataloader(self):
         "Load datasets. Called after prepare data."
 
-        def collate(examples):
-            if self.pad["pad_token"] is None:
-                return pad_sequence(examples, batch_first=True)
-            return pad_sequence(
-                examples, batch_first=True, padding_value=self.pad["pad_token_id"]
-            )
+        data_collator = DataCollatorForLanguageModeling(
+            tokenizer=self.tokenizer, mlm=False
+        )
 
         return DataLoader(
             self.dataset,
             batch_size=self.hparams["batch_size"],
-            collate_fn=collate,
+            collate_fn=data_collator.collate_batch,
             shuffle=True,
             pin_memory=self.hparams["pin_memory"],
         )

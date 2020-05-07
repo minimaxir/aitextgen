@@ -1,7 +1,7 @@
 from transformers import (
     GPT2LMHeadModel,
     GPT2Tokenizer,
-    AutoModel,
+    AutoModelWithLMHead,
     GPT2Config,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
@@ -21,8 +21,6 @@ from .utils import (
     encode_text,
     set_seed,
     reset_seed,
-    build_config,
-    GPT2ConfigCPU,
 )
 from .train import ATGTransformer
 from typing import Union, Optional, List
@@ -110,7 +108,7 @@ class aitextgen:
 
         if config is not None:
             logger.info("Constructing GPT-2 model from provided config.")
-            self.model = AutoModel.from_config(config=config)
+            self.model = AutoModelWithLMHead.from_config(config=config)
         else:
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
                 logger.info(f"Loading model from /{cache_dir}.")
@@ -384,17 +382,12 @@ class aitextgen:
             warmup_steps=warmup_steps,
             batch_size=batch_size,
             num_steps=num_steps,
-            pin_memory=True if n_gpu > 0 else False,
+            pin_memory=True if n_gpu != 0 else False,
             num_workers=num_workers,
         )
 
-        pad = dict(
-            pad_token=self.tokenizer._pad_token,
-            pad_token_id=self.tokenizer.pad_token_id,
-        )
-
         # Wrap the model in a pytorch-lightning module
-        train_model = ATGTransformer(self.model, dataset, hparams, pad)
+        train_model = ATGTransformer(self.model, dataset, hparams, self.tokenizer)
 
         # Begin training
         if seed:
