@@ -50,9 +50,9 @@ class TokenDataset(Dataset):
         compress: bool = True,
         block_size: int = 1024,
         tokenized_texts: bool = False,
-        bos_token: str = None,
-        eos_token: str = None,
-        unk_token: str = None,
+        bos_token: str = "<|endoftext|>",
+        eos_token: str = "<|endoftext|>",
+        unk_token: str = "<|endoftext|>",
     ) -> None:
 
         # Special case; load tokenized texts immediately
@@ -105,7 +105,7 @@ class TokenDataset(Dataset):
         else:
             assert os.path.isfile(file_path)
 
-            block_size = block_size - tokenizer.num_special_tokens_to_add(pair=False)
+            # block_size = block_size - tokenizer.num_special_tokens_to_add(pair=False)
 
             self.examples = []
             with open(file_path, "r", encoding="utf-8") as f:
