@@ -1,8 +1,3 @@
-# coding=utf-8
-#
-
-import logging
-
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from transformers import (
@@ -10,9 +5,6 @@ from transformers import (
     get_linear_schedule_with_warmup,
     DataCollatorForLanguageModeling,
 )
-
-
-logger = logging.getLogger(__name__)
 
 
 class ATGTransformer(pl.LightningModule):
@@ -91,18 +83,3 @@ class ATGTransformer(pl.LightningModule):
         )
 
         return [optimizer], [scheduler]
-
-    # def optimizer_step(
-    #     self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None,
-    # ):
-    #     optimizer.step()
-    #     optimizer.zero_grad()
-    #     self.lr_scheduler.step()
-
-    # def get_tqdm_dict(self):
-    #     tqdm_dict = {
-    #         "loss": f"{self.trainer.avg_loss:.3f}",
-    #         # "lr": self.lr_scheduler.get_last_lr()[-1],
-    #     }
-
-    #     return tqdm_dict
