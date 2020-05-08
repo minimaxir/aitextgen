@@ -308,7 +308,7 @@ class aitextgen:
         file_path: str = None,
         output_dir: str = "",
         fp16: bool = False,
-        fp16_opt_level: str = "O1",
+        fp16_opt_level: str = "O3",
         n_gpu: int = -1,
         n_tpu_cores: int = 0,
         max_grad_norm: float = 1.0,
@@ -369,7 +369,7 @@ class aitextgen:
 
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
-            if n_gpu > 0 or n_tpu_cores > 0:
+            if n_gpu != 0 or n_tpu_cores > 0:
                 num_workers = os.cpu_count()
             # If training on the CPU, use half the CPUs
             else:

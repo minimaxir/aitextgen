@@ -45,6 +45,7 @@ class ATGTransformer(pl.LightningModule):
             collate_fn=data_collator.collate_batch,
             shuffle=True,
             pin_memory=self.hparams["pin_memory"],
+            num_workers=self.hparams["num_workers"],
         )
 
     def configure_optimizers(self):

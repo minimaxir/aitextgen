@@ -8,7 +8,7 @@ aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hu
 - Generates text faster than gpt-2-simple and with better memory efficiency, even moreso if you export your model to TorchScript!
 - Model agnostic and future-proofed to support new developments in the Transformers-based world.
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repository. Uses the `generate()` function to allow a massive amount of control over the generated text.
-- With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and TPUs, with FP16 support! Robust training progress support, with the ability to add optional loggers.
+- With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and TPUs! Robust training progress support, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting it, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ models so it learns some data fully and some partially to create blended output.
 
 ## Demo
@@ -96,6 +96,10 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 ## Upcoming Features
 
 The current release (v0.1) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months.
+
+Immediate priorities are:
+
+- fp16 fixes
 
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (see [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept)
 
