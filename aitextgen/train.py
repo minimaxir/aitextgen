@@ -1,5 +1,8 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.progress import ProgressBarBase
+from tqdm.auto import tqdm
+import sys
 from transformers import (
     AdamW,
     get_linear_schedule_with_warmup,
@@ -84,3 +87,27 @@ class ATGTransformer(pl.LightningModule):
         )
 
         return [optimizer], [scheduler]
+
+
+class ATGProgressBar(ProgressBarBase):
+    """A variant progress bar that works off of steps and prints periodically."""
+
+    def __init__(self):
+        super().__init__()
+
+    def on_train_start(self, trainer, pl_module):
+        super().on_train_start(trainer, pl_module)
+        self.main_progress_bar = tqdm(
+            total=trainer.max_steps,
+            smoothing=0,
+            leave=True,
+            dynamic_ncols=True,
+            file=sys.stdout,
+        )
+
+    def on_batch_end(self, trainer, pl_module):
+        super().on_batch_end(trainer, pl_module)
+        self.main_progress_bar.update()
+        self.main_progress_bar.set_description(
+            f"Loss: {trainer.progress_bar_dict['loss']}"
+        )

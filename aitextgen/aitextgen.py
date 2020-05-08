@@ -22,7 +22,7 @@ from .utils import (
     set_seed,
     reset_seed,
 )
-from .train import ATGTransformer
+from .train import ATGTransformer, ATGProgressBar
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 
@@ -416,6 +416,7 @@ class aitextgen:
             logger=False,
             disable_validation=True,
             weights_summary=None,
+            callbacks=[ATGProgressBar()],
         )
 
         if fp16:
