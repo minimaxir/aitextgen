@@ -47,7 +47,7 @@ ai.generate(n=3, prompt="I believe in unicorns because", max_length=100)
 ai.generate_to_file(n=10, prompt="I believe in unicorns because", max_length=100, temperature=1.2)
 ```
 
-Want to train your own model on your own computer? Open up a Python console and go:
+Want to train your own micro GPT-2 model on your own computer? Open up a Python console and go:
 
 ```python
 import requests
@@ -78,8 +78,8 @@ ai = aitextgen(vocab_file="aitextgen-vocab.json",
 			   merges_file="aitextgen-merges.txt",
 			   config=config)
 
-# Train the model! It will save to the /aitextgen folder after completion
-ai.train(file_name)
+# Train the model! It will save pytorch_model.bin after completion
+ai.train(file_name, batch_size=16)
 
 # Generate text from it!
 ai.generate(5)
@@ -95,6 +95,8 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 ## Upcoming Features
 
+The current release (v0.1) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months.
+
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (see [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept)
 
 Additionally, I plan to develop an aitextgen [SaaS](https://en.wikipedia.org/wiki/Software_as_a_service) to allow anyone to run aitextgen in the cloud and build APIs/Twitter+Slack+Discord bots with just a few clicks. (the primary constraint is compute cost; if any venture capitalists are interested in funding the development of such a service, let me know)
@@ -109,8 +111,9 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 - If parodying a person, explicitly state that it is a parody, and reference who it is parodying.
 - If the generated human-curated, or if it's unsupervised random output
 - Indicating who is maintaining/curating the AI-generated text.
+- Make a good-faith effort to remove overfit output from the generated text that matches the input text verbatim.
 
-It's fun to anthropomorphise the nameless "AI" as an absent genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive will not be signal-boosted by myself.**
+It's fun to anthropomorphise the nameless "AI" as an absent genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive may be disavowed.**
 
 ## Maintainer/Creator
 
