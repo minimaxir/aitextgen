@@ -437,6 +437,8 @@ class aitextgen:
         trainer.fit(train_model)
 
         self.model = train_model.model
+        logger.info("Saving trained model pytorch_model.bin to current directory.")
+        self.model.save_pretrained(".")
 
         if seed:
             reset_seed()

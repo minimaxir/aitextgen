@@ -123,17 +123,21 @@ def build_config(changes: dict, cache_dir: str, base_config: str = "gpt2"):
     return new_config
 
 
-def GPT2ConfigCPU(**kwargs):
+def GPT2ConfigCPU(
+    vocab_size: int = 10000, bos_token_id: int = 0, eos_token_id: int = 0, **kwargs
+):
     """
     Returns a GPT-2 config more suitable for training on a regular consumer CPU.
     """
 
     return GPT2Config(
-        vocab_size=10000,
+        vocab_size=vocab_size,
         n_positions=64,
         n_ctx=64,
-        n_embd=128,
-        n_layer=2,
-        n_head=2,
-        **kwargs
+        n_embd=64,
+        n_layer=8,
+        n_head=8,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
     )

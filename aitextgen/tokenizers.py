@@ -27,9 +27,13 @@ def train_tokenizer(
     ), "files must be a string or a list."
 
     tokenizer = ByteLevelBPETokenizer(dropout=dropout)
-    tokenizer.add_special_tokens([bos_token, eos_token, unk_token])
+
     tokenizer.train(
-        files, vocab_size=vocab_size, min_frequency=min_frequency, show_progress=True
+        files,
+        vocab_size=vocab_size,
+        min_frequency=min_frequency,
+        special_tokens=[bos_token, eos_token, unk_token],
+        show_progress=True,
     )
 
     PREFIX = "aitextgen"
