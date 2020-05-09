@@ -333,6 +333,7 @@ class aitextgen:
         loggers: List = None,
         batch_size: int = 1,
         num_workers: int = None,
+        benchmark: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -441,7 +442,7 @@ class aitextgen:
             train_params["gpus"] = 0
 
         # benchmark gives a boost for GPUs if input size is constant
-        if n_gpu > 0:
+        if n_gpu != 0 and benchmark:
             train_params["benchmark"] = True
 
         if n_gpu > 1:
@@ -449,6 +450,9 @@ class aitextgen:
 
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
+
+        del train_model
+        del trainer
 
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
         self.model.save_pretrained(output_dir)
@@ -500,6 +504,8 @@ class aitextgen:
                 num_steps=num_steps[i],
                 **kwargs,
             )
+            # logger.info("Cleaning up.")
+            # time.sleep(30)  # Give GPUs/TPUs some time to clean up
 
     def export(self, for_gpu: bool = False) -> None:
         """Exports the model to TorchScript.
