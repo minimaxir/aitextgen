@@ -1,10 +1,10 @@
 from torch.utils.data import DataLoader
+from torch.optim import Adam
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
 from tqdm.auto import tqdm
 import sys
 from transformers import (
-    AdamW,
     get_linear_schedule_with_warmup,
     DataCollatorForLanguageModeling,
 )
@@ -54,28 +54,8 @@ class ATGTransformer(pl.LightningModule):
     def configure_optimizers(self):
         "Prepare optimizer and schedule (linear warmup and decay)"
 
-        model = self.model
-        no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [
-                    p
-                    for n, p in model.named_parameters()
-                    if not any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": self.hparams["weight_decay"],
-            },
-            {
-                "params": [
-                    p
-                    for n, p in model.named_parameters()
-                    if any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": 0.0,
-            },
-        ]
-        optimizer = AdamW(
-            optimizer_grouped_parameters,
+        optimizer = Adam(
+            [p for n, p in self.model.named_parameters()],
             lr=self.hparams["learning_rate"],
             eps=self.hparams["adam_epsilon"],
         )
@@ -99,6 +79,7 @@ class ATGProgressBar(ProgressBarBase):
         self.output_dir = output_dir
         self.n_generate = n_generate
         self.steps = 0
+        self.total_loss = 0
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
@@ -112,10 +93,12 @@ class ATGProgressBar(ProgressBarBase):
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
+        current_loss = float(trainer.progress_bar_dict["loss"])
         self.steps += 1
+        self.total_loss += current_loss
         self.main_progress_bar.update()
         self.main_progress_bar.set_description(
-            f"Loss: {trainer.progress_bar_dict['loss']}"
+            f"Loss: {current_loss:.3f} — Avg: {self.total_loss / self.steps:.3f}"
         )
 
         if self.save_every > 0 and self.steps % self.save_every == 0:
