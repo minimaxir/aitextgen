@@ -61,7 +61,7 @@ class TokenDataset(Dataset):
 
         # Special case; load tokenized texts immediately
         if tokenized_texts:
-            self.examples = tokenized_texts
+            self.tokens = tokenized_texts
             self.file_path = "merged TokenDataset"
             self.str_suffix = "by merging TokenDatasets."
             return
@@ -82,54 +82,46 @@ class TokenDataset(Dataset):
             open_func = gzip.open if file_path.endswith(".gz") else open
 
             with open_func(file_path, "rb") as f:
-                self.examples = msgpack.unpack(f)
+                self.tokens = msgpack.unpack(f)
             self.str_suffix = "via cache."
 
         # if texts are present, just tokenize them.
         elif texts is not None:
-            self.examples = tokenizer.batch_encode_plus(
-                texts, add_special_tokens=True, max_length=block_size
-            )["input_ids"]
+            text = ""
+            for line in texts:
+                text += str(line) + eos_token
+
+            logger.info(f"{len(texts):,} samples loaded.")
             self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
-        # the text must be processed line-by-line
+        # the text must be processed line-by-line into a a single bulk file
         elif line_by_line:
             assert os.path.isfile(file_path)
 
-            texts = read_lines_from_file(file_path, header=header)
-
-            self.examples = tokenizer.batch_encode_plus(
-                texts, add_special_tokens=True, max_length=block_size
-            )["input_ids"]
+            text, count = read_lines_from_file(file_path, eos_token, header=header)
+            logger.info(f"{count:,} samples loaded.")
 
             self.file_path = file_path
             self.str_suffix = f"from line-by-line file at {file_path}."
 
         # if a file is specified, and it's not line-delimited,
-        # the texts must be parsed in chunks.
+        # the texts must be parsed as a single bulk file.
         else:
             assert os.path.isfile(file_path)
 
-            # block_size = block_size - tokenizer.num_special_tokens_to_add(pair=False)
-
-            self.examples = []
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
-
-            tokenized_text = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(text))
-
-            for i in range(0, len(tokenized_text) - block_size + 1, block_size):
-                self.examples.append(
-                    tokenizer.build_inputs_with_special_tokens(
-                        tokenized_text[i : i + block_size]
-                    )
-                )
 
             self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
-        logger.info(f"{len(self.examples):,} samples loaded.")
+        self.tokens = tokenizer.encode(text)
+        assert (
+            len(self.tokens) >= block_size
+        ), f"There are fewer than {block_size} tokens."
+        self.num_subsets = len(self.tokens) - block_size
+        self.block_size = block_size
 
         if save_cache:
             self.save(cache_destination, compress=compress)
@@ -154,40 +146,48 @@ class TokenDataset(Dataset):
         logger.info(f"Caching {compress_str}dataset to {cache_destination}")
 
         with open_func(cache_destination, "wb") as f:
-            msgpack.pack(self.examples, f)
+            msgpack.pack(self.tokens, f)
 
     def __len__(self):
-        return len(self.examples)
+        return self.num_subsets
 
-    def __getitem__(self, item: int):
-        return torch.tensor(self.examples[item], dtype=torch.long)
+    def __getitem__(self, item: int) -> torch.Tensor:
+        return torch.tensor(
+            self.tokens[item : (item + self.block_size)], dtype=torch.long
+        )
 
     def __str__(self):
         return self.file_path if self.file_path is not None else "loaded dataset"
 
     def __repr__(self):
-        return f"TokenDataset containing {len(self.examples):,} examples loaded {self.str_suffix}"
+        return f"TokenDataset containing {self.num_subsets:,} subsets loaded {self.str_suffix}"
 
 
-def read_lines_from_file(file_path: str, header: bool = True) -> List[str]:
+def read_lines_from_file(
+    file_path: str, eos_token: str, header: bool = True
+) -> (List[str], int):
     """
-    Retrieves texts from a newline-delimited file/CSV and returns as a list.
+    Retrieves texts from a newline-delimited file/CSV and returns as a bulk text.
     """
 
     with open(file_path, "r", encoding="utf-8") as f:
+        text = ""
+        count = 0
         if header:
             f.readline()
         if file_path.endswith(".csv"):
             reader = csv.reader(f)
-            texts = [str(line) for line in reader]
+            for row in reader:
+                text += row[0] + eos_token
+                count += 1
         else:
-            texts = [
-                str(line)
-                for line in f.read().splitlines()
-                if (len(line) > 0 and not line.isspace())
-            ]
+            reader = f.read().splitlines()
+            for line in reader:
+                if len(line) > 0 and not line.isspace():
+                    text += line + eos_token
+                    count += 1
 
-    return texts
+    return text, count
 
 
 def merge_datasets(
