@@ -2,12 +2,10 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
+from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
-from transformers import (
-    get_linear_schedule_with_warmup,
-    DataCollatorForLanguageModeling,
-)
+from transformers import DataCollatorForLanguageModeling
 
 
 class ATGTransformer(pl.LightningModule):
@@ -52,34 +50,28 @@ class ATGTransformer(pl.LightningModule):
         )
 
     def configure_optimizers(self):
-        "Prepare optimizer and schedule (linear warmup and decay)"
+        "Prepare optimizer"
 
         optimizer = Adam(
             [p for n, p in self.model.named_parameters()],
             lr=self.hparams["learning_rate"],
             eps=self.hparams["adam_epsilon"],
         )
-
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=self.hparams["warmup_steps"],
-            num_training_steps=self.hparams["num_steps"],
-        )
-
-        return [optimizer], [scheduler]
+        return [optimizer]
 
 
 class ATGProgressBar(ProgressBarBase):
     """A variant progress bar that works off of steps and prints periodically."""
 
-    def __init__(self, save_every, generate_every, output_dir, n_generate):
+    def __init__(self, save_every, generate_every, output_dir, n_generate, gpu):
         super().__init__()
         self.save_every = save_every
         self.generate_every = generate_every
         self.output_dir = output_dir
         self.n_generate = n_generate
+        self.gpu = gpu
         self.steps = 0
-        self.total_loss = 0
+        self.total_loss = 0.0
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
@@ -95,11 +87,15 @@ class ATGProgressBar(ProgressBarBase):
         super().on_batch_end(trainer, pl_module)
         current_loss = float(trainer.progress_bar_dict["loss"])
         self.steps += 1
-        self.total_loss += current_loss
+        if current_loss == current_loss:  # don't add if current_loss is NaN
+            self.total_loss += current_loss
+
+        desc = f"Loss: {current_loss:.3f} — Avg: {self.total_loss / self.steps:.3f}"
+
+        if self.gpu:
+            desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
         self.main_progress_bar.update()
-        self.main_progress_bar.set_description(
-            f"Loss: {current_loss:.3f} — Avg: {self.total_loss / self.steps:.3f}"
-        )
+        self.main_progress_bar.set_description(desc)
 
         if self.save_every > 0 and self.steps % self.save_every == 0:
             self.save_pytorch_model(trainer, pl_module)

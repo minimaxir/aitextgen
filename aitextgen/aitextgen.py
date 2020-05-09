@@ -421,7 +421,9 @@ class aitextgen:
             disable_validation=True,
             weights_summary=None,
             callbacks=[
-                ATGProgressBar(save_every, generate_every, output_dir, n_generate)
+                ATGProgressBar(
+                    save_every, generate_every, output_dir, n_generate, n_gpu != 0
+                )
             ],
         )
 
