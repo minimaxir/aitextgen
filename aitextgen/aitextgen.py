@@ -252,6 +252,7 @@ class aitextgen:
         destination_path: str = None,
         sample_delim: str = "=" * 20 + "\n",
         seed: int = None,
+        cleanup: bool = True,
         **kwargs,
     ) -> None:
 
@@ -294,6 +295,10 @@ class aitextgen:
 
         for _ in range(n // batch_size):
             gen_texts = self.generate(n=batch_size, return_as_list=True, **kwargs)
+
+            # Remove empty texts and strip out extra newlines/extra spaces
+            if cleanup:
+                gen_text = [text.strip() for text in gen_texts if text]
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))
