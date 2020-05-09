@@ -317,7 +317,7 @@ class aitextgen:
         max_grad_norm: float = 1.0,
         gradient_accumulation_steps: int = 1,
         seed: int = None,
-        learning_rate: float = 5e-3,
+        learning_rate: float = 1e-4,
         weight_decay: float = 0.0,
         adam_epsilon: float = 1e-8,
         warmup_steps: int = 0,
@@ -475,10 +475,10 @@ class aitextgen:
         ]
 
         if not isinstance(learning_rate, list):
-            learning_rate = [learning_rate / x for x in range(len(datasets))]
+            learning_rate = [learning_rate / (x + 1) for x in range(len(datasets))]
 
         if not isinstance(num_steps, list):
-            num_steps = [int(num_steps / x) for x in range(len(datasets))]
+            num_steps = [int(num_steps / (x + 1)) for x in range(len(datasets))]
 
         assert len(datasets) == len(learning_rate) == len(num_steps), (
             "The provided learning_rates or num_steps"

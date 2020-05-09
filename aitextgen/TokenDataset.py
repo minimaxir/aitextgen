@@ -62,6 +62,7 @@ class TokenDataset(Dataset):
         # Special case; load tokenized texts immediately
         if tokenized_texts:
             self.examples = tokenized_texts
+            self.file_path = "merged TokenDataset"
             self.str_suffix = "by merging TokenDatasets."
             return
 
@@ -218,9 +219,9 @@ def merge_datasets(
     for dataset in datasets:
         if equalize:
             texts_subset = random.sample(dataset.examples, len_smallest)
-            tokenized_texts.append(texts_subset)
+            tokenized_texts.extend(texts_subset)
         else:
-            tokenized_texts.append(dataset.examples)
+            tokenized_texts.extend(dataset.examples)
 
     # Reset seed
     if seed:

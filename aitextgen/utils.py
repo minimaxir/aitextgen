@@ -59,7 +59,7 @@ def download_file_with_progress(
     with open(os.path.join(sub_dir, file_name), "wb") as f:
         file_size = int(r.headers["content-length"])
         with tqdm(
-            ncols=100, desc="Fetching " + file_name, total=file_size, unit_scale=True,
+            desc="Fetching " + file_name, total=file_size, unit_scale=True,
         ) as pbar:
             for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 f.write(chunk)
