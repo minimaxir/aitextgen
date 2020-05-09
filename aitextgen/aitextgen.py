@@ -26,7 +26,7 @@ from .train import ATGTransformer, ATGProgressBar
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("aitextgen")
 logger.setLevel(logging.INFO)
 
 STATIC_PATH = resource_filename(__name__, "static")
@@ -186,6 +186,9 @@ class aitextgen:
         if seed:
             set_seed(seed)
 
+        # prevent an error from using a length greater than the model
+        max_length = min(self.model.config.n_positions, max_length)
+
         outputs = self.model.generate(
             input_ids=prompt,
             max_length=max_length,
@@ -306,9 +309,9 @@ class aitextgen:
         self,
         dataset: TokenDataset = None,
         file_path: str = None,
-        output_dir: str = "",
+        output_dir: str = ".",
         fp16: bool = False,
-        fp16_opt_level: str = "O3",
+        fp16_opt_level: str = "O1",
         n_gpu: int = -1,
         n_tpu_cores: int = 0,
         max_grad_norm: float = 1.0,
@@ -319,6 +322,9 @@ class aitextgen:
         adam_epsilon: float = 1e-8,
         warmup_steps: int = 0,
         num_steps: int = 5000,
+        save_every: int = 1000,
+        generate_every: int = 1000,
+        n_generate: int = 1,
         loggers: List = None,
         batch_size: int = 1,
         num_workers: int = None,
@@ -384,6 +390,8 @@ class aitextgen:
             num_steps=num_steps,
             pin_memory=True if n_gpu != 0 else False,
             num_workers=num_workers,
+            save_every=save_every,
+            generate_every=generate_every,
         )
 
         # Wrap the model in a pytorch-lightning module
@@ -393,16 +401,13 @@ class aitextgen:
         if seed:
             set_seed(seed)
 
-        if os.path.exists(output_dir) and os.listdir(output_dir):
-            raise ValueError(
-                "Output directory ({}) already exists and is not empty.".format(
-                    output_dir
-                )
+        if os.path.exists(output_dir) and "pytorch_model.bin" in os.listdir(output_dir):
+            logger.warning(
+                f"pytorch_model.bin already exists in {output_dir} and will be overwritten!"
             )
 
         # if try to use a GPU but no CUDA, use CPU
         if not torch.cuda.is_available() and n_gpu != 0:
-            logger.info("Training the model on your local CPU.")
             n_gpu = 0
 
         train_params = dict(
@@ -411,12 +416,13 @@ class aitextgen:
             max_steps=num_steps,
             show_progress_bar=True,
             gradient_clip_val=max_grad_norm,
-            # checkpoint_callback=checkpoint_callback,
-            # check_val_every_n_epoch=0,
-            logger=False,
+            checkpoint_callback=False,
+            logger=loggers if loggers else False,
             disable_validation=True,
             weights_summary=None,
-            callbacks=[ATGProgressBar()],
+            callbacks=[
+                ATGProgressBar(save_every, generate_every, output_dir, n_generate)
+            ],
         )
 
         if fp16:
@@ -437,9 +443,8 @@ class aitextgen:
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
 
-        self.model = train_model.model
-        logger.info("Saving trained model pytorch_model.bin to current directory.")
-        self.model.save_pretrained(".")
+        logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
+        self.model.save_pretrained(output_dir)
 
         if seed:
             reset_seed()

@@ -78,11 +78,11 @@ ai = aitextgen(vocab_file="aitextgen-vocab.json",
 			   merges_file="aitextgen-merges.txt",
 			   config=config)
 
-# Train the model! It will save pytorch_model.bin after completion
-ai.train(file_name, batch_size=16)
+# Train the model! It will save pytorch_model.bin periodically and after completion
+ai.train(data, batch_size=16, generate_every=200, save_every=200, num_steps=1000)
 
 # Generate text from it!
-ai.generate(5)
+ai.generate(5, prompt="KING")
 ```
 
 Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or follow the documentation to see how you can run these tools on Google Cloud Platform at maximum cost efficiency!
