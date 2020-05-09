@@ -3,7 +3,6 @@ import logging
 import csv
 import os
 import msgpack
-import random
 import gzip
 from torch.utils.data import Dataset
 from typing import List
@@ -62,6 +61,8 @@ class TokenDataset(Dataset):
         # Special case; load tokenized texts immediately
         if tokenized_texts:
             self.tokens = tokenized_texts
+            self.num_subsets = len(self.tokens) - block_size
+            self.block_size = block_size
             self.file_path = "merged TokenDataset"
             self.str_suffix = "by merging TokenDatasets."
             return
@@ -190,9 +191,7 @@ def read_lines_from_file(
     return text, count
 
 
-def merge_datasets(
-    datasets: List[TokenDataset], equalize: bool = True, seed: int = None
-) -> TokenDataset:
+def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> TokenDataset:
     """
     Merges multiple TokenDatasets into a single TokenDataset.
     This assumes that you are using the same tokenizer for all TokenDatasets.
@@ -202,7 +201,6 @@ def merge_datasets(
     * **datasets**: A list of TokenDatasets.
     * **equalize**: Whether to take an equal amount of samples from all
     input datasets (by taking random samples from each dataset equal to the smallest dataset) in order to balance out the result dataset.
-    * **seed**: Seed to control the random sampling, if using equalize.
     """
 
     assert (
@@ -210,21 +208,17 @@ def merge_datasets(
     ), "datasets must be a list of multiple TokenDatasets."
 
     len_smallest = min([len(dataset) for dataset in datasets])
-
-    if seed:
-        random.seed(seed)
+    block_size = datasets[0].block_size
 
     tokenized_texts = []
 
     for dataset in datasets:
+        assert (
+            dataset.block_size == block_size
+        ), "The input datasets have different block sizes."
         if equalize:
-            texts_subset = random.sample(dataset.examples, len_smallest)
-            tokenized_texts.extend(texts_subset)
+            tokenized_texts.extend(dataset.tokens[0:len_smallest])
         else:
-            tokenized_texts.extend(dataset.examples)
+            tokenized_texts.extend(dataset.tokens)
 
-    # Reset seed
-    if seed:
-        random.seed()
-
-    return TokenDataset(tokenized_texts=tokenized_texts)
+    return TokenDataset(tokenized_texts=tokenized_texts, block_size=block_size)
