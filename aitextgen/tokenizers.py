@@ -11,6 +11,7 @@ def train_tokenizer(
     vocab_size: int = 10000,
     min_frequency: int = 2,
     save_path: str = "",
+    added_tokens: List[str] = [],
     bos_token: str = "<|endoftext|>",
     eos_token: str = "<|endoftext|>",
     unk_token: str = "<|endoftext|>",
@@ -27,6 +28,7 @@ def train_tokenizer(
     ), "files must be a string or a list."
 
     tokenizer = ByteLevelBPETokenizer(dropout=dropout)
+    tokenizer.add_tokens(added_tokens)
 
     tokenizer.train(
         files,
