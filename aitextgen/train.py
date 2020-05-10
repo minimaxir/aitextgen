@@ -68,6 +68,7 @@ class ATGProgressBar(ProgressBarBase):
         self, save_every, generate_every, output_dir, n_generate, gpu, smoothing
     ):
         super().__init__()
+        self.enabled = True
         self.save_every = save_every
         self.generate_every = generate_every
         self.output_dir = output_dir
@@ -77,10 +78,17 @@ class ATGProgressBar(ProgressBarBase):
         self.prev_avg_loss = None
         self.smoothing = smoothing
 
+    def enabled(self):
+        self.enabled = True
+
+    def disable(self):
+        self.enabled = False
+
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
         self.main_progress_bar = tqdm(
             total=trainer.max_steps,
+            disable=not self.enabled,
             smoothing=0,
             leave=True,
             dynamic_ncols=True,
