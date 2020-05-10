@@ -28,7 +28,6 @@ def train_tokenizer(
     ), "files must be a string or a list."
 
     tokenizer = ByteLevelBPETokenizer(dropout=dropout)
-    tokenizer.add_tokens(added_tokens)
 
     tokenizer.train(
         files,
@@ -37,6 +36,10 @@ def train_tokenizer(
         special_tokens=[bos_token, eos_token, unk_token],
         show_progress=True,
     )
+
+    # Currently doesn't do anything
+    # See: https://github.com/huggingface/tokenizers/issues/233
+    # tokenizer.add_tokens(added_tokens)
 
     PREFIX = "aitextgen"
     save_path_str = "the current directory" if save_path == "" else save_path
