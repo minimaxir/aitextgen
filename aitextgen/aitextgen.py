@@ -298,7 +298,12 @@ class aitextgen:
 
             # Remove empty texts and strip out extra newlines/extra spaces
             if cleanup:
-                gen_text = [text.strip() for text in gen_texts if text]
+                texts_to_clean = gen_texts
+                gen_texts = []
+                for text in texts_to_clean:
+                    clean_text = text.strip().strip("\n")
+                    if clean_text:
+                        gen_texts.append(clean_text)
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))
@@ -441,7 +446,8 @@ class aitextgen:
             train_params["num_tpu_cores"] = n_tpu_cores
             train_params["gpus"] = 0
 
-        # benchmark gives a boost for GPUs if input size is constant
+        # benchmark gives a boost for GPUs if input size is constant,
+        # which will always be the case with aitextgen training
         if n_gpu != 0 and benchmark:
             train_params["benchmark"] = True
 
@@ -450,9 +456,6 @@ class aitextgen:
 
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
-
-        del train_model
-        del trainer
 
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
         self.model.save_pretrained(output_dir)
@@ -463,8 +466,8 @@ class aitextgen:
     def cross_train(
         self,
         inputs: List[TokenDataset],
-        learning_rate: Union[float, List[float]] = 5e-3,
-        num_steps: Union[int, List[int]] = 5000,
+        learning_rate: Union[float, List[float]] = 1e-4,
+        num_steps: Union[int, List[int]] = 4000,
         **kwargs,
     ) -> None:
         """Trains a model across multiple input datasets, with automatic
@@ -486,10 +489,10 @@ class aitextgen:
         ]
 
         if not isinstance(learning_rate, list):
-            learning_rate = [learning_rate / (x + 1) for x in range(len(datasets))]
+            learning_rate = [learning_rate / (2 ** x) for x in range(len(datasets))]
 
         if not isinstance(num_steps, list):
-            num_steps = [int(num_steps / (x + 1)) for x in range(len(datasets))]
+            num_steps = [int(num_steps / (2 ** x)) for x in range(len(datasets))]
 
         assert len(datasets) == len(learning_rate) == len(num_steps), (
             "The provided learning_rates or num_steps"

@@ -6,6 +6,7 @@ from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
 from transformers import DataCollatorForLanguageModeling
+import torch
 
 
 class ATGTransformer(pl.LightningModule):
@@ -85,6 +86,12 @@ class ATGProgressBar(ProgressBarBase):
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
+
+        # clean up the GPU cache used for the benchmark
+        # https://discuss.pytorch.org/t/about-torch-cuda-empty-cache/34232/4
+        if self.steps == 0 and self.gpu:
+            torch.cuda.empty_cache()
+
         current_loss = float(trainer.progress_bar_dict["loss"])
         self.steps += 1
         if current_loss == current_loss:  # don't add if current_loss is NaN
@@ -121,7 +128,7 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.write("=" * 10)
             self.main_progress_bar.write(text)
 
-        self.main_progress_bar.write("=" * 10)
+        self.main_progress_bar.write("-" * 20)
 
     def save_pytorch_model(self, trainer, pl_module):
         self.main_progress_bar.write(
