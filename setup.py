@@ -18,17 +18,13 @@ setup(
     keywords=["wordcloud", "data visualization", "text cool stuff"],
     classifiers=[],
     license="MIT",
-    # entry_points={
-    #     'console_scripts': ['stylecloud=stylecloud.stylecloud:stylecloud_cli'],
-    # },
+    entry_points={"console_scripts": ["aitextgen=aitextgen.cli:aitextgen_cli"]},
     python_requires=">=3.6",
     include_package_data=True,
     install_requires=[
-        "transformers>=2.8.0",
+        "transformers>=2.9.0",
         "fire",
         "msgpack",
-        "pytorch-lightning>=0.7.3",
-        "tqdm>=4.41.0",
-        "pyyaml",
+        "pytorch-lightning>=0.7.5",
     ],
 )

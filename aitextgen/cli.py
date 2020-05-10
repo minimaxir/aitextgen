@@ -5,7 +5,7 @@ import fire
 
 def aitextgen_cli(**kwargs):
     """Entrypoint for the CLI"""
-    fire.fire()
+    fire.Fire({"encode": encode_cli, "train": train_cli})
 
 
 def encode_cli(file_path: str, **kwargs):
@@ -23,8 +23,8 @@ def train_cli(file_path: str, **kwargs):
     ai.train(dataset, **kwargs)
 
 
-def generate(cache_dir: str, **kwargs):
-    """Generate from a trained model"""
+# def generate(cache_dir: str, **kwargs):
+#     """Generate from a trained model"""
 
-    ai = aitextgen(cache_dir=cache_dir)
-    ai.generate_to_file(**kwargs)
+#     ai = aitextgen(cache_dir=cache_dir)
+#     ai.generate_to_file(**kwargs)
