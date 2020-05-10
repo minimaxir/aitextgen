@@ -85,12 +85,19 @@ class TokenDataset(Dataset):
 
             with open_func(file_path, "rb") as f:
                 self.tokens = msgpack.unpack(f)
+            self.num_subsets = len(self.tokens) - block_size
+            self.block_size = block_size
             self.str_suffix = "via cache."
+
+            logger.info(
+                f"TokenDataset containing {self.num_subsets:,} subsets loaded {self.str_suffix}"
+            )
+            return
 
         # if texts are present, just tokenize them.
         elif texts is not None:
             text_list = texts
-            logger.info(f"{len(text_list):,} samples loaded.")
+            logger.info(f"{len(text_list):,} texts loaded.")
             self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
@@ -99,7 +106,7 @@ class TokenDataset(Dataset):
             assert os.path.isfile(file_path)
 
             text_list = read_lines_from_file(file_path, eos_token, header=header)
-            logger.info(f"{len(text_list):,} samples loaded.")
+            logger.info(f"{len(text_list):,} texts loaded.")
 
             self.file_path = file_path
             self.str_suffix = f"from line-by-line file at {file_path}."
