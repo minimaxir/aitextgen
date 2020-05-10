@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from typing import List
 from transformers import GPT2TokenizerFast
 from pkg_resources import resource_filename
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +89,8 @@ class TokenDataset(Dataset):
 
         # if texts are present, just tokenize them.
         elif texts is not None:
-            text = ""
-            for line in texts:
-                text += str(line) + eos_token
-
-            logger.info(f"{len(texts):,} samples loaded.")
+            text_list = texts
+            logger.info(f"{len(text_list):,} samples loaded.")
             self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
@@ -100,8 +98,8 @@ class TokenDataset(Dataset):
         elif line_by_line:
             assert os.path.isfile(file_path)
 
-            text, count = read_lines_from_file(file_path, eos_token, header=header)
-            logger.info(f"{count:,} samples loaded.")
+            text_list = read_lines_from_file(file_path, eos_token, header=header)
+            logger.info(f"{len(text_list):,} samples loaded.")
 
             self.file_path = file_path
             self.str_suffix = f"from line-by-line file at {file_path}."
@@ -117,7 +115,22 @@ class TokenDataset(Dataset):
             self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
-        self.tokens = tokenizer.encode(text)
+        if texts is not None or line_by_line:
+            # Multi-threaded, will use all CPU cores
+            # and is extremely fast!
+            self.tokens = list(
+                itertools.chain.from_iterable(
+                    tokenizer.batch_encode_plus(text_list, add_special_tokens=False)[
+                        "input_ids"
+                    ]
+                )
+            )
+            del text_list
+        else:
+            # Single-threaded, but more accurately
+            # tokenizes a bulk text for GPT-2 training.
+            self.tokens = tokenizer.encode(text)
+            del text
         assert (
             len(self.tokens) >= block_size
         ), f"There are fewer than {block_size} tokens."
@@ -130,7 +143,7 @@ class TokenDataset(Dataset):
     def save(
         self, cache_destination: str = "dataset_cache.tar.gz", compress: bool = True
     ) -> None:
-        assert len(self.examples) > 0, "No data loaded to save."
+        assert len(self.tokens) > 0, "No data loaded to save."
 
         if compress:
             open_func = gzip.open
@@ -168,27 +181,24 @@ def read_lines_from_file(
     file_path: str, eos_token: str, header: bool = True
 ) -> (List[str], int):
     """
-    Retrieves texts from a newline-delimited file/CSV and returns as a bulk text.
+    Retrieves texts from a newline-delimited file/CSV and returns texts.
     """
 
     with open(file_path, "r", encoding="utf-8") as f:
-        text = ""
-        count = 0
+        text_list = []
         if header:
             f.readline()
         if file_path.endswith(".csv"):
             reader = csv.reader(f)
             for row in reader:
-                text += row[0] + eos_token
-                count += 1
+                text_list.append(row[0] + eos_token)
         else:
             reader = f.read().splitlines()
             for line in reader:
                 if len(line) > 0 and not line.isspace():
-                    text += line + eos_token
-                    count += 1
+                    text_list.append(line + eos_token)
 
-    return text, count
+    return text_list
 
 
 def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> TokenDataset:
