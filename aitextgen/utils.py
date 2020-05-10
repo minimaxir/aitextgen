@@ -96,31 +96,31 @@ def reset_seed():
     # torch.cuda.seed_all()
 
 
-def build_config(changes: dict, cache_dir: str, base_config: str = "gpt2"):
+def build_gpt2_config(
+    vocab_size: int = 10000,
+    bos_token_id: int = 0,
+    eos_token_id: int = 0,
+    max_length: int = 1024,
+    dropout: float = 0.1,
+    **kwargs
+):
     """
-    Builds a custom config based on a given Transformers config,
+    Builds a custom GPT-2 config based on a given Transformers config,
     with a few more user-friendly aliases.
     """
 
-    # Download but don't cache yet
-    config = PretrainedConfig.from_pretrained(
-        base_config, cache_dir=cache_dir
-    ).to_dict()
-
-    # use max_length as an alias for context window
-    if "max_length" in changes:
-        for key in ["n_positions", "n_ctx"]:
-            changes[key] = changes["max_length"]
-
-    # use dropout for relevant dropouts during training only
-    if "dropout" in changes:
-        for key in ["resid_pdrop", "embd_pdrop", "attn_pdrop"]:
-            changes[key] = changes["dropout"]
-
-    config.update(changes)
-    new_config = PretrainedConfig.from_dict(config)
-
-    return new_config
+    return GPT2Config(
+        vocab_size=vocab_size,
+        n_positions=max_length,
+        n_ctx=max_length,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
 
 
 def GPT2ConfigCPU(
