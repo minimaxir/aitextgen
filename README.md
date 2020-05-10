@@ -1,13 +1,12 @@
 # aitextgen
 
-A robust tool for advanced AI text generation.
+A robust tool for advanced AI text generation via GPT-2.
 
-aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Huggingface Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation, plus _many_ added features. It is the successor to textgenrnn and gpt-2-simple, merging the advantages of both packages.
+aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Huggingface Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to textgenrnn and gpt-2-simple, merging the advantages of both packages.
 
-- Finetunes on a pretrained GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch, even on your local computer without a GPU!
+- Finetunes on a pretrained GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency, even moreso if you export your model to TorchScript!
-- Model agnostic and future-proofed to support new developments in the Transformers-based world.
-- With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repository. Uses the `generate()` function to allow a massive amount of control over the generated text.
+- With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repository. Also, it uses the `generate()` function to allow a massive amount of control over the generated text.
 - With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and TPUs! Robust training progress support, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting it, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ models so it learns some data fully and some partially to create blended output.
 
@@ -79,10 +78,11 @@ ai = aitextgen(vocab_file="aitextgen-vocab.json",
 			   config=config)
 
 # Train the model! It will save pytorch_model.bin periodically and after completion
-ai.train(data, batch_size=16, generate_every=200, save_every=200, num_steps=1000)
+# On a 2016 MacBook Pro, this took ~30 minutes to run.
+ai.train(data, batch_size=16, num_steps=5000)
 
 # Generate text from it!
-ai.generate(5, prompt="KING")
+ai.generate(10, prompt="KING")
 ```
 
 Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or follow the documentation to see how you can run these tools on Google Cloud Platform at maximum cost efficiency!
@@ -97,10 +97,6 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 The current release (v0.1) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months.
 
-Immediate priorities are:
-
-- fp16 fixes
-
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (see [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept)
 
 Additionally, I plan to develop an aitextgen [SaaS](https://en.wikipedia.org/wiki/Software_as_a_service) to allow anyone to run aitextgen in the cloud and build APIs/Twitter+Slack+Discord bots with just a few clicks. (the primary constraint is compute cost; if any venture capitalists are interested in funding the development of such a service, let me know)
@@ -109,7 +105,7 @@ I've listed more tenative features in the [UPCOMING](UPCOMING.md) document.
 
 ## Ethics
 
-aitextgen is a tool primarily intended to help facilitate creative content. It is not a tool intended to decive. Although parody accounts are an obvious use case for this package, make sure you are _as upfront as possible_ with the methodology of the text you create. This includes:
+aitextgen is a tool primarily intended to help facilitate creative content. It is not a tool intended to deceive. Although parody accounts are an obvious use case for this package, make sure you are _as upfront as possible_ with the methodology of the text you create. This includes:
 
 - State that the text was generated using aitextgen and/or a GPT-2 model architecture. (a link to this repo would be a bonus!)
 - If parodying a person, explicitly state that it is a parody, and reference who it is parodying.
@@ -117,7 +113,7 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 - Indicating who is maintaining/curating the AI-generated text.
 - Make a good-faith effort to remove overfit output from the generated text that matches the input text verbatim.
 
-It's fun to anthropomorphise the nameless "AI" as an absent genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive may be disavowed.**
+It's fun to anthropomorphise the nameless "AI" as an abstract genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive may be disavowed.**
 
 ## Maintainer/Creator
 
