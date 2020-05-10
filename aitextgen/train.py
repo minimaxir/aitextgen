@@ -5,7 +5,6 @@ from pytorch_lightning.callbacks.progress import ProgressBarBase
 from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
-from transformers import DataCollatorForLanguageModeling
 import torch
 
 
@@ -29,7 +28,7 @@ class ATGTransformer(pl.LightningModule):
     def training_step(self, batch, batch_num):
         "Compute loss and log."
 
-        outputs = self(batch)  # batch is a dict containing w/ "input_ids" and "labels"
+        outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
 
         return {"loss": loss}
@@ -37,14 +36,9 @@ class ATGTransformer(pl.LightningModule):
     def train_dataloader(self):
         "Load datasets. Called after prepare data."
 
-        data_collator = DataCollatorForLanguageModeling(
-            tokenizer=self.tokenizer, mlm=False
-        )
-
         return DataLoader(
             self.dataset,
             batch_size=self.hparams["batch_size"],
-            collate_fn=data_collator.collate_batch,
             shuffle=True,
             pin_memory=self.hparams["pin_memory"],
             num_workers=self.hparams["num_workers"],
