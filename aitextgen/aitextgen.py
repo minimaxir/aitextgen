@@ -26,6 +26,11 @@ from .train import ATGTransformer, ATGProgressBar
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 
+try:
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    pass
+
 logger = logging.getLogger("aitextgen")
 logger.setLevel(logging.INFO)
 
@@ -372,6 +377,7 @@ class aitextgen:
         assert not self.torchscript, "You cannot train a traced TorchScript model."
 
         self.model = self.model.train()
+        is_gpu_used = torch.cuda.is_available() and n_gpu != 0
 
         if file_path:
             dataset = TokenDataset(
@@ -387,7 +393,7 @@ class aitextgen:
 
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
-            if n_gpu != 0 or n_tpu_cores > 0:
+            if is_gpu_used or n_tpu_cores > 0:
                 num_workers = os.cpu_count()
             # If training on the CPU, use half the CPUs
             else:
@@ -400,10 +406,11 @@ class aitextgen:
             warmup_steps=warmup_steps,
             batch_size=batch_size,
             num_steps=num_steps,
-            pin_memory=True if n_gpu != 0 else False,
+            pin_memory=True if is_gpu_used else False,
             num_workers=num_workers,
             save_every=save_every,
             generate_every=generate_every,
+            tpu=n_tpu_cores > 0,
         )
 
         # Wrap the model in a pytorch-lightning module
@@ -419,7 +426,7 @@ class aitextgen:
             )
 
         # if try to use a GPU but no CUDA, use CPU
-        if not torch.cuda.is_available() and n_gpu != 0:
+        if not is_gpu_used:
             n_gpu = 0
 
         train_params = dict(
@@ -438,7 +445,7 @@ class aitextgen:
                     generate_every,
                     output_dir,
                     n_generate,
-                    n_gpu != 0,
+                    is_gpu_used,
                     avg_loss_smoothing,
                 )
             ],
@@ -451,6 +458,7 @@ class aitextgen:
         if n_tpu_cores > 0:
             train_params["num_tpu_cores"] = n_tpu_cores
             train_params["gpus"] = 0
+            n_gpu = 0
 
         # benchmark gives a boost for GPUs if input size is constant,
         # which will always be the case with aitextgen training
@@ -543,3 +551,8 @@ class aitextgen:
         """Moves the model to the specified CPU."""
 
         self.model.to(torch.device("cpu", index))
+
+    def to_tpu(self) -> None:
+        """Moves the model to the TPU."""
+
+        self.model.to(xm.xla_device())

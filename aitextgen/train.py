@@ -7,6 +7,11 @@ from tqdm.auto import tqdm
 import sys
 import torch
 
+try:
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    pass
+
 
 class ATGTransformer(pl.LightningModule):
     """
@@ -53,6 +58,15 @@ class ATGTransformer(pl.LightningModule):
             eps=self.hparams["adam_epsilon"],
         )
         return [optimizer]
+
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None
+    ):
+        if self.hparams["tpu"]:
+            xm.optimizer_step(optimizer, barrier=True)
+        else:
+            optimizer.step()
+        optimizer.zero_grad()
 
 
 class ATGProgressBar(ProgressBarBase):
