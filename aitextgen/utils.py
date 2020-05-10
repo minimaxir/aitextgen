@@ -92,7 +92,7 @@ def reset_seed():
     """
     random.seed()
     np.random.seed()
-    torch.seed()
+    # torch.seed()
     # torch.cuda.seed_all()
 
 

@@ -64,7 +64,9 @@ class ATGTransformer(pl.LightningModule):
 class ATGProgressBar(ProgressBarBase):
     """A variant progress bar that works off of steps and prints periodically."""
 
-    def __init__(self, save_every, generate_every, output_dir, n_generate, gpu):
+    def __init__(
+        self, save_every, generate_every, output_dir, n_generate, gpu, smoothing
+    ):
         super().__init__()
         self.save_every = save_every
         self.generate_every = generate_every
@@ -72,7 +74,8 @@ class ATGProgressBar(ProgressBarBase):
         self.n_generate = n_generate
         self.gpu = gpu
         self.steps = 0
-        self.total_loss = 0.0
+        self.prev_avg_loss = None
+        self.smoothing = smoothing
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)
@@ -95,9 +98,12 @@ class ATGProgressBar(ProgressBarBase):
         current_loss = float(trainer.progress_bar_dict["loss"])
         self.steps += 1
         if current_loss == current_loss:  # don't add if current_loss is NaN
-            self.total_loss += current_loss
+            avg_loss = self.average_loss(
+                current_loss, self.prev_avg_loss, self.smoothing
+            )
+            self.prev_avg_loss = avg_loss
 
-        desc = f"Loss: {current_loss:.3f} — Avg: {self.total_loss / self.steps:.3f}"
+        desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
 
         if self.gpu:
             desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
@@ -135,3 +141,9 @@ class ATGProgressBar(ProgressBarBase):
             f"{self.steps:,} steps reached: saving model to {self.output_dir}"
         )
         pl_module.model.save_pretrained(self.output_dir)
+
+    def average_loss(self, current_loss, prev_avg_loss, smoothing):
+        if prev_avg_loss is None:
+            return current_loss
+        else:
+            return (smoothing * current_loss) + (1 - smoothing) * prev_avg_loss

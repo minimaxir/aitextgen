@@ -302,7 +302,7 @@ class aitextgen:
                 gen_texts = []
                 for text in texts_to_clean:
                     clean_text = text.strip().strip("\n")
-                    if clean_text:
+                    if clean_text and len(clean_text) >= 2:
                         gen_texts.append(clean_text)
 
             for gen_text in gen_texts:
@@ -339,6 +339,7 @@ class aitextgen:
         batch_size: int = 1,
         num_workers: int = None,
         benchmark: bool = True,
+        avg_loss_smoothing: float = 0.01,
         **kwargs,
     ) -> None:
         """
@@ -433,7 +434,12 @@ class aitextgen:
             weights_summary=None,
             callbacks=[
                 ATGProgressBar(
-                    save_every, generate_every, output_dir, n_generate, n_gpu != 0
+                    save_every,
+                    generate_every,
+                    output_dir,
+                    n_generate,
+                    n_gpu != 0,
+                    avg_loss_smoothing,
                 )
             ],
         )
