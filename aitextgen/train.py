@@ -1,11 +1,11 @@
 from torch.utils.data import DataLoader
-from torch.optim import Adam
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
 from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
 import torch
+from transformers import get_linear_schedule_with_warmup, AdamW
 
 try:
     import torch_xla.core.xla_model as xm
@@ -52,12 +52,40 @@ class ATGTransformer(pl.LightningModule):
     def configure_optimizers(self):
         "Prepare optimizer"
 
-        optimizer = Adam(
-            [p for n, p in self.model.named_parameters()],
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
+                "weight_decay": self.hparams["weight_decay"],
+            },
+            {
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
+                "weight_decay": 0.0,
+            },
+        ]
+        optimizer = AdamW(
+            optimizer_grouped_parameters,
             lr=self.hparams["learning_rate"],
             eps=self.hparams["adam_epsilon"],
         )
-        return [optimizer]
+
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=self.hparams["warmup_steps"],
+            num_training_steps=self.hparams["num_steps"],
+        )
+
+        self.opt = optimizer
+        self.lr_scheduler = scheduler
+        return [optimizer], [scheduler]
 
     def optimizer_step(
         self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None
@@ -67,6 +95,7 @@ class ATGTransformer(pl.LightningModule):
         else:
             optimizer.step()
         optimizer.zero_grad()
+        self.lr_scheduler.step()
 
 
 class ATGProgressBar(ProgressBarBase):
