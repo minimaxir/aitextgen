@@ -36,7 +36,7 @@ class ATGTransformer(pl.LightningModule):
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
 
-        return {"loss": loss}
+        return {"loss": loss, "log": {"Loss": loss}}
 
     def train_dataloader(self):
         "Load datasets. Called after prepare data."
