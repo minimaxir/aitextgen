@@ -7,10 +7,9 @@ Here is a list of features, in no particular order, of what I _hope_ to add to a
 - Sparse Transformers?
 - Include keyword conditioning as well
 - - For vocab prefix, use heuristics on tokens, since very speedy and can scale high with strong tokenizers
-- - Can use a custom `coalate` function to sample keywords out of a `<<text>>` block, and also shuffle the schema to augment text.
+- - Can use a custom `coalate` function to sample keywords out of a `<<<text>>>` block, and also shuffle the schema to augment text.
 - Context support, provided as a named dict to a generation function
-- Sample weighting, so network can weight earlier text in the sequence stronger than later text (e.g. recent tweets than older tweets!)
-- Replace tokens in a tokenizer, e.g. replace rare tokens in a tweet generator with <|startoftext|> to save space, or allow a manual replacement (store replacement dict in a JSON config)
+  e sequence stronger than later text (e.g. recent tweets than older tweets!)
 
 ## Generation Features
 
@@ -38,5 +37,4 @@ Here is a list of features, in no particular order, of what I _hope_ to add to a
   - Include a small model trainable on a CPU, trained from a distilled larger model
 - Support any CLM model, not just GPT2.
 - Support training model from scratch (will need to add tokenizer export)
-- Unlimited text generation regardless of model window size.
 - Support CPU-based XLA for faster PyTorch CPU Train/Predict performance
