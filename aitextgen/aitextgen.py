@@ -394,7 +394,7 @@ class aitextgen:
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
             if is_gpu_used or n_tpu_cores > 0:
-                num_workers = os.cpu_count()
+                num_workers = os.cpu_count() * 2
             # If training on the CPU, use half the CPUs
             else:
                 num_workers = int(os.cpu_count() / 2)
@@ -434,7 +434,7 @@ class aitextgen:
             gpus=n_gpu,
             max_steps=num_steps,
             show_progress_bar=True,
-            gradient_clip_val=max_grad_norm,
+            gradient_clip_val=max_grad_norm if not fp16 else 0,
             checkpoint_callback=False,
             logger=loggers if loggers else False,
             disable_validation=True,

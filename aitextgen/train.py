@@ -126,11 +126,16 @@ class ATGProgressBar(ProgressBarBase):
         self.main_progress_bar.update()
         self.main_progress_bar.set_description(desc)
 
-        if self.save_every > 0 and self.steps % self.save_every == 0:
-            self.save_pytorch_model(trainer, pl_module)
+        if self.enabled:
+            if self.save_every > 0 and self.steps % self.save_every == 0:
+                self.save_pytorch_model(trainer, pl_module)
 
-        if self.generate_every > 0 and self.steps % self.generate_every == 0:
-            self.generate_sample_text(trainer, pl_module)
+            if (
+                not pl_module.hparams["tpu"]
+                and self.generate_every > 0
+                and self.steps % self.generate_every == 0
+            ):
+                self.generate_sample_text(trainer, pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
         self.main_progress_bar.write(

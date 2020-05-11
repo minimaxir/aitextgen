@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 import torch
 import numpy as np
 import random
-from transformers import PretrainedConfig, GPT2Config
+from transformers import GPT2Config
 
 
 def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None:
