@@ -24,9 +24,10 @@ from .utils import (
     reset_seed,
 )
 from .train import ATGTransformer, ATGProgressBar
-from .colab import is_mounted
+from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
+import shutil
 
 try:
     import torch_xla.core.xla_model as xm
@@ -103,7 +104,7 @@ class aitextgen:
                 ], "Invalid TensorFlow GPT-2 model size."
 
                 logger.info(
-                    f"Downloading the {tf_gpt2} GPT-2 TensorFlow weights/config"
+                    f"Downloading the {tf_gpt2} GPT-2 TensorFlow weights/config "
                     + "from Google's servers"
                 )
 
@@ -124,7 +125,7 @@ class aitextgen:
                     os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin"),
                 )
 
-            logger.info(f"Loading {tf_gpt2} GPT-2 model from {cache_dir}.")
+            logger.info(f"Loading {tf_gpt2} GPT-2 model from /{cache_dir}.")
             model = os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
 
             self.model = GPT2LMHeadModel.from_pretrained(
@@ -133,12 +134,14 @@ class aitextgen:
 
         elif config is not None:
             logger.info("Constructing GPT-2 model from provided config.")
+            if torchscript:
+                config.torchscript = True
             self.model = AutoModelWithLMHead.from_config(config=config)
         else:
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
                 logger.info(f"Loading model from /{cache_dir}.")
             else:
-                logger.info(f"Downloading {model} model to /{cache_dir}.")
+                logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
             self.model = GPT2LMHeadModel.from_pretrained(
                 model or "gpt2", cache_dir=cache_dir, torchscript=torchscript
             )
@@ -344,7 +347,7 @@ class aitextgen:
         self,
         dataset: TokenDataset = None,
         file_path: str = None,
-        output_dir: str = ".",
+        output_dir: str = "trained_model",
         fp16: bool = False,
         fp16_opt_level: str = "O1",
         n_gpu: int = -1,
@@ -365,7 +368,8 @@ class aitextgen:
         num_workers: int = None,
         benchmark: bool = True,
         avg_loss_smoothing: float = 0.01,
-        copy_gdrive: bool = False,
+        save_gdrive: bool = False,
+        run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
         **kwargs,
     ) -> None:
         """
@@ -397,15 +401,17 @@ class aitextgen:
         ), "Either dataset or file_path must be specified"
         assert not self.torchscript, "You cannot train a traced TorchScript model."
 
-        if copy_gdrive:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        if save_gdrive:
             assert (
                 "google.colab" in sys.modules
             ), "You must be in Colaboratory to copy to your Google Drive"
-            is_mounted()
+            create_gdrive_folder(run_id)
 
         self.model = self.model.train()
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
-        run_id = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}"
 
         if file_path:
             dataset = TokenDataset(
@@ -415,7 +421,7 @@ class aitextgen:
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,
                 file_path=file_path,
-                block_size=self.model.config["n_positions"],
+                block_size=self.model.config.n_positions,
                 **kwargs,
             )
 
@@ -476,7 +482,7 @@ class aitextgen:
                     is_gpu_used,
                     avg_loss_smoothing,
                     run_id,
-                    copy_gdrive,
+                    save_gdrive,
                 )
             ],
         )
@@ -504,6 +510,13 @@ class aitextgen:
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
         self.model.save_pretrained(output_dir)
 
+        if save_gdrive:
+            for pt_file in ["pytorch_model.bin", "config.json"]:
+                shutil.copyfile(
+                    os.path.join(self.output_dir, pt_file),
+                    os.path.join("/content/drive/My Drive/", self.run_id, pt_file),
+                )
+
         if seed:
             reset_seed()
 
@@ -512,6 +525,7 @@ class aitextgen:
         inputs: List[TokenDataset],
         learning_rate: Union[float, List[float]] = 1e-4,
         num_steps: Union[int, List[int]] = 4000,
+        run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
         **kwargs,
     ) -> None:
         """Trains a model across multiple input datasets, with automatic
@@ -549,6 +563,7 @@ class aitextgen:
                 dataset=dataset,
                 learning_rate=learning_rate[i],
                 num_steps=num_steps[i],
+                run_id=run_id,
                 **kwargs,
             )
             # logger.info("Cleaning up.")

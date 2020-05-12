@@ -1,7 +1,6 @@
 import sys
 import shutil
 import os
-import tarfile
 
 try:
     from google.colab import drive
@@ -23,53 +22,35 @@ def is_mounted():
     assert os.path.isdir("/content/drive"), "You must mount first using mount_gdrive()"
 
 
-def get_tarfile_name(model_folder):
-    """Converts a folder path into a filename for a .tar archive"""
-    tarfile_name = model_folder.replace(os.path.sep, "_") + ".tar"
-
-    return tarfile_name
-
-
-def copy_model_to_gdrive(model_folder="aitextgen", copy_folder=False):
-    """Copies the model folder to a mounted Google Drive."""
-    is_mounted()
-
-    if copy_folder:
-        shutil.copytree(model_folder, "/content/drive/My Drive/" + model_folder)
-    else:
-        file_path = get_tarfile_name(model_folder)
-
-        # Reference: https://stackoverflow.com/a/17081026
-        with tarfile.open(file_path, "w") as tar:
-            tar.add(model_folder)
-
-        shutil.copyfile(file_path, "/content/drive/My Drive/" + file_path)
-
-
-def copy_model_from_gdrive(model_folder="aitextgen", copy_folder=False):
-    """Copies the model folder from a mounted Google Drive."""
-    is_mounted()
-
-    if copy_folder:
-        shutil.copytree("/content/drive/My Drive/" + model_folder, model_folder)
-    else:
-        file_path = get_tarfile_name(model_folder)
-
-        shutil.copyfile("/content/drive/My Drive/" + file_path, file_path)
-
-        with tarfile.open(file_path, "r") as tar:
-            tar.extractall()
-
-
-def copy_file_to_gdrive(file_path):
+def copy_file_to_gdrive(file_path, to_folder=None):
     """Copies a file to a mounted Google Drive."""
     is_mounted()
 
-    shutil.copyfile(file_path, "/content/drive/My Drive/" + file_path)
+    if to_folder:
+        dest_path = os.path.join("/content/drive/My Drive/", to_folder, file_path)
+    else:
+        dest_path = os.path.join("/content/drive/My Drive/", file_path)
+
+    shutil.copyfile(file_path, dest_path)
 
 
-def copy_file_from_gdrive(file_path):
+def copy_file_from_gdrive(file_path, from_folder=None):
     """Copies a file from a mounted Google Drive."""
     is_mounted()
 
-    shutil.copyfile("/content/drive/My Drive/" + file_path, file_path)
+    if from_folder:
+        source_path = os.path.join("/content/drive/My Drive/", from_folder, file_path)
+    else:
+        source_path = os.path.join("/content/drive/My Drive/", file_path)
+
+    shutil.copyfile(source_path, file_path)
+
+
+def create_gdrive_folder(folder_name):
+    """Creates a folder in a mounted Google Drive."""
+    is_mounted()
+
+    folder_path = os.path.join("/content/drive/My Drive/", folder_name)
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)

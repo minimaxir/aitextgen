@@ -6,6 +6,8 @@ from tqdm.auto import tqdm
 import sys
 import torch
 from transformers import get_linear_schedule_with_warmup, AdamW
+import os
+import shutil
 
 try:
     import torch_xla.core.xla_model as xm
@@ -102,7 +104,15 @@ class ATGProgressBar(ProgressBarBase):
     """A variant progress bar that works off of steps and prints periodically."""
 
     def __init__(
-        self, save_every, generate_every, output_dir, n_generate, gpu, smoothing
+        self,
+        save_every,
+        generate_every,
+        output_dir,
+        n_generate,
+        gpu,
+        smoothing,
+        run_id,
+        save_gdrive,
     ):
         super().__init__()
         self.enabled = True
@@ -114,6 +124,8 @@ class ATGProgressBar(ProgressBarBase):
         self.steps = 0
         self.prev_avg_loss = None
         self.smoothing = smoothing
+        self.run_id = run_id
+        self.save_gdrive = save_gdrive
 
     def enabled(self):
         self.enabled = True
@@ -191,6 +203,13 @@ class ATGProgressBar(ProgressBarBase):
             f"{self.steps:,} steps reached: saving model to {self.output_dir}"
         )
         pl_module.model.save_pretrained(self.output_dir)
+
+        if self.save_gdrive:
+            for pt_file in ["pytorch_model.bin", "config.json"]:
+                shutil.copyfile(
+                    os.path.join(self.output_dir, pt_file),
+                    os.path.join("/content/drive/My Drive/", self.run_id, pt_file),
+                )
 
     def average_loss(self, current_loss, prev_avg_loss, smoothing):
         if prev_avg_loss is None:
