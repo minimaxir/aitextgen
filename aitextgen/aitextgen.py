@@ -209,7 +209,7 @@ class aitextgen:
 
         if prompt:
             prompt_text = prompt
-            prompt = encode_text(prompt, self.tokenizer)
+            prompt = encode_text(prompt, self.tokenizer, self.get_device())
 
         if seed:
             set_seed(seed)
@@ -601,3 +601,7 @@ class aitextgen:
         """Moves the model to the TPU."""
 
         self.model.to(xm.xla_device())
+
+    def get_device(self) -> str:
+        """Getter for the current device of the mode."""
+        return self.model.device.type

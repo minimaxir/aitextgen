@@ -67,12 +67,12 @@ def download_file_with_progress(
                 pbar.update(DOWNLOAD_CHUNK_SIZE)
 
 
-def encode_text(text: str, tokenizer):
+def encode_text(text: str, tokenizer, device: str = "cpu"):
     """
     Encodes text into an id-based tensor using the given tokenizer.
     """
 
-    return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
+    return torch.tensor(tokenizer.encode(text), device=device).unsqueeze(0)
 
 
 def set_seed(seed: int):
