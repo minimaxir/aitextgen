@@ -181,7 +181,7 @@ class ATGProgressBar(ProgressBarBase):
 
     def generate_sample_text(self, trainer, pl_module):
         self.main_progress_bar.write(
-            f"{self.steps:,} steps reached: generating sample texts."
+            f"\033[1m{self.steps:,} steps reached: generating sample texts.\033[0m"
         )
 
         gen_length = min(pl_module.model.config.n_positions, 256)
@@ -197,11 +197,11 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.write("=" * 10)
             self.main_progress_bar.write(text)
 
-        self.main_progress_bar.write("-" * 20)
+        self.main_progress_bar.write("=" * 10)
 
     def save_pytorch_model(self, trainer, pl_module):
         self.main_progress_bar.write(
-            f"{self.steps:,} steps reached: saving model to {self.output_dir}"
+            f"\033[1m{self.steps:,} steps reached: saving model to {self.output_dir}\033[0m"
         )
         pl_module.model.save_pretrained(self.output_dir)
 
