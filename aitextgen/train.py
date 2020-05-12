@@ -5,7 +5,8 @@ from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
 import torch
-from transformers import get_linear_schedule_with_warmup, AdamW
+from torch.optim import AdamW
+from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
 
