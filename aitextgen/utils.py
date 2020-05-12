@@ -28,6 +28,7 @@ def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None
 
     for file_name in [
         "checkpoint",
+        "hparams.json",
         "model.ckpt.data-00000-of-00001",
         "model.ckpt.index",
         "model.ckpt.meta",

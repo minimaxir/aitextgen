@@ -11,6 +11,7 @@ import torch
 import os
 import re
 import logging
+import sys
 from tqdm.auto import trange
 from datetime import datetime
 from random import randint
@@ -23,6 +24,7 @@ from .utils import (
     reset_seed,
 )
 from .train import ATGTransformer, ATGProgressBar
+from .colab import is_mounted
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 
@@ -80,6 +82,7 @@ class aitextgen:
                 "transformers.configuration_utils",
                 "transformers.tokenization_utils",
                 "filelock",
+                "transformers.modeling_gpt2",
             ]:
                 logging.getLogger(module).setLevel(logging.WARN)
             logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
@@ -88,30 +91,47 @@ class aitextgen:
             self.torchscript = True
 
         if tf_gpt2 is not None:
-            if model is None:
+            # Download + convert the TF weights if a PyTorch model has not been created
+            if not os.path.isfile(
+                os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
+            ):
                 assert tf_gpt2 in [
                     "124M",
                     "355M",
                     "774M",
                     "1558M",
-                ], "Invalid GPT-2 model size."
+                ], "Invalid TensorFlow GPT-2 model size."
+
+                logger.info(
+                    f"Downloading the {tf_gpt2} GPT-2 TensorFlow weights/config"
+                    + "from Google's servers"
+                )
 
                 download_gpt2(cache_dir, tf_gpt2)
 
-                if not os.path.isfile(os.path.join(cache_dir, "pytorch_model.bin")):
-                    logger.info(
-                        f"Converting the {tf_gpt2} GPT-2 TensorFlow weights to PyTorch."
-                    )
-                    convert_gpt2_checkpoint_to_pytorch(
-                        os.path.join(cache_dir, tf_gpt2), "", cache_dir
-                    )
+                logger.info(
+                    f"Converting the {tf_gpt2} GPT-2 TensorFlow weights to PyTorch."
+                )
 
-                model = os.path.join(cache_dir, "pytorch_model.bin")
-            logger.info(f"Loading GPT-2 model from {cache_dir}.")
+                config_path = os.path.join(cache_dir, tf_gpt2, "hparams.json")
 
-            self.model = GPT2LMHeadModel.from_pretrained(model, config=GPT2Config())
+                convert_gpt2_checkpoint_to_pytorch(
+                    os.path.join(cache_dir, tf_gpt2), config_path, cache_dir,
+                )
 
-        if config is not None:
+                os.rename(
+                    os.path.join(cache_dir, f"pytorch_model.bin"),
+                    os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin"),
+                )
+
+            logger.info(f"Loading {tf_gpt2} GPT-2 model from {cache_dir}.")
+            model = os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
+
+            self.model = GPT2LMHeadModel.from_pretrained(
+                model, config=os.path.join(cache_dir, "config.json")
+            )
+
+        elif config is not None:
             logger.info("Constructing GPT-2 model from provided config.")
             self.model = AutoModelWithLMHead.from_config(config=config)
         else:
@@ -345,6 +365,7 @@ class aitextgen:
         num_workers: int = None,
         benchmark: bool = True,
         avg_loss_smoothing: float = 0.01,
+        copy_gdrive: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -376,8 +397,15 @@ class aitextgen:
         ), "Either dataset or file_path must be specified"
         assert not self.torchscript, "You cannot train a traced TorchScript model."
 
+        if copy_gdrive:
+            assert (
+                "google.colab" in sys.modules
+            ), "You must be in Colaboratory to copy to your Google Drive"
+            is_mounted()
+
         self.model = self.model.train()
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
+        run_id = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}"
 
         if file_path:
             dataset = TokenDataset(
@@ -447,6 +475,8 @@ class aitextgen:
                     n_generate,
                     is_gpu_used,
                     avg_loss_smoothing,
+                    run_id,
+                    copy_gdrive,
                 )
             ],
         )
