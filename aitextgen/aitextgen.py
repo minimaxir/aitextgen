@@ -566,8 +566,10 @@ class aitextgen:
                 run_id=run_id,
                 **kwargs,
             )
-            # logger.info("Cleaning up.")
-            # time.sleep(30)  # Give GPUs/TPUs some time to clean up
+
+    def save(self, target_folder: str = os.getcwd()):
+        """Saves the model into the specified directory."""
+        self.model.save_pretrained(target_folder)
 
     def export(self, for_gpu: bool = False) -> None:
         """Exports the model to TorchScript.
