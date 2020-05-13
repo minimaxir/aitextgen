@@ -10,7 +10,11 @@ Encodes given text `text.txt` into a cache and compressed `TokenDataset`, good f
 aitextgen encode text.txt
 ```
 
-Other parameters to the TokenDataset constructor can be used.
+If you are encoding a CSV, you should pass in the `line_by_line` parameter as well.
+
+```sh
+aitextgen encode reddit.csv --line_by_line True
+```
 
 ## Train
 
