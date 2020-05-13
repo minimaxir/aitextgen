@@ -19,10 +19,8 @@ ai.save()
 If you are using Google Colaboratory, you can mount your personal Google Drive to the notebook and save your models there.
 
 <!-- prettier-ignore -->
-!!! note "Downloading models from Colaboratory"
+!!! note "Downloading models from Colab Notebooks"
     It's strongly recommended to move models to Google Drive before downloading them from Colaboratory.
-
-<!-- prettier-ignore-end -->
 
 First mount your Google Drive using `mount_gdrive()`:
 
@@ -48,7 +46,7 @@ By default, the `train()` function has `save_every = 1000`, which means the mode
 
 Concerned about timeouts in Google Colab? aitextgen has a feature that will copy models to your Google Drive periodically in case the instance gets killed!
 
-As long as your drive is mounted as above, pass `save_gdrive = True` to the `train() function:
+As long as your drive is mounted as above, pass `save_gdrive = True` to the `train()` function:
 
 ```python
 ai.train(save_gdrive=True)

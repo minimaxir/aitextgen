@@ -17,6 +17,12 @@ See this article by [Huggingface engineer](https://huggingface.co/blog/how-to-ge
 
 Given a `aitextgen` object with a loaded model + tokenizer named `ai`:
 
+<!--prettier-ignore-->
+!!! note "About devices"
+    aitextgen does not automatically set the device used to generate text. If you
+    want to generate on the GPU, make sure you call `ai.to_gpu()` beforehand, or
+    load the model into the GPU using `ai = aitextgen(to_gpu=True)`
+
 - `ai.generate()`: Generates and prints text to console. If `prompt` is used, the `prompt` is bolded. (a la [Talk to Transformer](https://talktotransformer.com))
 - `ai.generate_one()`: A helper function which generates a single text and returns as a string (good for APIs)
 - `ai.generate_samples()`: Generates multiple samples at specified temperatures: great for debugging.
