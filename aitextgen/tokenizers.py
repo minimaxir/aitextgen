@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 def train_tokenizer(
     files: Union[str, List[str]],
     dropout: float = None,
-    vocab_size: int = 10000,
+    vocab_size: int = 5000,
     min_frequency: int = 2,
     save_path: str = "",
     added_tokens: List[str] = [],

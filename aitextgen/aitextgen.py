@@ -513,8 +513,8 @@ class aitextgen:
         if save_gdrive:
             for pt_file in ["pytorch_model.bin", "config.json"]:
                 shutil.copyfile(
-                    os.path.join(self.output_dir, pt_file),
-                    os.path.join("/content/drive/My Drive/", self.run_id, pt_file),
+                    os.path.join(output_dir, pt_file),
+                    os.path.join("/content/drive/My Drive/", run_id, pt_file),
                 )
 
         if seed:

@@ -201,7 +201,7 @@ class ATGProgressBar(ProgressBarBase):
 
     def save_pytorch_model(self, trainer, pl_module):
         self.main_progress_bar.write(
-            f"\033[1m{self.steps:,} steps reached: saving model to {self.output_dir}\033[0m"
+            f"\033[1m{self.steps:,} steps reached: saving model to /{self.output_dir}\033[0m"
         )
         pl_module.model.save_pretrained(self.output_dir)
 
