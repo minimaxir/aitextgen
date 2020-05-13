@@ -9,6 +9,7 @@ from typing import List
 from transformers import GPT2TokenizerFast
 from pkg_resources import resource_filename
 import itertools
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,8 @@ class TokenDataset(Dataset):
         compress: bool = True,
         block_size: int = 1024,
         tokenized_texts: bool = False,
+        shuffle: bool = True,
+        seed: int = None,
         bos_token: str = "<|endoftext|>",
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
@@ -125,6 +128,10 @@ class TokenDataset(Dataset):
         if texts is not None or line_by_line:
             # Multi-threaded, will use all CPU cores
             # and is extremely fast!
+            if shuffle:
+                if seed:
+                    random.seed(seed)
+                random.shuffle(text_list)
             self.tokens = list(
                 itertools.chain.from_iterable(
                     tokenizer.batch_encode_plus(text_list, add_special_tokens=False)[
