@@ -44,8 +44,10 @@ class aitextgen:
     """
     Class that serves as the main aitextgen object for training and generation.
 
-    :param model: transformers model, as a string. If None, uses gpt2.
-    :param config: transformers config for the model. If None, uses gpt2.
+    :param model: Either the file path of a PyTorch GPT-2 model, or a string
+    representing the Huggingface model to download.
+    :param config: Either a file path of a config.json representing the model,
+    or a GPT2Config with the model architecture.
     :param cache_dir: folder path which has the current model alredy
     :param tf_gpt2: folder path to the OpenAI-distributed version of GPT-2. This
     will convert the model to PyTorch if not present.
@@ -132,14 +134,22 @@ class aitextgen:
                 model, config=os.path.join(cache_dir, "config.json")
             )
 
+        elif os.path.isfile(model):
+            # A pytorch_model.bin (+ config.json) file is provided
+            logger.info("Loading GPT-2 model from provided {model}.")
+            self.model = GPT2LMHeadModel.from_pretrained(
+                model, config=config, torchscript=torchscript,
+            )
         elif config is not None:
+            # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
             if torchscript:
                 config.torchscript = True
             self.model = AutoModelWithLMHead.from_config(config=config)
         else:
+            # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
-                logger.info(f"Loading model from /{cache_dir}.")
+                logger.info(f"Loading GPT-2 model from /{cache_dir}.")
             else:
                 logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
             self.model = GPT2LMHeadModel.from_pretrained(
