@@ -134,13 +134,13 @@ class aitextgen:
                 model, config=os.path.join(cache_dir, "config.json")
             )
 
-        elif os.path.isfile(model):
-            # A pytorch_model.bin (+ config.json) file is provided
-            logger.info("Loading GPT-2 model from provided {model}.")
-            self.model = GPT2LMHeadModel.from_pretrained(
-                model, config=config, torchscript=torchscript,
-            )
-        elif config is not None:
+        elif model and os.path.exists(model):
+            # A pytorch_model.bin (+ optional config/config.json) is provided
+            logger.info(f"Loading GPT-2 model from provided {model}.")
+            if torchscript:
+                config.torchscript = True
+            self.model = GPT2LMHeadModel.from_pretrained(model, config=config,)
+        elif config:
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
             if torchscript:
@@ -466,7 +466,7 @@ class aitextgen:
 
         if os.path.exists(output_dir) and "pytorch_model.bin" in os.listdir(output_dir):
             logger.warning(
-                f"pytorch_model.bin already exists in {output_dir} and will be overwritten!"
+                f"pytorch_model.bin already exists in /{output_dir} and will be overwritten!"
             )
 
         # if try to use a GPU but no CUDA, use CPU
