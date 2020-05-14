@@ -1,21 +1,21 @@
 # aitextgen
 
-A robust tool for advanced AI text generation via GPT-2.
+A robust tool for advanced AI text generation via [GPT-2](https://openai.com/blog/better-language-models/).
 
-aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Huggingface Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to textgenrnn and gpt-2-simple, merging the advantages of both packages.
+aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Huggingface Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to [textgenrnn](https://github.com/minimaxir/textgenrnn) and [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), merging the advantages of both packages.
 
 - Finetunes on a pretrained GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency, even moreso if you export your model to TorchScript!
-- With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repository. Also, it uses the `generate()` function to allow a massive amount of control over the generated text.
-- With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and TPUs! Robust training progress support, with the ability to add optional loggers.
+- With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repositorsy. Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
+- With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and even TPUs! It also includes a pretty training progress progress, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting it, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ models so it learns some data fully and some partially to create blended output.
 
 ## Demo
 
 You can use aitextgen _for free_ with powerful GPUs and TPUs using these Colaboratory Notebooks!
 
-- Finetune an existing GPT-2 model (GPU; quick to set up)
-- Finetune an existing GPT-2 model (TPUv2; _much_ faster training than GPU but limited to 124M/355M GPT-2 models and requires extra notebook setup)
+- Finetune an existing GPT-2 model (GPU; quick to set up and generate text)
+- Finetune an existing GPT-2 model (TPUv2; _much_ faster training than GPU but limited to 124M/355M GPT-2 models and cannot generate text quickly)
 - Train a GPT-2 model + tokenizer from scratch (TPUv2)
 
 But if you just want to test aitextgen, you can train and generate a small model on your own computer with this Jupyter Notebook.
@@ -51,6 +51,7 @@ Want to train your own micro GPT-2 model on your own computer? Open up a Python 
 ```python
 import requests
 import os
+from aitextgen.TokenDataset import TokenDataset
 from aitextgen.tokenizers import train_tokenizer
 from aitextgen.utils import GPT2ConfigCPU
 from aitextgen import aitextgen
@@ -70,6 +71,7 @@ if not os.path.isfile(file_name):
 train_tokenizer(file_name)
 
 # GPT2ConfigCPU is a microvariant of GPT-2 optimized for CPU-training
+# e.g. the # of input tokens here is 64 vs. 1024 for base GPT-2.
 config = GPT2ConfigCPU()
 
 # Instantiate aitextgen using the created tokenizer and config
@@ -77,7 +79,14 @@ ai = aitextgen(vocab_file="aitextgen-vocab.json",
 			   merges_file="aitextgen-merges.txt",
 			   config=config)
 
-# Train the model! It will save pytorch_model.bin periodically and after completion
+# You can build datasets for training by creating TokenDatasets,
+# which automatically processes the dataset with the appropriate size.
+data = TokenDataset(file_name,
+					vocab_file="aitextgen-vocab.json",
+					merges_file="aitextgen-merges.txt",
+					block_size=64)
+
+# Train the model! It will save pytorch_model.bin periodically and after completion.
 # On a 2016 MacBook Pro, this took ~30 minutes to run.
 ai.train(data, batch_size=16, num_steps=5000)
 
@@ -91,7 +100,9 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 - To convert a GPT-2 model trained using earlier TensorFlow-based finetuning tools such as gpt-2-simple to the PyTorch format, use the transformers-cli command and the [instructions here](https://huggingface.co/transformers/converting_tensorflow_models.html) to convert the checkpoint (where `OPENAI_GPT2_CHECKPOINT_PATH` is the _folder_ containing the model)
 - When running on Google Cloud Platform (including Google Colab), it's recommended to download the TF-based GPT-2 from the Google API vs. downloading the PyTorch GPT-2 from Huggingface as the download will be _much_ faster and also saves Huggingface some bandwidth.
-- If you want to generate text from a GPU, you must manually move the model to the GPU (it will not be done automatically to save GPU VRAM for training). Either call `to_gpu=True` when loading the model or call `to_gpu()` on the aitextgen object.
+- If you want to generate text from a GPU, you must manually move the model to the GPU (it will not be done automatically to save GPU VRAM for training). Either call `to_gpu=True` when loading the model or call `to_gpu()` from the aitextgen object.
+- Encoding your text dataset before moving it to a cloud/remote server is _strongly_ recommended. You can do that quickly from the CLI (`aitextgen encode text.txt`) Thanks to a few tricks, the file size is reduced by about 2/3, and the encoded text will instantly load!
+- If you're making a micro-GPT-2 model, using a GPU with a large batch size is recommended, and will decrease loss faster than even with a TPU.
 
 ## Upcoming Features
 
