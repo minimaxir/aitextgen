@@ -76,6 +76,7 @@ class aitextgen:
         to_gpu: bool = False,
         verbose: bool = False,
         torchscript: bool = False,
+        ts_to_trace: bool = False,
         bos_token: str = None,
         eos_token: str = None,
         unk_token: str = None,
@@ -152,8 +153,12 @@ class aitextgen:
             logger.info(f"Loading GPT-2 model from provided {model}.")
             if config is None:
                 config = GPT2Config()
+            if ts_to_trace:
+                config.torchscript = True
             self.model = GPT2LMHeadModel.from_pretrained(model, config=config)
         elif config:
+            if ts_to_trace:
+                config.torchscript = True
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
             self.model = AutoModelWithLMHead.from_config(config=config)
@@ -164,7 +169,7 @@ class aitextgen:
             else:
                 logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
             self.model = GPT2LMHeadModel.from_pretrained(
-                model or "gpt2", cache_dir=cache_dir
+                model or "gpt2", cache_dir=cache_dir, torchscript=ts_to_trace
             )
 
         # Update tokenizer settings
@@ -623,7 +628,7 @@ class aitextgen:
             (batch_size, self.model.config.n_positions), dtype=torch.long
         )
         temp_model = torch.jit.trace(temp_model.eval(), example)
-        torch.jit.save(temp_model, "model.pt")
+        temp_model.save("model.pt")
 
     def to_gpu(self, index: int = 0) -> None:
         """Moves the model to the specified GPU."""

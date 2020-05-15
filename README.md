@@ -5,18 +5,17 @@ A robust tool for advanced AI text generation via [GPT-2](https://openai.com/blo
 aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Huggingface Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to [textgenrnn](https://github.com/minimaxir/textgenrnn) and [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), merging the advantages of both packages.
 
 - Finetunes on a pretrained GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
-- Generates text faster than gpt-2-simple and with better memory efficiency, even moreso if you export your model to TorchScript!
+- Generates text faster than gpt-2-simple and with better memory efficiency!
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repositorsy. Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
 - With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress progress, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting it, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ models so it learns some data fully and some partially to create blended output.
 
 ## Demo
 
-You can use aitextgen _for free_ with powerful GPUs and TPUs using these Colaboratory Notebooks!
+You can use aitextgen _for free_ with powerful GPUs using these Colaboratory Notebooks!
 
 - Finetune an existing GPT-2 model (GPU; quick to set up and generate text)
-- Finetune an existing GPT-2 model (TPUv2; _much_ faster training than GPU but limited to 124M/355M GPT-2 models and cannot generate text quickly)
-- Train a GPT-2 model + tokenizer from scratch (TPUv2)
+- Train a GPT-2 model + tokenizer from scratch (GPU)
 
 But if you just want to test aitextgen, you can train and generate a small model on your own computer with this Jupyter Notebook.
 
@@ -126,6 +125,7 @@ It's fun to anthropomorphise the nameless "AI" as an abstract genius, but part o
 ## Known Issues
 
 - TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tpu_cores=8` in an appropriate runtime, and the training loss indeed does decrease, there are a number of miscellaneous blocking problems: see [this GitHub issue](https://github.com/minimaxir/aitextgen/issues/3).
+- TorchScript exporting, although it works with `ai.export()`, behaves oddly when reloaded back into Python, and is therefore not supported (yet).
 
 ## Maintainer/Creator
 
