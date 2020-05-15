@@ -69,17 +69,19 @@ if not os.path.isfile(file_name):
 # This will save two files: aitextgen-vocab.json and aitextgen-merges.txt,
 # which are needed to rebuild the tokenizer.
 train_tokenizer(file_name)
+vocab_file = "aitextgen-vocab.json"
+merges_file = "aitextgen-merges.txt"
 
 # GPT2ConfigCPU is a mini variant of GPT-2 optimized for CPU-training
 # e.g. the # of input tokens here is 64 vs. 1024 for base GPT-2.
 config = GPT2ConfigCPU()
 
 # Instantiate aitextgen using the created tokenizer and config
-ai = aitextgen(vocab_file="aitextgen-vocab.json", merges_file="aitextgen-merges.txt", config=config)
+ai = aitextgen(vocab_file=vocab_file, merges_file=merges_file, config=config)
 
 # You can build datasets for training by creating TokenDatasets,
 # which automatically processes the dataset with the appropriate size.
-data = TokenDataset(file_name, vocab_file="aitextgen-vocab.json", merges_file="aitextgen-merges.txt", block_size=64)
+data = TokenDataset(file_name, vocab_file=vocab_file, merges_file=merges_file, block_size=64)
 
 # Train the model! It will save pytorch_model.bin periodically and after completion.
 # On a 2016 MacBook Pro, this took ~30 minutes to run.
