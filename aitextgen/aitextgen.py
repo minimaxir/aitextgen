@@ -93,7 +93,7 @@ class aitextgen:
         if torchscript:
             self.torchscript = True
 
-        if tf_gpt2 is not None:
+        if tf_gpt2:
             # Download + convert the TF weights if a PyTorch model has not been created
             if not os.path.isfile(
                 os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
@@ -518,6 +518,9 @@ class aitextgen:
         trainer.fit(train_model)
 
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
+
+        if n_tpu_cores > 0:
+            xm.rendezvous("save_model")
         self.model.save_pretrained(output_dir)
 
         if save_gdrive:

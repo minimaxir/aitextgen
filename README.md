@@ -7,7 +7,7 @@ aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hu
 - Finetunes on a pretrained GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency, even moreso if you export your model to TorchScript!
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repositorsy. Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
-- With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and even TPUs! It also includes a pretty training progress progress, with the ability to add optional loggers.
+- With pytorch-lightning, aitextgen trains models not just on CPU and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress progress, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting it, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ models so it learns some data fully and some partially to create blended output.
 
 ## Demo
@@ -46,7 +46,7 @@ ai.generate(n=3, prompt="I believe in unicorns because", max_length=100)
 ai.generate_to_file(n=10, prompt="I believe in unicorns because", max_length=100, temperature=1.2)
 ```
 
-Want to train your own micro GPT-2 model on your own computer? Open up a Python console and go:
+Want to train your own mini GPT-2 model on your own computer? Open up a Python console and go:
 
 ```python
 import requests
@@ -70,21 +70,16 @@ if not os.path.isfile(file_name):
 # which are needed to rebuild the tokenizer.
 train_tokenizer(file_name)
 
-# GPT2ConfigCPU is a microvariant of GPT-2 optimized for CPU-training
+# GPT2ConfigCPU is a mini variant of GPT-2 optimized for CPU-training
 # e.g. the # of input tokens here is 64 vs. 1024 for base GPT-2.
 config = GPT2ConfigCPU()
 
 # Instantiate aitextgen using the created tokenizer and config
-ai = aitextgen(vocab_file="aitextgen-vocab.json",
-			   merges_file="aitextgen-merges.txt",
-			   config=config)
+ai = aitextgen(vocab_file="aitextgen-vocab.json", merges_file="aitextgen-merges.txt", config=config)
 
 # You can build datasets for training by creating TokenDatasets,
 # which automatically processes the dataset with the appropriate size.
-data = TokenDataset(file_name,
-					vocab_file="aitextgen-vocab.json",
-					merges_file="aitextgen-merges.txt",
-					block_size=64)
+data = TokenDataset(file_name, vocab_file="aitextgen-vocab.json", merges_file="aitextgen-merges.txt", block_size=64)
 
 # Train the model! It will save pytorch_model.bin periodically and after completion.
 # On a 2016 MacBook Pro, this took ~30 minutes to run.
@@ -125,6 +120,10 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 - Make a good-faith effort to remove overfit output from the generated text that matches the input text verbatim.
 
 It's fun to anthropomorphise the nameless "AI" as an abstract genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive may be disavowed.**
+
+# Known Issues
+
+- TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tensor_cores` in an appropriate runtime, and the loss indeed does decrease, there are a number of miscellaneous blocking problems: see this GitHub issue.
 
 ## Maintainer/Creator
 

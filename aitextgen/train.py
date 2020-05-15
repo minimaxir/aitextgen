@@ -169,7 +169,10 @@ class ATGProgressBar(ProgressBarBase):
         self.main_progress_bar.set_description(desc)
 
         if self.enabled:
+
             if self.save_every > 0 and self.steps % self.save_every == 0:
+                if pl_module.hparams["tpu"]:
+                    xm.rendezvous("save_model")
                 self.save_pytorch_model(trainer, pl_module)
 
             if (
