@@ -123,9 +123,9 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 
 It's fun to anthropomorphise the nameless "AI" as an abstract genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive may be disavowed.**
 
-# Known Issues
+## Known Issues
 
-- TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tensor_cores` in an appropriate runtime, and the loss indeed does decrease, there are a number of miscellaneous blocking problems: see this GitHub issue.
+- TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tpu_cores=8` in an appropriate runtime, and the training loss indeed does decrease, there are a number of miscellaneous blocking problems: see [this GitHub issue](https://github.com/minimaxir/aitextgen/issues/3).
 
 ## Maintainer/Creator
 
