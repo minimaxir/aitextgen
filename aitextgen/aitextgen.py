@@ -309,7 +309,6 @@ class aitextgen:
         cleanup: bool = True,
         **kwargs,
     ) -> None:
-
         """
         Generates a bulk amount of texts to a file, into a format
         good for manually inspecting and curating the texts.
@@ -342,7 +341,7 @@ class aitextgen:
         if seed:
             set_seed(seed)
 
-        logging.info(f"Generating {n:,} texts to {destination_path}")
+        logger.info(f"Generating {n:,} texts to {destination_path}")
 
         pbar = trange(n)
         f = open(destination_path, "w", encoding="utf-8")
