@@ -1,5 +1,26 @@
 site_name: aitextgen
-site_description: Making AI Text Generation Easy.
+site_description: A robust Python tool for text-based AI training and generation using GPT-2.
+site_author: Max Woolf (@minimaxir)
+
+nav:
+  - Home: index.md
+  - \"Hello World\" Tutorial: tutorials/hello-world.md
+  - Loading a Model: load-model.md
+  - Saving a Model: save-mode.md
+  - TokenDataset: dataset.md
+  - Training a GPT-2 Model:
+      - Colab Notebooks: colab.md
+  - Generating From a GPT-2 Model:
+      - Generating Text: generate.md
+      - Improving Generation Performance: generate-performance.md
+      - Generating From GPT-2 1.5B: tutorials/generate_1_5b.md
+  - Importing from gpt-2-simple: gpt-2-simple.md
+  - Helpful Notes: helpful-notes.md
+  - Ethics: ethics.md
+  - Command-Line Interface: cli.md
+  - API:
+      - aitextgen: api/aitextgen.md
+      - TokenDataset: api/TokenDataset.md
 
 theme:
   name: "material"
@@ -9,8 +30,9 @@ theme:
   font:
     text: "Source Sans Pro"
     code: "Fira Code"
-  feature:
-    tabs: true
+  features:
+    - tabs
+    - instant
 
 repo_name: minimaxir/aitextgen
 repo_url: https://github.com/minimaxir/aitextgen
@@ -21,7 +43,7 @@ copyright: "Copyright &copy; 2019 - 2020 Max Woolf"
 extra:
   social:
     - type: "github"
-      link: "hhttps://github.com/minimaxir/aitextgen"
+      link: "https://github.com/minimaxir/aitextgen"
     - type: "twitter"
       link: "https://twitter.com/minimaxir"
 
@@ -30,3 +52,5 @@ markdown_extensions:
       guess_lang: false
   - mkautodoc
   - admonition
+  - toc:
+      permalink: true
