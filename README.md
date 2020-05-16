@@ -45,24 +45,16 @@ ai.generate(n=3, prompt="I believe in unicorns because", max_length=100)
 ai.generate_to_file(n=10, prompt="I believe in unicorns because", max_length=100, temperature=1.2)
 ```
 
-Want to train your own mini GPT-2 model on your own computer? Open up a Python console and go:
+Want to train your own mini GPT-2 model on your own computer? Download this [text file of Shakespeare plays](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt), cd to that directory in a Teriminal, open up a `python3` console and go:
 
 ```python
-import requests
-import os
 from aitextgen.TokenDataset import TokenDataset
 from aitextgen.tokenizers import train_tokenizer
 from aitextgen.utils import GPT2ConfigCPU
 from aitextgen import aitextgen
 
-# Download a Shakespeare text for training
-file_name = "shakespeare.txt"
-if not os.path.isfile(file_name):
-	url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
-	data = requests.get(url)
-
-	with open(file_name, 'w') as f:
-		f.write(data.text)
+# The name of the downloaded Shakespeare text for training
+file_name = "input.txt"
 
 # Train a custom BPE Tokenizer on the downloaded text
 # This will save two files: aitextgen-vocab.json and aitextgen-merges.txt,
@@ -83,11 +75,11 @@ ai = aitextgen(vocab_file=vocab_file, merges_file=merges_file, config=config)
 data = TokenDataset(file_name, vocab_file=vocab_file, merges_file=merges_file, block_size=64)
 
 # Train the model! It will save pytorch_model.bin periodically and after completion.
-# On a 2016 MacBook Pro, this took ~30 minutes to run.
+# On a 2016 MacBook Pro, this took ~25 minutes to run.
 ai.train(data, batch_size=16, num_steps=5000)
 
 # Generate text from it!
-ai.generate(10, prompt="KING")
+ai.generate(10, prompt="ROMEO:")
 ```
 
 Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or follow the documentation to see how you can run these tools on Google Cloud Platform at maximum cost efficiency!
@@ -126,6 +118,7 @@ It's fun to anthropomorphise the nameless "AI" as an abstract genius, but part o
 
 - TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tpu_cores=8` in an appropriate runtime, and the training loss indeed does decrease, there are a number of miscellaneous blocking problems: see [this GitHub issue](https://github.com/minimaxir/aitextgen/issues/3).
 - TorchScript exporting, although it works with `ai.export()`, behaves oddly when reloaded back into Python, and is therefore not supported (yet).
+- Finetuning the 355M GPT-2 model or larger will cause the GPU to go OOM, even 16 GB VRAM GPUs (355M _does_ work with FP16 + 16 GB VRAM however). This is a [known issue with the Transformers GPT-2 implementation](https://github.com/huggingface/transformers/pull/2356), unfortunately.
 
 ## Maintainer/Creator
 
