@@ -385,7 +385,7 @@ class aitextgen:
 
     def train(
         self,
-        input: Union[str, TokenDataset] = None,
+        train_data: Union[str, TokenDataset] = None,
         output_dir: str = "trained_model",
         fp16: bool = False,
         fp16_opt_level: str = "O1",
@@ -414,7 +414,7 @@ class aitextgen:
         """
         Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
 
-        :param input Either a TokenDataset containing the samples to be trained, or
+        :param train_data: Either a TokenDataset containing the samples to be trained, or
         a string containing the text to be trained (shortcut instead of dataset)
         :param output_dir: A string indicating where to store the resulting
         model file folder.
@@ -442,7 +442,9 @@ class aitextgen:
         :param run_id: Run identifier; used for save_gdrive
         """
 
-        assert input, "An input (TokenDataset or string to a file) must be specified."
+        assert (
+            train_data
+        ), "An input (TokenDataset or string to a file) must be specified."
         assert not self.torchscript, "You cannot train a traced TorchScript model."
 
         if not os.path.exists(output_dir):
@@ -457,14 +459,14 @@ class aitextgen:
         self.model = self.model.train()
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
 
-        if isinstance(input, str):
-            input = TokenDataset(
+        if isinstance(train_data, str):
+            train_data = TokenDataset(
                 vocab_file=self.vocab_file,
                 merges_file=self.merges_file,
                 bos_token=self.bos_token,
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,
-                file_path=input,
+                file_path=train_data,
                 block_size=self.model.config.n_positions,
                 **kwargs,
             )
@@ -492,7 +494,7 @@ class aitextgen:
         )
 
         # Wrap the model in a pytorch-lightning module
-        train_model = ATGTransformer(self.model, input, hparams, self.tokenizer)
+        train_model = ATGTransformer(self.model, train_data, hparams, self.tokenizer)
 
         # Begin training
         if seed:
@@ -676,5 +678,5 @@ class aitextgen:
         self.model = self.model.half()
 
     def get_device(self) -> str:
-        """Getter for the current device of the mode."""
+        """Getter for the current device where the model is located."""
         return self.model.device.type

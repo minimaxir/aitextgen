@@ -15,5 +15,5 @@ tb_logger = loggers.TensorBoardLogger('logs/')
 Then pass it to the `loggers` parameter for `ai.train()`.
 
 ```python
-ai.train(input=data, loggers=tb_logger)
+ai.train(train_data=data, loggers=tb_logger)
 ```
