@@ -82,19 +82,17 @@ ai.train(data, batch_size=16, num_steps=5000)
 ai.generate(10, prompt="ROMEO:")
 ```
 
-Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or follow the documentation to see how you can run these tools on Google Cloud Platform at maximum cost efficiency!
+Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or follow the documentation to get more information and learn some helpful tips!
 
-## Helpful Notes
+## Known Issues
 
-- To convert a GPT-2 model trained using earlier TensorFlow-based finetuning tools such as gpt-2-simple to the PyTorch format, use the transformers-cli command and the [instructions here](https://huggingface.co/transformers/converting_tensorflow_models.html) to convert the checkpoint (where `OPENAI_GPT2_CHECKPOINT_PATH` is the _folder_ containing the model)
-- When running on Google Cloud Platform (including Google Colab), it's recommended to download the TF-based GPT-2 from the Google API vs. downloading the PyTorch GPT-2 from Huggingface as the download will be _much_ faster and also saves Huggingface some bandwidth.
-- If you want to generate text from a GPU, you must manually move the model to the GPU (it will not be done automatically to save GPU VRAM for training). Either call `to_gpu=True` when loading the model or call `to_gpu()` from the aitextgen object.
-- Encoding your text dataset before moving it to a cloud/remote server is _strongly_ recommended. You can do that quickly from the CLI (`aitextgen encode text.txt`) Thanks to a few tricks, the file size is reduced by about 2/3, and the encoded text will instantly load!
-- If you're making a micro-GPT-2 model, using a GPU with a large batch size is recommended, and will decrease loss faster than even with a TPU.
+- TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tpu_cores=8` in an appropriate runtime, and the training loss indeed does decrease, there are a number of miscellaneous blocking problems: see [this GitHub issue](https://github.com/minimaxir/aitextgen/issues/3).
+- TorchScript exporting, although it works with `ai.export()`, behaves oddly when reloaded back into Python, and is therefore not supported (yet).
+- Finetuning the 355M GPT-2 model or larger on a GPU will cause the GPU to go OOM, even 16 GB VRAM GPUs (355M _does_ work with FP16 + 16 GB VRAM however). This is a [known issue with the Transformers GPT-2 implementation](https://github.com/huggingface/transformers/pull/2356), unfortunately.
 
 ## Upcoming Features
 
-The current release (v0.1) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months.
+The current release (v0.1) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
 
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (see [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept)
 
@@ -113,12 +111,6 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 - Make a good-faith effort to remove overfit output from the generated text that matches the input text verbatim.
 
 It's fun to anthropomorphise the nameless "AI" as an abstract genius, but part of the reason I made aitextgen (and all my previous text-generation projects) is to make the technology more accessible and accurately demonstrate both its promise, and its limitations. **Any AI text generation projects that are deliberately deceptive may be disavowed.**
-
-## Known Issues
-
-- TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tpu_cores=8` in an appropriate runtime, and the training loss indeed does decrease, there are a number of miscellaneous blocking problems: see [this GitHub issue](https://github.com/minimaxir/aitextgen/issues/3).
-- TorchScript exporting, although it works with `ai.export()`, behaves oddly when reloaded back into Python, and is therefore not supported (yet).
-- Finetuning the 355M GPT-2 model or larger will cause the GPU to go OOM, even 16 GB VRAM GPUs (355M _does_ work with FP16 + 16 GB VRAM however). This is a [known issue with the Transformers GPT-2 implementation](https://github.com/huggingface/transformers/pull/2356), unfortunately.
 
 ## Maintainer/Creator
 
