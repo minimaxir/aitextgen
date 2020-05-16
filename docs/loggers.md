@@ -1,6 +1,6 @@
 # Loggers
 
-You can create loggers with popular tools such as TensorBoard and Weights and Biases by leveraging pytorch-lightning's logger functionality.
+You can create loggers with popular tools such as [TensorBoard](https://www.tensorflow.org/tensorboard) and [Weights and Biases](https://www.wandb.com) by leveraging pytorch-lightning's logger functionality.
 
 [See their documentation](https://pytorch-lightning.readthedocs.io/en/stable/loggers.html) on all the available options for loggers.
 

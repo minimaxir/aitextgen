@@ -8,9 +8,11 @@ nav:
   - Loading a Model: load-model.md
   - Saving a Model: save-mode.md
   - TokenDataset: dataset.md
-  - Training a GPT-2 Model:
-      - Colab Notebooks: colab.md
-  - Generating From a GPT-2 Model:
+  - Training a aitextgen Model:
+      - Colaboratory Notebooks: tutorials/colab.md
+      # - Improving Training Performance: train-performance.md
+      - Training a GPT-2 Model From Scratch: tutorials/model-from-scratch.md
+  - Generating From a aitextgen Model:
       - Generating Text: generate.md
       - Improving Generation Performance: generate-performance.md
       - Generating From GPT-2 1.5B: tutorials/generate_1_5b.md

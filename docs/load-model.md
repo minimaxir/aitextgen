@@ -32,6 +32,8 @@ If you want to download an alternative GPT-2 model from Huggingface's repository
 ai = aitextgen(model="minimaxir/hacker-news")
 ```
 
+The model and associated config + tokenizer will be downloaded into `cache_dir`.
+
 ### Loading TensorFlow-based GPT-2 models
 
 aitextgen lets you download the models from Google's servers that OpenAI had uploaded back when GPT-2 was first released in 2019. These models are then converted to a PyTorch format.
@@ -44,6 +46,6 @@ To use this workflow, pass the corresponding model number to `tf_gpt2`:
 ai = aitextgen(tf_gpt2="124M")
 ```
 
-This will cache the converted model locally, and using the same parameters will load the converted model.
+This will cache the converted model locally in `cache_dir`, and using the same parameters will load the converted model.
 
 The valid TF model names are `["124M","355M","774M","1558M"]`.

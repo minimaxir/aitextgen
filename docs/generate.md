@@ -4,7 +4,7 @@ Thanks to the base Transformers package, aitextgen has more options for generati
 
 ## Generation Parameters
 
-See this article by [Huggingface engineer](https://huggingface.co/blog/how-to-generate) Patrick von Platen for how sampling and these parameters are used in practice.
+See [this article](https://huggingface.co/blog/how-to-generate) by Huggingface engineer Patrick von Platen for how sampling and these parameters are used in practice.
 
 - `n`: Number of texts generated.
 - `max_length`: Maximum length of the generated text (default: 200; for GPT-2, the maximum is 1024.)
@@ -12,6 +12,8 @@ See this article by [Huggingface engineer](https://huggingface.co/blog/how-to-ge
 - `temperature`: Controls the "craziness" of the text (default: 0.7)
 - `top_k`: If nonzero, limits the sampled tokens to the top _k_ values. (default: 40)
 - `top_p`: If nonzero, limits the sampled tokens to the cumulative probability
+
+Some lesser-known-but-still-useful-parameters:
 
 ## Generation Functions
 

@@ -1,4 +1,4 @@
-# Generate Mass Text From GPT-2 1.5B
+# Generating From GPT-2 1.5B
 
 Want to generate a ton of text with the largest GPT-2 model, with the generation control provided by aitextgen? Now you can, at a surprisingly low cost! (\$0.382/hr, prorated to the nearest second)
 

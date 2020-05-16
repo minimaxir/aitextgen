@@ -11,7 +11,7 @@ This has a few nice bonuses, including:
 
 ## Creating a TokenDataset For GPT-2 Finetuning
 
-The easiest way to create a TokenDataset is to provide a target file. If no value to `tokenizer` is provided, it will use the default GPT-2 tokenizer.
+The easiest way to create a TokenDataset is to provide a target file. If no `vocab_file` and `merges_file` are provided, it will use the default GPT-2 tokenizer.
 
 ```python
 from aitextgen.TokenDataset import TokenDataset
@@ -19,13 +19,13 @@ from aitextgen.TokenDataset import TokenDataset
 data = TokenDataset("shakespeare.txt")
 ```
 
-If you pass a single-column CSV, the TokenDataset will parse it row-by-row, and is the recommended way to handle multiline texts.
+If you pass a single-column CSV and specify `line_by_line=True`, the TokenDataset will parse it row-by-row, and is the recommended way to handle multiline texts.
 
 ```python
-data = TokenDataset("politics.csv")
+data = TokenDataset("politics.csv", line_by_line=True)
 ```
 
-You can also pass a list of texts to `texts` instead if you've processed them elsewhere.
+You can also manually pass a list of texts to `texts` instead if you've processed them elsewhere.
 
 ```python
 data = TokenDataset(texts = ["Lorem", "Ipsum", "Dolor"])
@@ -33,7 +33,7 @@ data = TokenDataset(texts = ["Lorem", "Ipsum", "Dolor"])
 
 ## Saving/Loading a TokenDataset
 
-When creating a TokenDataset, you can automatically save it as a gzipped MessagePack binary when completed.
+When creating a TokenDataset, you can automatically save it as a compressed gzipped MessagePack binary when completed.
 
 ```python
 data = TokenDataset("shakespeare.txt", save_cache=True)
@@ -54,7 +54,9 @@ data = TokenDataset("dataset_cache.tar.gz", from_cache=True)
 
 ## Using TokenDatasets withh a Custom GPT-2 Model
 
-The default TokenDataset has a `block_size` of `1024`, which corresponds to the _maximum length of a GPT-2 output sequence_. If you're using a custom model w/ a different maximum. Additionally, you must explicitly provide the tokenizer, as the tokenizer will be different than the normal GPT-2 one.
+The default TokenDataset has a `block_size` of `1024`, which corresponds to the _context window of the default GPT-2 model_. If you're using a custom model w/ a different maximum. Additionally, you must explicitly provide the vocab and merges files to rebuild the tokenizer, as the tokenizer will be different than the normal GPT-2 one.
+
+See the [Model From Scratch](tutorials/model-from-scratch.md) docs for more info.
 
 ## Merging TokenDatasets
 
@@ -62,11 +64,15 @@ Merging processed TokenDatasets can be done with the `merge_datasets()` function
 
 (You _can_ merge bulk datasets and line-by-line datasets, but the training output may be bizarre!)
 
+<!--prettier-ignore-->
+!!! note "About Merging"
+    The current implementation merges by subset count, so equalization may not be perfect.
+
 ```python
 from aitextgen.TokenDataset import TokenDataset, merge_datasets
 
-data1 = TokenDataset("politics.csv")   # 1000 samples
-data2 = TokenDataset("politics.csv")   # 4000 samples
+data1 = TokenDataset("politics1000.csv", line_by_line=True)   # 1000 samples
+data2 = TokenDataset("politics4000.csv", line_by_line=True)   # 4000 samples
 
-data_merged = merge_datasets([data1, data2])   # 2000 samples
+data_merged = merge_datasets([data1, data2])   # ~2000 samples
 ```
