@@ -385,7 +385,7 @@ class aitextgen:
 
     def train(
         self,
-        train_data: Union[str, TokenDataset] = None,
+        train_data: Union[str, TokenDataset],
         output_dir: str = "trained_model",
         fp16: bool = False,
         fp16_opt_level: str = "O1",
@@ -442,9 +442,6 @@ class aitextgen:
         :param run_id: Run identifier; used for save_gdrive
         """
 
-        assert (
-            train_data
-        ), "An input (TokenDataset or string to a file) must be specified."
         assert not self.torchscript, "You cannot train a traced TorchScript model."
 
         if not os.path.exists(output_dir):
@@ -609,7 +606,7 @@ class aitextgen:
         for i, dataset in enumerate(datasets):
             logger.info(f"Now training on {dataset} for {num_steps[i]:,} steps.")
             self.train(
-                dataset=dataset,
+                dataset,
                 learning_rate=learning_rate[i],
                 num_steps=num_steps[i],
                 run_id=run_id,
