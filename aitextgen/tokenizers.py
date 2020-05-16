@@ -21,6 +21,16 @@ def train_tokenizer(
     See: https://huggingface.co/blog/how-to-train
 
     For consistency, this function makes opinionated assuptions.
+
+    :param files: path to file(s) to train tokenizer on
+    :param dropout: Trainign dropout
+    :param vocab_size: Final vocabulary size
+    :param min_frequency: Minimum number of occurences to add to vocab
+    :param save_path: Where to save the final tokenizer
+    :param added_tokens: List of tokens to add to the tokenizer (currently not working)
+    :param bos_token: Beginning-of-string special token
+    :param eos_token: End-of-string special token 
+    :param unk_token: Unknown special token
     """
 
     assert isinstance(files, str) or isinstance(
