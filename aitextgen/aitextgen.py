@@ -93,6 +93,7 @@ class aitextgen:
         bos_token: str = None,
         eos_token: str = None,
         unk_token: str = None,
+        **kwargs,
     ) -> None:
 
         if not verbose:
