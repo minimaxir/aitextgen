@@ -57,6 +57,8 @@ class aitextgen:
     This will convert the model to PyTorch if not present.
     :param to_gpu: Whether to load the model into the GPU after loading
     (good for generation)
+    :param to_fp16: Whether to convert the model to FP16 before loading
+    to GPU (for supported GPUs only)
     :param verbose: Whether to enable logging from base Huggingface packages
     :param torchscript: Whether the input model is a TorchScript traced model
     :param ts_to_trace: Whether to prep the input model to be exported to TorchScript
@@ -84,6 +86,7 @@ class aitextgen:
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
+        to_fp16: bool = False,
         verbose: bool = False,
         torchscript: bool = False,
         ts_to_trace: bool = False,
@@ -211,6 +214,8 @@ class aitextgen:
         )
 
         if to_gpu:
+            if to_fp16:
+                self.to_fp16()
             self.to_gpu()
 
     def generate(
@@ -616,11 +621,13 @@ class aitextgen:
     def quantize(self):
         """
         Quantizes the model, which gives it a generation performance boost.
-        However, a quantized model cannot be trained.
+        Should only be used to generate on a supported GPU.
 
         Currently only the lm_head layer is quantized:
         https://github.com/pytorch/pytorch/issues/34074
         """
+        assert self.get_device() == "cpu", "quantize() can only be used on a CPU."
+
         self.model = torch.quantization.quantize_dynamic(
             self.model, {Linear, Embedding, Conv1D}, inplace=True
         )
@@ -659,6 +666,14 @@ class aitextgen:
         """Moves the model to the TPU."""
 
         self.model.to(xm.xla_device())
+
+    def to_fp16(self) -> None:
+        """
+        Converts the model to a FP16 representation.
+        Should only be used to generate on a supported GPU.
+        """
+
+        self.model = self.model.half()
 
     def get_device(self) -> str:
         """Getter for the current device of the mode."""
