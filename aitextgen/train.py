@@ -155,6 +155,7 @@ class ATGProgressBar(ProgressBarBase):
 
         current_loss = float(trainer.progress_bar_dict["loss"])
         self.steps += 1
+        avg_loss = 0
         if current_loss == current_loss:  # don't add if current_loss is NaN
             avg_loss = self.average_loss(
                 current_loss, self.prev_avg_loss, self.smoothing

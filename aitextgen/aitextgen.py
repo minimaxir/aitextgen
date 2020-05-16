@@ -370,8 +370,7 @@ class aitextgen:
 
     def train(
         self,
-        dataset: TokenDataset = None,
-        file_path: str = None,
+        input: Union[str, TokenDataset] = None,
         output_dir: str = "trained_model",
         fp16: bool = False,
         fp16_opt_level: str = "O1",
@@ -421,9 +420,7 @@ class aitextgen:
         :param loggers: pytorch-lightning logger(s) to log results.
         """
 
-        assert any(
-            [dataset, file_path]
-        ), "Either dataset or file_path must be specified"
+        assert input, "An input (TokenDataset or string to a file) must be specified."
         assert not self.torchscript, "You cannot train a traced TorchScript model."
 
         if not os.path.exists(output_dir):
@@ -438,14 +435,14 @@ class aitextgen:
         self.model = self.model.train()
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
 
-        if file_path:
-            dataset = TokenDataset(
+        if isinstance(input, str):
+            input = TokenDataset(
                 vocab_file=self.vocab_file,
                 merges_file=self.merges_file,
                 bos_token=self.bos_token,
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,
-                file_path=file_path,
+                file_path=input,
                 block_size=self.model.config.n_positions,
                 **kwargs,
             )
@@ -473,7 +470,7 @@ class aitextgen:
         )
 
         # Wrap the model in a pytorch-lightning module
-        train_model = ATGTransformer(self.model, dataset, hparams, self.tokenizer)
+        train_model = ATGTransformer(self.model, input, hparams, self.tokenizer)
 
         # Begin training
         if seed:

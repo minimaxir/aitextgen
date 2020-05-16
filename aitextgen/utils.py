@@ -125,7 +125,7 @@ def build_gpt2_config(
 
 
 def GPT2ConfigCPU(
-    vocab_size: int = 10000, bos_token_id: int = 0, eos_token_id: int = 0, **kwargs
+    vocab_size: int = 5000, bos_token_id: int = 0, eos_token_id: int = 0, **kwargs
 ):
     """
     Returns a GPT-2 config more suitable for training on a regular consumer CPU.
