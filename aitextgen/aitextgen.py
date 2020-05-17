@@ -70,6 +70,7 @@ class aitextgen:
     torchscript = False
 
     # default values for GPT2Tokenizer
+    tokenizer = None
     vocab_file = os.path.join(STATIC_PATH, "gpt2_vocab.json")
     merges_file = os.path.join(STATIC_PATH, "gpt2_merges.txt")
     bos_token = "<|endoftext|>"
@@ -183,40 +184,46 @@ class aitextgen:
         else:
             # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
-                logger.info(f"Loading GPT-2 model from /{cache_dir}.")
+                logger.info(f"Loading {model or 'gpt2'} model from /{cache_dir}.")
             else:
                 logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
             self.model = GPT2LMHeadModel.from_pretrained(
                 model or "gpt2", cache_dir=cache_dir, torchscript=ts_to_trace
             )
+            if model and "gpt2" not in model:
+                logger.info(f"Using the tokenizer for {model}.")
+                self.tokenizer = GPT2Tokenizer.from_pretrained(
+                    model, cache_dir=cache_dir,
+                )
 
-        # Update tokenizer settings
-        args = locals()
-        custom_tokenizer = False
-        for attr in [
-            "vocab_file",
-            "merges_file",
-            "bos_token",
-            "eos_token",
-            "unk_token",
-        ]:
-            if args[attr] is not None:
-                custom_tokenizer = True
-                setattr(self, attr, args[attr])
+        if self.tokenizer is None:
+            # Update tokenizer settings (if not set already)
+            args = locals()
+            custom_tokenizer = False
+            for attr in [
+                "vocab_file",
+                "merges_file",
+                "bos_token",
+                "eos_token",
+                "unk_token",
+            ]:
+                if args[attr] is not None:
+                    custom_tokenizer = True
+                    setattr(self, attr, args[attr])
 
-        if custom_tokenizer:
-            logger.info("Using a custom tokenizer.")
-        else:
-            logger.info("Using the default GPT-2 Tokenizer.")
+            if custom_tokenizer:
+                logger.info("Using a custom tokenizer.")
+            else:
+                logger.info("Using the default GPT-2 Tokenizer.")
 
-        self.tokenizer = GPT2Tokenizer(
-            vocab_file=self.vocab_file,
-            merges_file=self.merges_file,
-            bos_token=self.bos_token,
-            eos_token=self.eos_token,
-            unk_token=self.unk_token,
-            pad_token=self.pad_token,
-        )
+            self.tokenizer = GPT2Tokenizer(
+                vocab_file=self.vocab_file,
+                merges_file=self.merges_file,
+                bos_token=self.bos_token,
+                eos_token=self.eos_token,
+                unk_token=self.unk_token,
+                pad_token=self.pad_token,
+            )
 
         if to_gpu:
             if to_fp16:
