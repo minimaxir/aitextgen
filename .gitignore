@@ -3,3 +3,4 @@ test_notebooks/
 /build
 /dist
 *.egg-info
+.vscode/settings.json

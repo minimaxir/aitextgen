@@ -29,7 +29,7 @@ def train_tokenizer(
     :param save_path: Where to save the final tokenizer
     :param added_tokens: List of tokens to add to the tokenizer (currently not working)
     :param bos_token: Beginning-of-string special token
-    :param eos_token: End-of-string special token 
+    :param eos_token: End-of-string special token
     :param unk_token: Unknown special token
     """
 

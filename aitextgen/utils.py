@@ -102,7 +102,7 @@ def build_gpt2_config(
     bos_token_id: int = 0,
     eos_token_id: int = 0,
     max_length: int = 1024,
-    dropout: float = 0.1,
+    dropout: float = 0.0,
     **kwargs
 ):
     """

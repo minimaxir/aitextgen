@@ -7,8 +7,8 @@ aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hu
 - Finetunes on a pretrained 124M GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency! (even from the 1.5B GPT-2 model!)
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks and upload to to the Huggingface model repositorsy. Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
-- With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress progress, with the ability to add optional loggers.
-- The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting it, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ models so it learns some data fully and some partially to create blended output.
+- With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress bar, with the ability to add optional loggers.
+- The input dataset is its own object, allowing you to not only easily encode, cache, and compress them on a local computer before transporting to a remote serve, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ on multiple datasets to create blended output.
 
 You can read more about aitextgen in the documentation!
 
@@ -16,7 +16,7 @@ You can read more about aitextgen in the documentation!
 
 You can play with aitextgen _for free_ with powerful GPUs using these Colaboratory Notebooks!
 
-- Finetune an existing 124M GPT-2 model on your own dataset (GPU)
+- [Finetune an existing 124M GPT-2 model on your own dataset (GPU)](https://colab.research.google.com/drive/15qBZx5y9rdaQSyWpsreMDnTiZ5IlN0zD?usp=sharing)
 - Train a GPT-2 model + tokenizer from scratch (GPU)
 
 ## Installation
@@ -27,11 +27,11 @@ aitextgen can be installed from PyPI:
 pip3 install aitextgen
 ```
 
-## Quick Example
+## Quick Examples
 
 Here's how you can quickly test out aitextgen on your own computer, even if you don't have a GPU!
 
-For generating text from a pretrained GPT-2 model ([Jupyter Notebook](/notebooks/generation_hello_world.ipynb)):
+For generating text from a pretrained GPT-2 model:
 
 ```python
 from aitextgen import aitextgen
@@ -114,7 +114,7 @@ aitextgen is a tool primarily intended to help facilitate creative content. It i
 
 - State that the text was generated using aitextgen and/or a GPT-2 model architecture. (a link to this repo would be a bonus!)
 - If parodying a person, explicitly state that it is a parody, and reference who it is parodying.
-- If the generated human-curated, or if it's unsupervised random output
+- If the generated text is human-curated, or if it's unsupervised random output
 - Indicating who is maintaining/curating the AI-generated text.
 - Make a good-faith effort to remove overfit output from the generated text that matches the input text verbatim.
 

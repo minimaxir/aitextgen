@@ -1,0 +1,2 @@
+graft */static
+global-exclude .DS_Store
