@@ -21,7 +21,7 @@ You can play with aitextgen _for free_ with powerful GPUs using these Colaborato
 
 ## Installation
 
-aitextgen can be installed from PyPI:
+aitextgen can be installed [from PyPI](https://pypi.org/project/aitextgen/):
 
 ```sh
 pip3 install aitextgen
@@ -100,7 +100,7 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 ## Upcoming Features
 
-The current release (v0.1) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
+The current release (v0.1.X) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
 
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (see [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept)
 

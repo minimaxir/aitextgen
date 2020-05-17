@@ -8,7 +8,7 @@ A robust Python tool for text-based AI training and generation using GPT-2.
 setup(
     name="aitextgen",
     packages=["aitextgen"],  # this must be the same as the name above
-    version="0.1",
+    version="0.1.1",
     description="A robust Python tool for text-based AI training and generation using GPT-2.",
     long_description=long_description,
     long_description_content_type="text/markdown",
