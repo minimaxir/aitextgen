@@ -234,7 +234,7 @@ class aitextgen:
         self,
         n: int = 1,
         prompt: str = None,
-        max_length: int = 200,
+        max_length: int = 1024,
         temperature: float = 0.7,
         do_sample: bool = True,
         return_as_list: bool = False,

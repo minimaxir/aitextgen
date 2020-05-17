@@ -191,7 +191,10 @@ class ATGProgressBar(ProgressBarBase):
         gen_length = min(pl_module.model.config.n_positions, 256)
 
         outputs = pl_module.model.generate(
-            max_length=gen_length, do_sample=True, num_return_sequences=self.n_generate
+            max_length=gen_length,
+            do_sample=True,
+            num_return_sequences=self.n_generate,
+            temperature=0.7,
         )
         gen_texts = [
             pl_module.tokenizer.decode(output, skip_special_tokens=True)
