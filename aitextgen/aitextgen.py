@@ -629,6 +629,16 @@ class aitextgen:
         """Saves the model into the specified directory."""
         self.model.save_pretrained(target_folder)
 
+    def save_for_upload(self, target_folder: str = "my-model"):
+        """
+        Saves the model + tokenizerinto the specified directory.
+
+        This generates the 6 files needed to upload the model to
+        Huggingface's S3 bucket.
+        """
+        self.model.save_pretrained(target_folder)
+        self.tokenizer.save_pretrained(target_folder)
+
     def quantize(self):
         """
         Quantizes the model, which gives it a generation performance boost.

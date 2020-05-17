@@ -21,9 +21,7 @@ nav:
   - Helpful Notes: helpful-notes.md
   - Ethics: ethics.md
   - Command-Line Interface: cli.md
-  # - API:
-  #     - aitextgen: api/aitextgen.md
-  #     - TokenDataset: api/TokenDataset.md
+  - Upload Model to Huggingface: upload.md
 
 theme:
   name: "material"
@@ -60,3 +58,8 @@ markdown_extensions:
   - admonition
   - toc:
       permalink: true
+
+plugins:
+  - search # necessary for search to work
+  - minify:
+      minify_html: true
