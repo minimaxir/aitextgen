@@ -235,7 +235,7 @@ class aitextgen:
         n: int = 1,
         prompt: str = None,
         max_length: int = 200,
-        temperature: float = 1.0,
+        temperature: float = 0.7,
         do_sample: bool = True,
         return_as_list: bool = False,
         seed: int = None,
