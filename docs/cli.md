@@ -34,10 +34,16 @@ Other parameters to the TokenDataset constructor can be used.
 
 ## Generate
 
-Loads a model from a given folder `/aitextgen` and generates to a file.
+Loads a model and generates to a file.
 
-By default, it will generate 20 texts to the file, 5 at a time at temperature of 0.7.
+By default, it will generate 20 texts to the file, 1 at a time at temperature of 0.7.
 
 ```sh
-aitextgen generate aitextgen
+aitextgen generate
+```
+
+You can print to console instead by passing `--to_file False`
+
+```sh
+aitextgen generate --prompt "I believe in unicorns because" --to_file False
 ```
