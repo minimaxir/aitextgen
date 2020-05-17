@@ -4,15 +4,16 @@ site_author: Max Woolf (@minimaxir)
 
 nav:
   - Home: index.md
-  - \"Hello World\" Tutorial: tutorials/hello-world.md
+  - Hello World Tutorial: tutorials/hello-world.md
   - Loading a Model: load-model.md
-  - Saving a Model: save-mode.md
+  - Saving a Model: save-model.md
   - TokenDataset: dataset.md
-  - Training a aitextgen Model:
+  - Training an aitextgen Model:
       - Colaboratory Notebooks: tutorials/colab.md
       # - Improving Training Performance: train-performance.md
       - Training a GPT-2 Model From Scratch: tutorials/model-from-scratch.md
-  - Generating From a aitextgen Model:
+      - Loggers: loggers.md
+  - Generating from an aitextgen Model:
       - Generating Text: generate.md
       - Improving Generation Performance: generate-performance.md
       - Generating From GPT-2 1.5B: tutorials/generate_1_5b.md
@@ -20,9 +21,9 @@ nav:
   - Helpful Notes: helpful-notes.md
   - Ethics: ethics.md
   - Command-Line Interface: cli.md
-  - API:
-      - aitextgen: api/aitextgen.md
-      - TokenDataset: api/TokenDataset.md
+  # - API:
+  #     - aitextgen: api/aitextgen.md
+  #     - TokenDataset: api/TokenDataset.md
 
 theme:
   name: "material"
@@ -35,6 +36,9 @@ theme:
   features:
     - tabs
     - instant
+  icon:
+    logo: fontawesome/solid/robot
+    repo: fontawesome/brands/github
 
 repo_name: minimaxir/aitextgen
 repo_url: https://github.com/minimaxir/aitextgen
@@ -44,13 +48,13 @@ copyright: "Copyright &copy; 2019 - 2020 Max Woolf"
 
 extra:
   social:
-    - type: "github"
+    - icon: "fontawesome/brands/github-alt"
       link: "https://github.com/minimaxir/aitextgen"
-    - type: "twitter"
+    - icon: "fontawesome/brands/twitter"
       link: "https://twitter.com/minimaxir"
 
 markdown_extensions:
-  - markdown.extensions.codehilite:
+  - codehilite:
       guess_lang: false
   - mkautodoc
   - admonition

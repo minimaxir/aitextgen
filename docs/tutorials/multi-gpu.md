@@ -1,3 +1,0 @@
-# Multi-GPU
-
-TBD

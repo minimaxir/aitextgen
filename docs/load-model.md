@@ -34,7 +34,7 @@ ai = aitextgen(model="minimaxir/hacker-news")
 
 The model and associated config + tokenizer will be downloaded into `cache_dir`.
 
-### Loading TensorFlow-based GPT-2 models
+## Loading TensorFlow-based GPT-2 models
 
 aitextgen lets you download the models from Google's servers that OpenAI had uploaded back when GPT-2 was first released in 2019. These models are then converted to a PyTorch format.
 
