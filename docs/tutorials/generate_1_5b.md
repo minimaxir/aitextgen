@@ -1,14 +1,15 @@
 # Generating From GPT-2 1.5B
 
-Want to generate a ton of text with the largest GPT-2 model, with the generation control provided by aitextgen? Now you can, at a surprisingly low cost! (\$0.382/hr, prorated to the nearest second)
+<!-- prettier-ignore -->
+Want to generate a ton of text with the largest GPT-2 model, with the generation control provided by aitextgen? Now you can, at a surprisingly low cost! ($0.382/hr, prorated to the nearest second)
 
 Here's how to set it up on Google Cloud Platform.
 
 ## Setting Up an AI Platform Notebook
 
-An AI Platform Notebook is a hosted Jupyter Lab instance on Google Cloud Platform oriented for AI training and inference. Since it requires zero setup _and has no additional costs outside of CPU/GPUs_, it's the best tool to play with aitextgen.
+An [AI Platform Notebook](https://cloud.google.com/ai-platform-notebooks) is a hosted Jupyter Lab instance on Google Cloud Platform oriented for AI training and inference. Since it requires zero setup _and has no additional costs outside of CPU/GPUs_, it's the best tool to play with aitextgen.
 
-First, go to AI Platform Notebooks in the GCP console (if you haven't made a project + billing, it should prompt you to do so). Go to `New Instance`, select `PyTorch 1.4` and `With 1 NVIDIA Tesla T4`.
+First, go to [AI Platform Notebooks in the GCP console](https://console.cloud.google.com/ai-platform/notebooks/) (if you haven't made a project + billing, it should prompt you to do so). Go to `New Instance`, select `PyTorch 1.4` and `With 1 NVIDIA Tesla T4`.
 
 <!-- prettier-ignore -->
 !!! note "Quotas"
@@ -35,11 +36,19 @@ git clone https://github.com/NVIDIA/apex
 cd apex && pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
 
-That will take a few minutes, but once that is done, you are good to go!
+That will take a few minutes, but once that is done, you are good to go and do not need to rerun these steps again!
 
 ## Loading GPT-2 1.5B
 
 Now go back to the Launcher and create a Python 3 Notebook (or upload the one here).
+
+<!-- prettier-ignore -->
+!!! warning "CUDA"
+    You may want to ensure the Notebook sees the CUDA installation, which appears to be somewhat random. This can be verified by running:
+    ```python
+    import torch
+    torch.cuda.is_available()
+    ```
 
 In a cell, load aitextgen:
 
@@ -70,12 +79,16 @@ Create a cell and add:
 ai.generate_to_file(n=300, batch_size=30)
 ```
 
+<!-- prettier-ignore -->
+!!! warning "Batch Size"
+    The batch size of 30 above assumes the default `max_length` of 256. If you want to use the full 1024 token max length, lower the batch size to 15, as the GPU will go OOM otherwise.
+
 And it will generate the texts to a file! When completed, you can double-click to view it in Jupyter Lab, and you can download the file by right-clicking it from the file viewer.
 
 More importantly, all parameters to `generate` are valid, allowing massive flexibility!
 
 ```python
-ai.generate_to_file(n=300, batch_size=30, top_p=0.9, temperature=1.2, prompt="President Donald Trump has magically transformed into a unicorn.")
+ai.generate_to_file(n=150, batch_size=15, max_length=1024, top_p=0.9, temperature=1.2, prompt="President Donald Trump has magically transformed into a unicorn.")
 ```
 
 ## Cleanup

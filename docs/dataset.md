@@ -52,7 +52,7 @@ By default, it will save to `dataset_cache.tar.gz`. You can then reload that int
 data = TokenDataset("dataset_cache.tar.gz", from_cache=True)
 ```
 
-## Using TokenDatasets withh a Custom GPT-2 Model
+## Using TokenDatasets with a Custom GPT-2 Model
 
 The default TokenDataset has a `block_size` of `1024`, which corresponds to the _context window of the default GPT-2 model_. If you're using a custom model w/ a different maximum. Additionally, you must explicitly provide the vocab and merges files to rebuild the tokenizer, as the tokenizer will be different than the normal GPT-2 one.
 

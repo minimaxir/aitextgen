@@ -6,7 +6,7 @@ If that is _not_ your use case, you may get a better generation quality _and_ sp
 
 - Short-form content (e.g. Tweets, Reddit post titles)
 - Non-English Text
-- Encoded Text
+- Heavily Encoded Text
 
 It still will require a _massive_ amount of training time (several hours, even on a TPU), but will be more flexible.
 
