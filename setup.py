@@ -1,16 +1,11 @@
 from setuptools import setup
 
-long_description = """
-A robust Python tool for text-based AI training and generation using GPT-2.
-"""
-
-
 setup(
     name="aitextgen",
     packages=["aitextgen"],  # this must be the same as the name above
-    version="0.1.1",
+    version="0.1.2",
     description="A robust Python tool for text-based AI training and generation using GPT-2.",
-    long_description=long_description,
+    long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     author="Max Woolf",
     author_email="max@minimaxir.com",
