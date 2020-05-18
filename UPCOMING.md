@@ -7,7 +7,6 @@ Here is a list of features, in no particular order, of what I _hope_ to add to a
 - Sparse Transformers?
 - Include keyword conditioning as well
 - - For vocab prefix, use heuristics on tokens, since very speedy and can scale high with strong tokenizers
-- - Can use a custom `coalate` function to sample keywords out of a `<<<text>>>` block, and also shuffle the schema to augment text.
 - Context support, provided as a named dict to a generation function
   e sequence stronger than later text (e.g. recent tweets than older tweets!)
 
@@ -32,9 +31,7 @@ Here is a list of features, in no particular order, of what I _hope_ to add to a
 
 ## Quality-of-Life Features
 
-- Can all run in a single session, do not need to reload session
 - Have a super minimal version that can be distributed with the PyPi package. (< 3MB)
   - Include a small model trainable on a CPU, trained from a distilled larger model
 - Support any CLM model, not just GPT2.
-- Support training model from scratch (will need to add tokenizer export)
 - Support CPU-based XLA for faster PyTorch CPU Train/Predict performance
