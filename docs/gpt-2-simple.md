@@ -1,6 +1,6 @@
 # Importing from gpt-2-simple
 
-Want to import a model trained using gpt-2-simple, or another GPT-2 based finetuning approach? You can do that [using the transformers-cli](https://huggingface.co/transformers/converting_tensorflow_models.html).
+Want to import a model trained using [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), or another GPT-2 based finetuning approach? You can do that [using the transformers-cli](https://huggingface.co/transformers/converting_tensorflow_models.html).
 
 In the case of gpt-2-simple (where the output is structured `checkpoint/run1`), you'd `cd` into the directory containing the `checkpoint` folder and run:
 

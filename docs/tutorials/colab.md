@@ -6,7 +6,7 @@ The Colab Notebooks also contain utilities to make it easier to export the model
 
 ## Finetuning OpenAI's Model
 
-Colab Notebook
+[Colab Notebook](https://colab.research.google.com/drive/15qBZx5y9rdaQSyWpsreMDnTiZ5IlN0zD?usp=sharing)
 
 A Notebook for finetuning OpenAI's model on a GPU. This is the most common use case.
 
@@ -16,6 +16,6 @@ A Notebook for finetuning OpenAI's model on a GPU. This is the most common use c
 
 ## Training Your Own GPT-2 Model
 
-Colab Notebook
+[Colab Notebook](https://colab.research.google.com/drive/144MdX5aLqrQ3-YW-po81CQMrD6kpgpYh?usp=sharing)
 
 A Notebook for creating your own GPT-2 model with your own tokenizer. See the Model From Scratch on the advantages and disadvantages of this approach.

@@ -20,7 +20,7 @@ ai.quantize()
 
 Certain GPUs, notably the cheap T4 and the expensive V100, support the ability to process models using FP16, giving massive speed and memory improvements,
 
-Assuming you are using a compatable GPU and already have apex installed, you can convert a model to the "half" FP16 mode with this:
+Assuming you are using a compatable GPU and already have [apex](https://github.com/NVIDIA/apex) installed, you can convert a model to the "half" FP16 mode with this:
 
 ```python
 ai.to_fp16()
