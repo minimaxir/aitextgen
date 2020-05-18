@@ -44,12 +44,8 @@ Now go back to the Launcher and create a Python 3 Notebook (or upload the one he
 
 <!-- prettier-ignore -->
 !!! warning "CUDA"
-    You may want to ensure the Notebook sees the CUDA installation, which appears to be somewhat random. This can be verified by running:
-    ```python
-    import torch
-    torch.cuda.is_available()
-    ```
-
+    You may want to ensure the Notebook sees the CUDA installation, which appears to be somewhat random. This can be verified by running `import torch` in a cell, then `torch.cuda.is_available()`.
+    
 In a cell, load aitextgen:
 
 ```python
@@ -67,7 +63,7 @@ A few things going on here:
 - The TensorFlow-based GPT-2 1.5B is downloaded from Google's servers. (download rate is _very_ fast). This download will only occur once.
 - It is converted to a corresponding PyTorch model, and then loaded.
 - After it is loaded, it is converted to a FP16 representation.
-- Then it is moved to the T4 GPU
+- Then it is moved to the T4 GPU.
 
 ## Generating from GPT-2 1.5B
 
@@ -94,3 +90,5 @@ ai.generate_to_file(n=150, batch_size=15, max_length=1024, top_p=0.9, temperatur
 ## Cleanup
 
 **Make sure you Stop the instance when you are done to avoid being charged**. To do that, go back to the AI Platform Notebook console, select the instance, and press Stop.
+
+Since 100GB of storage may be pricy, you may want to consider deleting the VM fully if you are done with it as well.
