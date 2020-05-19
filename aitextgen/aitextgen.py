@@ -642,7 +642,7 @@ class aitextgen:
     def quantize(self):
         """
         Quantizes the model, which gives it a generation performance boost.
-        Should only be used to generate on a supported GPU.
+        Should only be used to generate on a supported CPU.
 
         Currently only the lm_head layer is quantized:
         https://github.com/pytorch/pytorch/issues/34074
