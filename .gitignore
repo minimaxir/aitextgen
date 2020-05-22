@@ -4,3 +4,4 @@ test_notebooks/
 /dist
 *.egg-info
 .vscode/settings.json
+/site

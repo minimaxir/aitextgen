@@ -295,9 +295,7 @@ class aitextgen:
             if prompt is not None:
                 # Bold the prompt if printing to console
                 gen_texts = [
-                    re.sub(
-                        r"^" + prompt_text, "\033[1m" + prompt_text + "\033[0m", text,
-                    )
+                    text.replace(prompt_text, f"\033[1m{prompt_text}\033[0m", 1)
                     for text in gen_texts
                 ]
 
