@@ -42,6 +42,7 @@ class TokenDataset(Dataset):
     :param shuffle: if providing text/line-by-line dataset, whether to shuffle
     to avoid dependencies.
     :param seed: if using shuffle, the seed for the shuffle.
+    :param text_delim: delimiter to use to split bulk texts (default paragraph breaks)
     :param bos_token: String to override the beginning-of-string token
     :param eos_token: String to override the end-of-string token
     :param unk_token: String to override the unknown token
@@ -64,6 +65,7 @@ class TokenDataset(Dataset):
         tokenized_texts: bool = False,
         shuffle: bool = True,
         seed: int = None,
+        text_delim: str = "\n\n",
         bos_token: str = "<|endoftext|>",
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
@@ -129,31 +131,25 @@ class TokenDataset(Dataset):
             assert os.path.isfile(file_path)
 
             with open(file_path, "r", encoding="utf-8") as f:
-                text = f.read()
+                text_list = f.read().split(text_delim)
 
             self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
-        if texts is not None or line_by_line:
-            # Multi-threaded, will use all CPU cores
-            # and is extremely fast!
-            if shuffle:
-                if seed:
-                    random.seed(seed)
-                random.shuffle(text_list)
-            self.tokens = list(
-                itertools.chain.from_iterable(
-                    tokenizer.batch_encode_plus(text_list, add_special_tokens=False)[
-                        "input_ids"
-                    ]
-                )
+        # Multi-threaded, will use all CPU cores
+        # and is extremely fast!
+        if shuffle:
+            if seed:
+                random.seed(seed)
+            random.shuffle(text_list)
+        self.tokens = list(
+            itertools.chain.from_iterable(
+                tokenizer.batch_encode_plus(text_list, add_special_tokens=False)[
+                    "input_ids"
+                ]
             )
-            del text_list
-        else:
-            # Single-threaded, but more accurately
-            # tokenizes a bulk text for GPT-2 training.
-            self.tokens = tokenizer.encode(text)
-            del text
+        )
+        del text_list
         assert (
             len(self.tokens) >= block_size
         ), f"There are fewer than {block_size} tokens."

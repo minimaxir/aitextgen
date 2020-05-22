@@ -11,7 +11,6 @@ from transformers.modeling_utils import Conv1D
 from torch.nn import Linear, Embedding
 import torch
 import os
-import re
 import logging
 import sys
 from tqdm.auto import trange
