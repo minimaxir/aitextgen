@@ -9,9 +9,10 @@ from typing import List
 from transformers import GPT2TokenizerFast
 from pkg_resources import resource_filename
 import itertools
-import random
+from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 STATIC_PATH = resource_filename(__name__, "static")
 
@@ -39,9 +40,6 @@ class TokenDataset(Dataset):
     (usually set by the model architecture)
     :param tokenized_texts: Texts that are already tokenized; only should
     be used by merge_datasets().
-    :param shuffle: if providing text/line-by-line dataset, whether to shuffle
-    to avoid dependencies.
-    :param seed: if using shuffle, the seed for the shuffle.
     :param text_delim: delimiter to use to split bulk texts (default paragraph breaks)
     :param bos_token: String to override the beginning-of-string token
     :param eos_token: String to override the end-of-string token
@@ -63,9 +61,7 @@ class TokenDataset(Dataset):
         compress: bool = True,
         block_size: int = 1024,
         tokenized_texts: bool = False,
-        shuffle: bool = True,
-        seed: int = None,
-        text_delim: str = "\n\n",
+        text_delim: str = "\n",
         bos_token: str = "<|endoftext|>",
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
@@ -110,8 +106,8 @@ class TokenDataset(Dataset):
 
         # if texts are present, just tokenize them.
         elif texts is not None:
-            text_list = texts
-            logger.info(f"{len(text_list):,} texts loaded.")
+            num_texts = len(texts)
+            logger.info(f"{num_texts:,} texts loaded.")
             self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
@@ -119,9 +115,7 @@ class TokenDataset(Dataset):
         elif line_by_line:
             assert os.path.isfile(file_path)
 
-            text_list = read_lines_from_file(file_path, eos_token, header=header)
-            logger.info(f"{len(text_list):,} texts loaded.")
-
+            text_delim = None
             self.file_path = file_path
             self.str_suffix = f"from line-by-line file at {file_path}."
 
@@ -129,30 +123,32 @@ class TokenDataset(Dataset):
         # the texts must be parsed as a single bulk file.
         else:
             assert os.path.isfile(file_path)
+            if file_path.endswith(".csv"):
+                logger.warning(
+                    "You are tokenizing a CSV file, but you did not "
+                    + "set line_by_line=True. Please change if unintended."
+                )
 
-            with open(file_path, "r", encoding="utf-8") as f:
-                text_list = f.read().split(text_delim)
-
+            eos_token = ""
+            header = False
             self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
-        # Multi-threaded, will use all CPU cores
-        # and is extremely fast!
-        if shuffle:
-            if seed:
-                random.seed(seed)
-            random.shuffle(text_list)
-        self.tokens = list(
-            itertools.chain.from_iterable(
-                tokenizer.batch_encode_plus(text_list, add_special_tokens=False)[
-                    "input_ids"
-                ]
+        if texts is None:
+            self.tokens = encode_tokens_from_file(
+                file_path, eos_token, tokenizer, text_delim, header
             )
-        )
-        del text_list
+        else:
+            self.tokens = list(
+                itertools.chain.from_iterable(
+                    tokenizer.batch_encode_plus(texts, add_special_tokens=False)[
+                        "input_ids"
+                    ]
+                )
+            )
         assert (
             len(self.tokens) >= block_size
-        ), f"There are fewer than {block_size} tokens."
+        ), f"There are fewer than {block_size} encoded tokens."
         self.num_subsets = len(self.tokens) - block_size
         self.block_size = block_size
 
@@ -196,28 +192,90 @@ class TokenDataset(Dataset):
         return f"TokenDataset containing {self.num_subsets:,} subsets loaded {self.str_suffix}"
 
 
-def read_lines_from_file(
-    file_path: str, eos_token: str, header: bool = True
-) -> (List[str], int):
+def get_lines_in_file(file_path: str, newline: str = None) -> int:
+    """
+    Returns the number of lines in a file to build progress bar.
+    c.f. https://stackoverflow.com/a/16108605/9314418
+    """
+
+    with open(file_path, "r", encoding="utf-8", newline=newline) as f:
+        return sum(1 for row in f)
+
+
+def get_lines_in_file_csv(file_path: str, header: bool = True) -> int:
+    """
+    Returns the number of lines in a CSV to build progress bar.
+    c.f. https://stackoverflow.com/a/16108605/9314418
+    """
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        if header:
+            f.readline()
+        reader = csv.reader(f)
+        return sum(1 for row in reader)
+
+
+def encode_tokens_from_file(
+    file_path: str,
+    eos_token: str,
+    tokenizer: GPT2TokenizerFast,
+    newline: str,
+    header: bool = True,
+    batch_size: int = 1024,
+) -> List[int]:
     """
     Retrieves texts from a newline-delimited file/CSV and returns texts.
     """
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        text_list = []
-        if header:
-            f.readline()
-        if file_path.endswith(".csv"):
-            reader = csv.reader(f)
-            for row in reader:
-                text_list.append(row[0] + eos_token)
-        else:
-            reader = f.read().splitlines()
-            for line in reader:
-                if len(line) > 0 and not line.isspace():
-                    text_list.append(line + eos_token)
+    is_csv = file_path.endswith(".csv")
 
-    return text_list
+    if is_csv:
+        num_texts = get_lines_in_file_csv(file_path, header)
+    else:
+        num_texts = get_lines_in_file(file_path, newline)
+
+    pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
+    tokens = []
+
+    with open(file_path, "r", encoding="utf-8", newline=newline) as f_load:
+
+        if header:
+            f_load.readline()
+        if is_csv:
+            f_read = csv.reader(f_load)
+            logger.info(f"Encoding {num_texts:,} rows from {file_path}.")
+        else:
+            f_read = f_load
+            logger.info(f"Encoding {num_texts:,} sets of tokens from {file_path}.")
+
+        # https://stackoverflow.com/a/6335876/9314418
+        while True:
+            if is_csv:
+                batch = [
+                    text[0] + eos_token
+                    for text in list(itertools.islice(f_read, batch_size))
+                ]
+            else:
+                batch = [
+                    text + eos_token
+                    for text in list(itertools.islice(f_read, batch_size))
+                ]
+
+            if not batch:
+                break
+
+            tokens += list(
+                itertools.chain.from_iterable(
+                    tokenizer.batch_encode_plus(batch, add_special_tokens=False)[
+                        "input_ids"
+                    ]
+                )
+            )
+
+            pbar.update(len(batch))
+
+    pbar.close()
+    return tokens
 
 
 def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> TokenDataset:
@@ -229,7 +287,9 @@ def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> Token
 
     * **datasets**: A list of TokenDatasets.
     * **equalize**: Whether to take an equal amount of samples from all
-    input datasets (by taking random samples from each dataset equal to the smallest dataset) in order to balance out the result dataset.
+    input datasets (by taking random samples from
+    each dataset equal to the smallest dataset)
+    in order to balance out the result dataset.
     """
 
     assert (
