@@ -288,8 +288,13 @@ def encode_tokens_from_list(
     tokens = []
     i_start = 0
 
-    while True:
-        batch = [text + eos_token for text in texts[i_start : (i_start + batch_size)]]
+    for i_start in range(len(texts) // batch_size + 1):
+        batch = [
+            text + eos_token
+            for text in texts[
+                (i_start * batch_size) : ((i_start * batch_size) + batch_size)
+            ]
+        ]
 
         tokens += list(
             itertools.chain.from_iterable(
@@ -300,10 +305,6 @@ def encode_tokens_from_list(
         )
 
         pbar.update(len(batch))
-        i_start += batch_size
-
-        if i_start > len(texts):
-            break
 
     pbar.close()
     return tokens
