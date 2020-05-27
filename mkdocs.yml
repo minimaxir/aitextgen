@@ -26,8 +26,9 @@ nav:
 theme:
   name: "material"
   palette:
-    primary: "indigo"
-    accent: "indigo"
+    scheme: "slate"
+    primary: "light blue"
+    accent: "light blue"
   font:
     text: "Source Sans Pro"
     code: "Fira Code"
