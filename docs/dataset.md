@@ -66,7 +66,7 @@ Merging processed TokenDatasets can be done with the `merge_datasets()` function
 
 <!--prettier-ignore-->
 !!! note "About Merging"
-    The current implementation merges by subset count, so equalization may not be perfect.
+    The current implementation merges by subset count, so equalization may not be perfect, but it will not significantly impact training.
 
 ```python
 from aitextgen.TokenDataset import TokenDataset, merge_datasets

@@ -2,6 +2,10 @@
 
 There are several ways to load models.
 
+<!--prettier-ignore-->
+!!! note "Continue Training/Finetuning"
+    You can further train a model by reloading a model that has already been trained, using the methods outlined below.
+
 ## Loading an aitextgen model
 
 The closer to the default 124M GPT-2 model, the fewer files you need!
