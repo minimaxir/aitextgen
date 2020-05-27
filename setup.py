@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="aitextgen",
     packages=["aitextgen"],  # this must be the same as the name above
-    version="0.2.0",
+    version="0.1.1",
     description="A robust Python tool for text-based AI training and generation using GPT-2.",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
