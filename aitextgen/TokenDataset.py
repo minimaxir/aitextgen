@@ -105,9 +105,7 @@ class TokenDataset(Dataset):
             return
 
         # if texts are present, just tokenize them.
-        elif texts is not None:
-            num_texts = len(texts)
-            logger.info(f"{num_texts:,} texts loaded.")
+        elif texts:
             self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
@@ -134,18 +132,14 @@ class TokenDataset(Dataset):
             self.file_path = file_path
             self.str_suffix = f"from file at {file_path}."
 
-        if texts is None:
+        # Encode tokens in a batched manner to ensure constant memory usage
+        if texts:
+            self.tokens = encode_tokens_from_list(texts, eos_token, tokenizer)
+        else:
             self.tokens = encode_tokens_from_file(
                 file_path, eos_token, tokenizer, text_delim, header
             )
-        else:
-            self.tokens = list(
-                itertools.chain.from_iterable(
-                    tokenizer.batch_encode_plus(texts, add_special_tokens=False)[
-                        "input_ids"
-                    ]
-                )
-            )
+
         assert (
             len(self.tokens) >= block_size
         ), f"There are fewer than {block_size} encoded tokens."
@@ -273,6 +267,43 @@ def encode_tokens_from_file(
             )
 
             pbar.update(len(batch))
+
+    pbar.close()
+    return tokens
+
+
+def encode_tokens_from_list(
+    texts: List[str],
+    eos_token: str,
+    tokenizer: GPT2TokenizerFast,
+    batch_size: int = 1024,
+) -> List[int]:
+    """
+    Retrieves texts from a newline-delimited file/CSV and returns texts.
+    """
+
+    logger.info(f"Encoding {len(texts):,} texts.")
+
+    pbar = tqdm(total=len(texts), smoothing=0, leave=True, dynamic_ncols=True,)
+    tokens = []
+    i_start = 0
+
+    while True:
+        batch = [text + eos_token for text in texts[i_start : (i_start + batch_size)]]
+
+        tokens += list(
+            itertools.chain.from_iterable(
+                tokenizer.batch_encode_plus(batch, add_special_tokens=False)[
+                    "input_ids"
+                ]
+            )
+        )
+
+        pbar.update(len(batch))
+        i_start += batch_size
+
+        if i_start > len(texts):
+            break
 
     pbar.close()
     return tokens
