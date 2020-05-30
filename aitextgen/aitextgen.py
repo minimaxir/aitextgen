@@ -151,12 +151,12 @@ class aitextgen:
                 )
 
                 os.rename(
-                    os.path.join(cache_dir, f"pytorch_model.bin"),
+                    os.path.join(cache_dir, "pytorch_model.bin"),
                     os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin"),
                 )
 
                 os.rename(
-                    os.path.join(cache_dir, f"config.json"),
+                    os.path.join(cache_dir, "config.json"),
                     os.path.join(cache_dir, f"config_{tf_gpt2}.json"),
                 )
 
