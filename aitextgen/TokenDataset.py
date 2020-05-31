@@ -66,6 +66,7 @@ class TokenDataset(Dataset):
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
         pad_token: str = "<|endoftext|>",
+        progress_bar_refresh_rate: int = 10,
         **kwargs,
     ) -> None:
 
@@ -134,10 +135,17 @@ class TokenDataset(Dataset):
 
         # Encode tokens in a batched manner to ensure constant memory usage
         if texts:
-            self.tokens = encode_tokens_from_list(texts, eos_token, tokenizer)
+            self.tokens = encode_tokens_from_list(
+                texts, eos_token, tokenizer, progress_bar_refresh_rate
+            )
         else:
             self.tokens = encode_tokens_from_file(
-                file_path, eos_token, tokenizer, text_delim, header
+                file_path,
+                eos_token,
+                tokenizer,
+                text_delim,
+                header,
+                progress_bar_refresh_rate,
             )
 
         assert (
@@ -215,6 +223,7 @@ def encode_tokens_from_file(
     tokenizer: GPT2TokenizerFast,
     newline: str,
     header: bool = True,
+    progress_bar_refresh_rate: int = 10,
     batch_size: int = 1024,
 ) -> List[int]:
     """
@@ -230,6 +239,7 @@ def encode_tokens_from_file(
 
     pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
     tokens = []
+    num_batches = 0
 
     with open(file_path, "r", encoding="utf-8", newline=newline) as f_load:
 
@@ -266,7 +276,10 @@ def encode_tokens_from_file(
                 )
             )
 
-            pbar.update(len(batch))
+            num_batches += 1
+
+            if num_batches % progress_bar_refresh_rate == 0:
+                pbar.update(batch_size * progress_bar_refresh_rate)
 
     pbar.close()
     return tokens
@@ -276,6 +289,7 @@ def encode_tokens_from_list(
     texts: List[str],
     eos_token: str,
     tokenizer: GPT2TokenizerFast,
+    progress_bar_refresh_rate: int = 10,
     batch_size: int = 1024,
 ) -> List[int]:
     """
@@ -286,7 +300,6 @@ def encode_tokens_from_list(
 
     pbar = tqdm(total=len(texts), smoothing=0, leave=True, dynamic_ncols=True,)
     tokens = []
-    i_start = 0
 
     for i_start in range(len(texts) // batch_size + 1):
         batch = [
@@ -304,7 +317,8 @@ def encode_tokens_from_list(
             )
         )
 
-        pbar.update(len(batch))
+        if i_start % progress_bar_refresh_rate == 0:
+            pbar.update(batch_size * progress_bar_refresh_rate)
 
     pbar.close()
     return tokens
