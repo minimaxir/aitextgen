@@ -10,6 +10,7 @@ from transformers import GPT2TokenizerFast
 from pkg_resources import resource_filename
 import itertools
 from tqdm.auto import tqdm
+from array import array
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -238,7 +239,7 @@ def encode_tokens_from_file(
         num_texts = get_lines_in_file(file_path, newline)
 
     pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
-    tokens = []
+    tokens = array("I")
     num_batches = 0
 
     with open(file_path, "r", encoding="utf-8", newline=newline) as f_load:
@@ -268,13 +269,18 @@ def encode_tokens_from_file(
             if not batch:
                 break
 
-            tokens += list(
+            encoded_tokens = array(
+                "I",
                 itertools.chain.from_iterable(
-                    tokenizer.batch_encode_plus(batch, add_special_tokens=False)[
-                        "input_ids"
-                    ]
-                )
+                    tokenizer.batch_encode_plus(
+                        batch,
+                        add_special_tokens=False,
+                        return_token_type_ids=False,
+                        return_attention_masks=False,
+                    )["input_ids"]
+                ),
             )
+            tokens.extend(encoded_tokens)
 
             num_batches += 1
 
@@ -282,7 +288,7 @@ def encode_tokens_from_file(
                 pbar.update(batch_size * progress_bar_refresh_rate)
 
     pbar.close()
-    return tokens
+    return tokens.tolist()
 
 
 def encode_tokens_from_list(
@@ -299,7 +305,7 @@ def encode_tokens_from_list(
     logger.info(f"Encoding {len(texts):,} texts.")
 
     pbar = tqdm(total=len(texts), smoothing=0, leave=True, dynamic_ncols=True,)
-    tokens = []
+    tokens = array("I")
 
     for i_start in range(len(texts) // batch_size + 1):
         batch = [
@@ -309,19 +315,24 @@ def encode_tokens_from_list(
             ]
         ]
 
-        tokens += list(
+        encoded_tokens = array(
+            "I",
             itertools.chain.from_iterable(
-                tokenizer.batch_encode_plus(batch, add_special_tokens=False)[
-                    "input_ids"
-                ]
-            )
+                tokenizer.batch_encode_plus(
+                    batch,
+                    add_special_tokens=False,
+                    return_token_type_ids=False,
+                    return_attention_masks=False,
+                )["input_ids"]
+            ),
         )
+        tokens.extend(encoded_tokens)
 
         if i_start % progress_bar_refresh_rate == 0:
             pbar.update(batch_size * progress_bar_refresh_rate)
 
     pbar.close()
-    return tokens
+    return tokens.tolist()
 
 
 def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> TokenDataset:
