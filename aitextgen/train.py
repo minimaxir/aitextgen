@@ -114,6 +114,7 @@ class ATGProgressBar(ProgressBarBase):
         smoothing,
         run_id,
         save_gdrive,
+        progress_bar_refresh_rate,
     ):
         super().__init__()
         self.enabled = True
@@ -127,6 +128,7 @@ class ATGProgressBar(ProgressBarBase):
         self.smoothing = smoothing
         self.run_id = run_id
         self.save_gdrive = save_gdrive
+        self.progress_bar_refresh_rate = progress_bar_refresh_rate
 
     def enabled(self):
         self.enabled = True
@@ -164,10 +166,11 @@ class ATGProgressBar(ProgressBarBase):
 
         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
 
-        if self.gpu:
-            desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
-        self.main_progress_bar.update()
-        self.main_progress_bar.set_description(desc)
+        if self.progress_bar_refresh_rate % self.steps == 0:
+            if self.gpu:
+                desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
+            self.main_progress_bar.update()
+            self.main_progress_bar.set_description(desc)
 
         if self.enabled:
 
