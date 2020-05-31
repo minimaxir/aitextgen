@@ -162,6 +162,8 @@ class TokenDataset(Dataset):
         self, cache_destination: str = "dataset_cache.tar.gz", compress: bool = True
     ) -> None:
         assert len(self.tokens) > 0, "No data loaded to save."
+        if not isinstance(self.tokens, list):
+            self.tokens = self.tokens.tolist()
 
         if compress:
             open_func = gzip.open
@@ -180,18 +182,20 @@ class TokenDataset(Dataset):
         with open_func(cache_destination, "wb") as f:
             msgpack.pack(self.tokens, f)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.num_subsets
 
     def __getitem__(self, item: int) -> torch.Tensor:
-        return torch.tensor(
-            self.tokens[item : (item + self.block_size)], dtype=torch.long
-        )
+        # assumes self.tokens is a torch.tensor,
+        # which is set during training.
+        if isinstance(self.tokens, list):
+            return self.tokens[item : (item + self.block_size)]
+        return self.tokens.narrow(0, item, self.block_size)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.file_path if self.file_path is not None else "loaded dataset"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"TokenDataset containing {self.num_subsets:,} subsets loaded {self.str_suffix}"
 
 

@@ -478,8 +478,12 @@ class aitextgen:
                 **kwargs,
             )
 
+        if isinstance(train_data.tokens, list):
+            train_data.tokens = torch.tensor(train_data.tokens, dtype=torch.long)
+
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
+            # Can overload 2x w/o diminishing returns
             if is_gpu_used or n_tpu_cores > 0:
                 num_workers = os.cpu_count() * 2
             # If training on the CPU, use half the CPUs
