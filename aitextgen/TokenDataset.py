@@ -187,7 +187,7 @@ class TokenDataset(Dataset):
     def __getitem__(self, item: int) -> torch.Tensor:
         # assumes self.tokens is a torch.tensor,
         # which is set during training.
-        if isinstance(self.tokens, list):
+        if isinstance(self.tokens, np.ndarray):
             return self.tokens[item : (item + self.block_size)]
         return self.tokens.narrow(0, item, self.block_size)
 
@@ -314,12 +314,13 @@ def encode_tokens_from_list(
     Retrieves texts from a newline-delimited file/CSV and returns texts.
     """
 
-    logger.info(f"Encoding {len(texts):,} texts.")
+    num_texts = len(texts)
+    logger.info(f"Encoding {num_texts:,} texts.")
 
-    pbar = tqdm(total=len(texts), smoothing=0, leave=True, dynamic_ncols=True,)
-    tokens = array("I")
+    pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
+    tokens = np.full((len(texts), 1), -1, dtype=np.uint16)
 
-    for i_start in range(len(texts) // batch_size + 1):
+    for i_start in range(num_texts // batch_size + 1):
         batch = [
             text + eos_token
             for text in texts[
@@ -327,24 +328,28 @@ def encode_tokens_from_list(
             ]
         ]
 
-        encoded_tokens = array(
-            "I",
-            itertools.chain.from_iterable(
-                tokenizer.batch_encode_plus(
-                    batch,
-                    add_special_tokens=False,
-                    return_token_type_ids=False,
-                    return_attention_masks=False,
-                )["input_ids"]
-            ),
-        )
-        tokens.extend(encoded_tokens)
+        encoded_texts = tokenizer.batch_encode_plus(
+            batch,
+            add_special_tokens=False,
+            return_token_type_ids=False,
+            return_attention_masks=False,
+        )["input_ids"]
+
+        for i, encoded_text in enumerate(encoded_texts):
+            if len(encoded_text) > tokens.shape[1]:
+                cols_to_add = len(encoded_text) - tokens.shape[1]
+                tokens = np.concatenate(
+                    (tokens, np.full((num_texts, cols_to_add), -1, dtype=np.uint16,),),
+                    axis=1,
+                )
+            tokens[(i_start * batch_size) + i, : len(encoded_text)] = encoded_text
 
         if i_start % progress_bar_refresh_rate == 0:
             pbar.update(batch_size * progress_bar_refresh_rate)
 
     pbar.close()
-    return tokens.tolist()
+    tokens = tokens.flatten()
+    return tokens[tokens < np.array(-1, dtype=np.uint16)]
 
 
 def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> TokenDataset:
