@@ -29,6 +29,7 @@ from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 import shutil
+import numpy as np
 
 try:
     import torch_xla.core.xla_model as xm
@@ -478,8 +479,10 @@ class aitextgen:
                 **kwargs,
             )
 
-        if isinstance(train_data.tokens, list):
-            train_data.tokens = torch.tensor(train_data.tokens, dtype=torch.long)
+        if isinstance(train_data.tokens, np.ndarray):
+            train_data.tokens = torch.as_tensor(
+                train_data.tokens.astype(np.int64), dtype=torch.long
+            )
 
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
