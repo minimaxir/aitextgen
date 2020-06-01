@@ -93,10 +93,9 @@ class TokenDataset(Dataset):
         # If a cache path is provided, load it.
         if from_cache:
             open_func = gzip.open if file_path.endswith(".gz") else open
-            a_dtype = get_dtype(tokenizer.vocab_size)
 
             with open_func(file_path, "rb") as f:
-                self.tokens = np.load(f).astype(a_dtype)
+                self.tokens = np.load(f)
             self.num_subsets = self.tokens.shape[0] - block_size
             self.block_size = block_size
             self.str_suffix = "via cache."
@@ -162,8 +161,6 @@ class TokenDataset(Dataset):
         self, cache_destination: str = "dataset_cache.tar.gz", compress: bool = True
     ) -> None:
         assert self.tokens.shape[0] > 0, "No data loaded to save."
-        if not isinstance(self.tokens, list):
-            self.tokens = self.tokens.tolist()
 
         if compress:
             open_func = gzip.open
