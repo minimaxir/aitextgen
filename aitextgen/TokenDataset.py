@@ -73,7 +73,7 @@ class TokenDataset(Dataset):
         # Special case; load tokenized texts immediately
         if tokenized_texts:
             self.tokens = tokenized_texts
-            self.num_subsets = len(self.tokens) - block_size
+            self.num_subsets = self.tokens.shape[0] - block_size
             self.block_size = block_size
             self.file_path = "merged TokenDataset"
             self.str_suffix = "by merging TokenDatasets."
@@ -93,10 +93,11 @@ class TokenDataset(Dataset):
         # If a cache path is provided, load it.
         if from_cache:
             open_func = gzip.open if file_path.endswith(".gz") else open
+            a_dtype = get_dtype(tokenizer.vocab_size)
 
             with open_func(file_path, "rb") as f:
-                self.tokens = np.load(f)
-            self.num_subsets = len(self.tokens) - block_size
+                self.tokens = np.load(f).astype(a_dtype)
+            self.num_subsets = self.tokens.shape[0] - block_size
             self.block_size = block_size
             self.str_suffix = "via cache."
 
@@ -149,9 +150,9 @@ class TokenDataset(Dataset):
             )
 
         assert (
-            len(self.tokens) >= block_size
+            self.tokens.shape[0] >= block_size
         ), f"There are fewer than {block_size} encoded tokens."
-        self.num_subsets = len(self.tokens) - block_size
+        self.num_subsets = self.tokens.shape[0] - block_size
         self.block_size = block_size
 
         if save_cache:
@@ -160,7 +161,7 @@ class TokenDataset(Dataset):
     def save(
         self, cache_destination: str = "dataset_cache.tar.gz", compress: bool = True
     ) -> None:
-        assert len(self.tokens) > 0, "No data loaded to save."
+        assert self.tokens.shape[0] > 0, "No data loaded to save."
         if not isinstance(self.tokens, list):
             self.tokens = self.tokens.tolist()
 
@@ -221,6 +222,22 @@ def get_lines_in_file_csv(file_path: str, header: bool = True) -> int:
         return sum(1 for row in reader)
 
 
+def get_dtype(vocab_size: int):
+    """
+    Finds the appropriate numpy dtype depending on vocab size.
+
+    The highest value for the dtype serves as a placeholder.
+    """
+    if vocab_size < 2 ** 8 - 1:
+        return np.uint8
+    elif vocab_size < 2 ** 16 - 1:
+        return np.uint16
+    elif vocab_size < 2 ** 32 - 1:
+        return np.uint32
+
+    return np.uint64
+
+
 def encode_tokens_from_file(
     file_path: str,
     eos_token: str,
@@ -235,6 +252,7 @@ def encode_tokens_from_file(
     """
 
     is_csv = file_path.endswith(".csv")
+    a_dtype = get_dtype(tokenizer.vocab_size)
 
     if is_csv:
         num_texts = get_lines_in_file_csv(file_path, header)
@@ -242,7 +260,7 @@ def encode_tokens_from_file(
         num_texts = get_lines_in_file(file_path, newline)
 
     pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
-    tokens = np.full((num_texts, 1), -1, dtype=np.uint16)
+    tokens = np.full((num_texts, 1), -1, dtype=a_dtype)
     num_batches = 0
 
     with open(file_path, "r", encoding="utf-8", newline=newline) as f_load:
@@ -285,7 +303,7 @@ def encode_tokens_from_file(
                     tokens = np.concatenate(
                         (
                             tokens,
-                            np.full((num_texts, cols_to_add), -1, dtype=np.uint16,),
+                            np.full((num_texts, cols_to_add), -1, dtype=a_dtype,),
                         ),
                         axis=1,
                     )
@@ -300,7 +318,7 @@ def encode_tokens_from_file(
 
     pbar.close()
     tokens = tokens.flatten()
-    return tokens[tokens < np.array(-1, dtype=np.uint16)]
+    return tokens[tokens < np.array(-1, dtype=a_dtype)]
 
 
 def encode_tokens_from_list(
@@ -315,10 +333,11 @@ def encode_tokens_from_list(
     """
 
     num_texts = len(texts)
+    a_dtype = get_dtype(tokenizer.vocab_size)
     logger.info(f"Encoding {num_texts:,} texts.")
 
     pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
-    tokens = np.full((len(texts), 1), -1, dtype=np.uint16)
+    tokens = np.full((len(texts), 1), -1, dtype=a_dtype)
 
     for i_start in range(num_texts // batch_size + 1):
         batch = [
@@ -339,7 +358,7 @@ def encode_tokens_from_list(
             if len(encoded_text) > tokens.shape[1]:
                 cols_to_add = len(encoded_text) - tokens.shape[1]
                 tokens = np.concatenate(
-                    (tokens, np.full((num_texts, cols_to_add), -1, dtype=np.uint16,),),
+                    (tokens, np.full((num_texts, cols_to_add), -1, dtype=a_dtype,),),
                     axis=1,
                 )
             tokens[(i_start * batch_size) + i, : len(encoded_text)] = encoded_text
@@ -349,7 +368,7 @@ def encode_tokens_from_list(
 
     pbar.close()
     tokens = tokens.flatten()
-    return tokens[tokens < np.array(-1, dtype=np.uint16)]
+    return tokens[tokens < np.array(-1, dtype=a_dtype)]
 
 
 def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> TokenDataset:
