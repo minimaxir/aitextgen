@@ -2,7 +2,6 @@ import torch
 import logging
 import csv
 import os
-import msgpack
 import gzip
 from torch.utils.data import Dataset
 from typing import List
@@ -10,7 +9,7 @@ from transformers import GPT2TokenizerFast
 from pkg_resources import resource_filename
 import itertools
 from tqdm.auto import tqdm
-from array import array
+import numpy as np
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -96,7 +95,7 @@ class TokenDataset(Dataset):
             open_func = gzip.open if file_path.endswith(".gz") else open
 
             with open_func(file_path, "rb") as f:
-                self.tokens = msgpack.unpack(f)
+                self.tokens = np.load(f)
             self.num_subsets = len(self.tokens) - block_size
             self.block_size = block_size
             self.str_suffix = "via cache."
@@ -171,7 +170,7 @@ class TokenDataset(Dataset):
         else:
             open_func = open
             cache_destination = (
-                "dataset_cache.msgpack"
+                "dataset_cache.npy"
                 if cache_destination == "dataset_cache.tar.gz"
                 else cache_destination
             )
@@ -180,7 +179,7 @@ class TokenDataset(Dataset):
         logger.info(f"Caching {compress_str}dataset to {cache_destination}")
 
         with open_func(cache_destination, "wb") as f:
-            msgpack.pack(self.tokens, f)
+            np.save(f, self.tokens)
 
     def __len__(self) -> int:
         return self.num_subsets
@@ -243,7 +242,7 @@ def encode_tokens_from_file(
         num_texts = get_lines_in_file(file_path, newline)
 
     pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
-    tokens = array("I")
+    tokens = np.full((num_texts, 1), -1, dtype=np.uint16)
     num_batches = 0
 
     with open(file_path, "r", encoding="utf-8", newline=newline) as f_load:
@@ -273,18 +272,26 @@ def encode_tokens_from_file(
             if not batch:
                 break
 
-            encoded_tokens = array(
-                "I",
-                itertools.chain.from_iterable(
-                    tokenizer.batch_encode_plus(
-                        batch,
-                        add_special_tokens=False,
-                        return_token_type_ids=False,
-                        return_attention_masks=False,
-                    )["input_ids"]
-                ),
-            )
-            tokens.extend(encoded_tokens)
+            encoded_texts = tokenizer.batch_encode_plus(
+                batch,
+                add_special_tokens=False,
+                return_token_type_ids=False,
+                return_attention_masks=False,
+            )["input_ids"]
+
+            for i, encoded_text in enumerate(encoded_texts):
+                if len(encoded_text) > tokens.shape[1]:
+                    cols_to_add = len(encoded_text) - tokens.shape[1]
+                    tokens = np.concatenate(
+                        (
+                            tokens,
+                            np.full((num_texts, cols_to_add), -1, dtype=np.uint16,),
+                        ),
+                        axis=1,
+                    )
+                tokens[
+                    (num_batches * batch_size) + i, : len(encoded_text)
+                ] = encoded_text
 
             num_batches += 1
 
@@ -292,7 +299,8 @@ def encode_tokens_from_file(
                 pbar.update(batch_size * progress_bar_refresh_rate)
 
     pbar.close()
-    return tokens.tolist()
+    tokens = tokens.flatten()
+    return tokens[tokens < np.array(-1, dtype=np.uint16)]
 
 
 def encode_tokens_from_list(
