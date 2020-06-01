@@ -313,6 +313,8 @@ def encode_tokens_from_file(
             if num_batches % progress_bar_refresh_rate == 0:
                 pbar.update(batch_size * progress_bar_refresh_rate)
 
+    pbar.n = num_texts
+    pbar.refresh()
     pbar.close()
     tokens = tokens.flatten()
     return tokens[tokens < np.array(-1, dtype=a_dtype)]
@@ -363,6 +365,8 @@ def encode_tokens_from_list(
         if i_start % progress_bar_refresh_rate == 0:
             pbar.update(batch_size * progress_bar_refresh_rate)
 
+    pbar.n = num_texts
+    pbar.refresh()
     pbar.close()
     tokens = tokens.flatten()
     return tokens[tokens < np.array(-1, dtype=a_dtype)]
