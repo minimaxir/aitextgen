@@ -19,7 +19,6 @@ setup(
     install_requires=[
         "transformers>=2.9.1",
         "fire>=0.3.0",
-        "msgpack",
         "pytorch-lightning>=0.7.6",
     ],
 )

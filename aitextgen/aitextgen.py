@@ -345,6 +345,7 @@ class aitextgen:
         :param sample_delim: The text used to delimit each generated text.
         :param seed: Seed used for the generation. The last part of a file name
         will be the seed used to reproduce a generation.
+        :param cleanup: Whether to polish the text before returning
 
         See generate() for more parameters.
         """
@@ -450,6 +451,8 @@ class aitextgen:
         :param save_gdrive: If using Colab, whether to save the notebook
         to Google Drive at each save_every
         :param run_id: Run identifier; used for save_gdrive
+        :param progress_bar_refresh_rate: How often to update
+        the progress bar while training.
         """
 
         assert not self.torchscript, "You cannot train a traced TorchScript model."
@@ -477,9 +480,6 @@ class aitextgen:
                 block_size=self.model.config.n_positions,
                 **kwargs,
             )
-
-        if isinstance(train_data.tokens, list):
-            train_data.tokens = torch.tensor(train_data.tokens, dtype=torch.long)
 
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
