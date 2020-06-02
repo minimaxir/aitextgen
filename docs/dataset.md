@@ -33,7 +33,7 @@ data = TokenDataset(texts = ["Lorem", "Ipsum", "Dolor"])
 
 ## Saving/Loading a TokenDataset
 
-When creating a TokenDataset, you can automatically save it as a compressed gzipped MessagePack binary when completed.
+When creating a TokenDataset, you can automatically save it as a compressed gzipped numpy array when completed.
 
 ```python
 data = TokenDataset("shakespeare.txt", save_cache=True)
@@ -51,6 +51,10 @@ By default, it will save to `dataset_cache.tar.gz`. You can then reload that int
 ```python
 data = TokenDataset("dataset_cache.tar.gz", from_cache=True)
 ```
+
+<!--prettier-ignore-->
+!!! note "CLI"
+    You can quickly create a Tokenized dataset using the command line, e.g. `aitextgen encode text.txt`. This will drastically reduce the file size, and is recommended before moving the file to cloud services (where it can be loaded using the `from_cache` parameter noted above)
 
 ## Using TokenDatasets with a Custom GPT-2 Model
 
