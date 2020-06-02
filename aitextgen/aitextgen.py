@@ -479,11 +479,6 @@ class aitextgen:
                 **kwargs,
             )
 
-        if isinstance(train_data.tokens, np.ndarray):
-            train_data.tokens = torch.as_tensor(
-                train_data.tokens.astype(np.int64), dtype=torch.long
-            )
-
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
             # Can overload 2x w/o diminishing returns
