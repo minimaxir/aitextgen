@@ -29,7 +29,6 @@ from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 import shutil
-import numpy as np
 
 try:
     import torch_xla.core.xla_model as xm
@@ -346,6 +345,7 @@ class aitextgen:
         :param sample_delim: The text used to delimit each generated text.
         :param seed: Seed used for the generation. The last part of a file name
         will be the seed used to reproduce a generation.
+        :param cleanup: Whether to polish the text before returning
 
         See generate() for more parameters.
         """
@@ -451,6 +451,8 @@ class aitextgen:
         :param save_gdrive: If using Colab, whether to save the notebook
         to Google Drive at each save_every
         :param run_id: Run identifier; used for save_gdrive
+        :param progress_bar_refresh_rate: How often to update
+        the progress bar while training.
         """
 
         assert not self.torchscript, "You cannot train a traced TorchScript model."

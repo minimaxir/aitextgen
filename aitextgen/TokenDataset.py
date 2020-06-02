@@ -44,7 +44,8 @@ class TokenDataset(Dataset):
     :param bos_token: String to override the beginning-of-string token
     :param eos_token: String to override the end-of-string token
     :param unk_token: String to override the unknown token
-    :param unk_token: String to override the padding token
+    :param pad_token: String to override the padding token
+    :param progress_bar_refresh_rate: How often to update progress bar when loading
     """
 
     def __init__(
@@ -376,10 +377,8 @@ def merge_datasets(datasets: List[TokenDataset], equalize: bool = True) -> Token
     Merges multiple TokenDatasets into a single TokenDataset.
     This assumes that you are using the same tokenizer for all TokenDatasets.
 
-    ## Parameters
-
-    * **datasets**: A list of TokenDatasets.
-    * **equalize**: Whether to take an equal amount of samples from all
+    :param datasets: A list of TokenDatasets.
+    :param equalize: Whether to take an equal amount of samples from all
     input datasets (by taking random samples from
     each dataset equal to the smallest dataset)
     in order to balance out the result dataset.
