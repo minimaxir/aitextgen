@@ -528,7 +528,6 @@ class aitextgen:
             gradient_clip_val=max_grad_norm if not fp16 else 0,
             checkpoint_callback=False,
             logger=loggers if loggers else False,
-            disable_validation=True,
             weights_summary=None,
             callbacks=[
                 ATGProgressBar(
