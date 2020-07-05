@@ -1,7 +1,7 @@
 from transformers import (
     GPT2LMHeadModel,
     GPT2Tokenizer,
-    AutoModelWithLMHead,
+    AutoModelForCausalLM,
     GPT2Config,
 )
 from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
@@ -179,7 +179,7 @@ class aitextgen:
                 config.torchscript = True
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
-            self.model = AutoModelWithLMHead.from_config(config=config)
+            self.model = AutoModelForCausalLM.from_config(config=config)
         else:
             # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
