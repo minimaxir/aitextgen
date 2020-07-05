@@ -86,19 +86,7 @@ class ATGTransformer(pl.LightningModule):
             num_training_steps=self.hparams["num_steps"],
         )
 
-        self.opt = optimizer
-        self.lr_scheduler = scheduler
         return [optimizer], [scheduler]
-
-    def optimizer_step(
-        self, epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None
-    ):
-        if self.hparams["tpu"]:
-            xm.optimizer_step(optimizer, barrier=True)
-        else:
-            optimizer.step()
-        optimizer.zero_grad()
-        self.lr_scheduler.step()
 
 
 class ATGProgressBar(ProgressBarBase):
