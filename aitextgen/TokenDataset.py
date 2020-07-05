@@ -291,7 +291,7 @@ def encode_tokens_from_file(
                 batch,
                 add_special_tokens=False,
                 return_token_type_ids=False,
-                return_attention_masks=False,
+                return_attention_mask=False,
             )["input_ids"]
 
             for i, encoded_text in enumerate(encoded_texts):
@@ -350,7 +350,7 @@ def encode_tokens_from_list(
             batch,
             add_special_tokens=False,
             return_token_type_ids=False,
-            return_attention_masks=False,
+            return_attention_mask=False,
         )["input_ids"]
 
         for i, encoded_text in enumerate(encoded_texts):
