@@ -59,8 +59,6 @@ class aitextgen:
     :param to_fp16: Whether to convert the model to FP16 before loading
     to GPU (for supported GPUs only)
     :param verbose: Whether to enable logging from base Huggingface packages
-    :param torchscript: Whether the input model is a TorchScript traced model
-    :param ts_to_trace: Whether to prep the input model to be exported to TorchScript
     :param bos_token: String to override the beginning-of-string token
     :param eos_token: String to override the end-of-string token
     :param unk_token: String to override the unknown token
@@ -88,8 +86,6 @@ class aitextgen:
         to_gpu: bool = False,
         to_fp16: bool = False,
         verbose: bool = False,
-        torchscript: bool = False,
-        ts_to_trace: bool = False,
         bos_token: str = None,
         eos_token: str = None,
         unk_token: str = None,
@@ -106,20 +102,6 @@ class aitextgen:
             ]:
                 logging.getLogger(module).setLevel(logging.WARN)
             logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
-
-        if torchscript:
-            assert model
-            logger.info(f"Loading traced GPT-2 model from provided {model}.")
-            if config is None:
-                config = GPT2Config()
-            self.torchscript = True
-            self.model = GPT2LMHeadModel(config)
-
-            # Transpose the traced model attributes to a GPT2LMHeadModel class
-            # so it can inherit its functions
-            pt_model = torch.jit.load(model)
-            self.model.transformer = pt_model.transformer
-            self.model.lm_head = pt_model.lm_head
 
         elif tf_gpt2:
             # Download + convert the TF weights if a PyTorch model has not been created
@@ -147,7 +129,9 @@ class aitextgen:
                 config_path = os.path.join(cache_dir, tf_gpt2, "hparams.json")
 
                 convert_gpt2_checkpoint_to_pytorch(
-                    os.path.join(cache_dir, tf_gpt2), config_path, cache_dir,
+                    os.path.join(cache_dir, tf_gpt2),
+                    config_path,
+                    cache_dir,
                 )
 
                 os.rename(
@@ -171,12 +155,8 @@ class aitextgen:
             logger.info(f"Loading GPT-2 model from provided {model}.")
             if config is None:
                 config = GPT2Config()
-            if ts_to_trace:
-                config.torchscript = True
             self.model = GPT2LMHeadModel.from_pretrained(model, config=config)
         elif config:
-            if ts_to_trace:
-                config.torchscript = True
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
             self.model = AutoModelForCausalLM.from_config(config=config)
@@ -187,12 +167,13 @@ class aitextgen:
             else:
                 logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
             self.model = GPT2LMHeadModel.from_pretrained(
-                model or "gpt2", cache_dir=cache_dir, torchscript=ts_to_trace
+                model or "gpt2", cache_dir=cache_dir
             )
             if model and "gpt2" not in model:
                 logger.info(f"Using the tokenizer for {model}.")
                 self.tokenizer = GPT2Tokenizer.from_pretrained(
-                    model, cache_dir=cache_dir,
+                    model,
+                    cache_dir=cache_dir,
                 )
 
         if self.tokenizer is None:
@@ -655,23 +636,13 @@ class aitextgen:
             self.model, {Linear, Embedding, Conv1D}, inplace=True
         )
 
-    def export(self, quantize: bool = True, batch_size: int = 1) -> None:
+    def export(
+        self,
+        quantize: bool = True,
+    ) -> None:
         """
-        Exports the model to TorchScript, with optional quantization
+        Exports the model, with optional quantization
         """
-
-        temp_model = self.model
-
-        if quantize:
-            temp_model = torch.quantization.quantize_dynamic(
-                temp_model, {Linear, Embedding, Conv1D}, inplace=True
-            )
-
-        example = torch.zeros(
-            (batch_size, self.model.config.n_positions), dtype=torch.long
-        )
-        temp_model = torch.jit.trace(temp_model.eval(), example)
-        temp_model.save("model.pt")
 
     def to_gpu(self, index: int = 0) -> None:
         """Moves the model to the specified GPU."""
