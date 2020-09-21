@@ -1,4 +1,4 @@
-from tokenizers import ByteLevelBPETokenizer
+from tokenizers import Tokenizer, trainers, models
 from typing import Union, List
 import logging
 
@@ -15,6 +15,7 @@ def train_tokenizer(
     bos_token: str = "<|endoftext|>",
     eos_token: str = "<|endoftext|>",
     unk_token: str = "<|endoftext|>",
+    serialize: bool = False,
 ) -> None:
     """
     Tokenizes the text(s) as a tokenizer, wrapping the tokenizer package.
@@ -23,7 +24,7 @@ def train_tokenizer(
     For consistency, this function makes opinionated assuptions.
 
     :param files: path to file(s) to train tokenizer on
-    :param dropout: Trainign dropout
+    :param dropout: Training dropout
     :param vocab_size: Final vocabulary size
     :param min_frequency: Minimum number of occurences to add to vocab
     :param save_path: Where to save the final tokenizer
@@ -37,24 +38,30 @@ def train_tokenizer(
         files, list
     ), "files must be a string or a list."
 
-    tokenizer = ByteLevelBPETokenizer(dropout=dropout)
-
-    tokenizer.train(
-        files,
+    tokenizer = Tokenizer(models.BPE(dropout=dropout))
+    trainer = trainers.BpeTrainer(
         vocab_size=vocab_size,
         min_frequency=min_frequency,
         special_tokens=[bos_token, eos_token, unk_token],
-        show_progress=True,
     )
+
+    tokenizer.train(trainer, files=files)
 
     # Currently doesn't do anything
     # See: https://github.com/huggingface/tokenizers/issues/233
-    # tokenizer.add_tokens(added_tokens)
+    tokenizer.add_tokens(added_tokens)
 
     PREFIX = "aitextgen"
     save_path_str = "the current directory" if save_path == "" else save_path
-    logger.info(
-        f"Saving {PREFIX}-vocab.json and {PREFIX}-merges.txt to {save_path_str}. "
-        + "You will need both files to build the GPT2Tokenizer."
-    )
-    tokenizer.save(save_path, PREFIX)
+    if serialize:
+        logger.info(
+            f"Saving {PREFIX}.tokenizer.json to {save_path_str}. "
+            + "You will need this file to build the GPT2Tokenizer."
+        )
+        tokenizer.save_model(f"{PREFIX}.tokenizer.json", PREFIX)
+    else:
+        logger.info(
+            f"Saving {PREFIX}-vocab.json and {PREFIX}-merges.txt to {save_path_str}. "
+            + "You will need both files to build the GPT2Tokenizer."
+        )
+        tokenizer.save(save_path, PREFIX)
