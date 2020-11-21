@@ -31,7 +31,7 @@ class ATGTransformer(pl.LightningModule):
         )
 
     def forward(self, inputs):
-        return self.model(**inputs)
+        return self.model(**inputs, return_dict=False)
 
     def training_step(self, batch, batch_num):
         "Compute loss and log."
@@ -163,12 +163,12 @@ class ATGProgressBar(ProgressBarBase):
         if self.enabled:
 
             if self.save_every > 0 and self.steps % self.save_every == 0:
-                if pl_module.hparams["tpu"]:
-                    xm.rendezvous("save_model")
+                # if pl_module.hparams["tpu"]:
+                #     xm.rendezvous("save_model")
                 self.save_pytorch_model(trainer, pl_module)
 
             if (
-                not pl_module.hparams["tpu"]
+                # not pl_module.hparams["tpu"]
                 and self.generate_every > 0
                 and self.steps % self.generate_every == 0
             ):
