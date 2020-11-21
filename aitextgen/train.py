@@ -10,11 +10,6 @@ from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
 
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    pass
-
 
 class ATGTransformer(pl.LightningModule):
     """
@@ -163,15 +158,9 @@ class ATGProgressBar(ProgressBarBase):
         if self.enabled:
 
             if self.save_every > 0 and self.steps % self.save_every == 0:
-                # if pl_module.hparams["tpu"]:
-                #     xm.rendezvous("save_model")
                 self.save_pytorch_model(trainer, pl_module)
 
-            if (
-                # not pl_module.hparams["tpu"]
-                and self.generate_every > 0
-                and self.steps % self.generate_every == 0
-            ):
+            if self.generate_every > 0 and self.steps % self.generate_every == 0:
                 self.generate_sample_text(trainer, pl_module)
 
     def generate_sample_text(self, trainer, pl_module):

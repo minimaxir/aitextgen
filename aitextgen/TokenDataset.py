@@ -256,7 +256,12 @@ def encode_tokens_from_file(
     else:
         num_texts = get_lines_in_file(file_path, newline)
 
-    pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
+    pbar = tqdm(
+        total=num_texts,
+        smoothing=0,
+        leave=True,
+        dynamic_ncols=True,
+    )
     tokens = np.full((num_texts, 1), -1, dtype=a_dtype)
     num_batches = 0
 
@@ -300,7 +305,11 @@ def encode_tokens_from_file(
                     tokens = np.concatenate(
                         (
                             tokens,
-                            np.full((num_texts, cols_to_add), -1, dtype=a_dtype,),
+                            np.full(
+                                (num_texts, cols_to_add),
+                                -1,
+                                dtype=a_dtype,
+                            ),
                         ),
                         axis=1,
                     )
@@ -335,7 +344,12 @@ def encode_tokens_from_list(
     a_dtype = get_dtype(tokenizer.vocab_size)
     logger.info(f"Encoding {num_texts:,} texts.")
 
-    pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
+    pbar = tqdm(
+        total=num_texts,
+        smoothing=0,
+        leave=True,
+        dynamic_ncols=True,
+    )
     tokens = np.full((len(texts), 1), -1, dtype=a_dtype)
 
     for i_start in range(num_texts // batch_size + 1):
@@ -357,7 +371,14 @@ def encode_tokens_from_list(
             if len(encoded_text) > tokens.shape[1]:
                 cols_to_add = len(encoded_text) - tokens.shape[1]
                 tokens = np.concatenate(
-                    (tokens, np.full((num_texts, cols_to_add), -1, dtype=a_dtype,),),
+                    (
+                        tokens,
+                        np.full(
+                            (num_texts, cols_to_add),
+                            -1,
+                            dtype=a_dtype,
+                        ),
+                    ),
                     axis=1,
                 )
             tokens[(i_start * batch_size) + i, : len(encoded_text)] = encoded_text
