@@ -1,7 +1,6 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
-from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
 import torch
@@ -34,7 +33,7 @@ class ATGTransformer(pl.LightningModule):
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
 
-        return {"loss": loss, "log": {"Loss": loss}}
+        return {"loss": loss}
 
     def train_dataloader(self):
         "Load datasets. Called after prepare data."
@@ -150,8 +149,8 @@ class ATGProgressBar(ProgressBarBase):
         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
 
         if self.steps % self.progress_bar_refresh_rate == 0:
-            if self.gpu:
-                desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
+            # if self.gpu:
+            #     desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
 
