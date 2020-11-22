@@ -8,6 +8,7 @@ from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
+import subprocess
 
 
 class ATGTransformer(pl.LightningModule):
@@ -149,8 +150,22 @@ class ATGProgressBar(ProgressBarBase):
         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
 
         if self.steps % self.progress_bar_refresh_rate == 0:
-            # if self.gpu:
-            #     desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
+            if self.gpu:
+                # via pytorch-lightning's get_gpu_memory_map()
+                result = subprocess.run(
+                    [
+                        shutil.which("nvidia-smi"),
+                        "--query-gpu=memory.used",
+                        "--format=csv,nounits,noheader",
+                    ],
+                    encoding="utf-8",
+                    # capture_output=True,          # valid for python version >=3.7
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+                    check=True,
+                )
+                gpu_memory = result.stdout.strip().split(os.linesep)[0]
+                desc += f" — GPU Mem: {gpu_memory} MB"
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
 
