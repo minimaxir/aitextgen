@@ -381,7 +381,7 @@ class aitextgen:
         fp16: bool = False,
         fp16_opt_level: str = "O1",
         n_gpu: int = -1,
-        n_tpu_cores: int = 0,
+        tpu_cores: int = 0,
         max_grad_norm: float = 0.5,
         gradient_accumulation_steps: int = 1,
         seed: int = None,
@@ -413,7 +413,7 @@ class aitextgen:
         :param fp16: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
         :param fp16_opt_level: Option level for FP16/APEX training.
         :param n_gpu: Number of GPU to use (-1 implies all available GPUs)
-        :param n_tpu_cores: Number of TPU cores to use (should be a multiple of 8)
+        :param tpu_cores: Number of TPU cores to use (should be a multiple of 8)
         :param max_grad_norm: Maximum gradient normalization
         :param gradient_accumulation_steps: Number of gradient acc steps
         :param seed: Interger representing the training seed.
@@ -462,10 +462,10 @@ class aitextgen:
                 **kwargs,
             )
 
-        if num_workers is None:
+        if num_workers is None and tpu_cores == 0:
             # Use all CPU cores as workers if not training on CPU
             # Can overload 2x w/o diminishing returns
-            if is_gpu_used or n_tpu_cores > 0:
+            if is_gpu_used:
                 num_workers = os.cpu_count() * 2
             # If training on the CPU, use half the CPUs
             else:
@@ -482,7 +482,6 @@ class aitextgen:
             num_workers=num_workers,
             save_every=save_every,
             generate_every=generate_every,
-            tpu=n_tpu_cores > 0,
         )
 
         # Wrap the model in a pytorch-lightning module
@@ -528,8 +527,8 @@ class aitextgen:
             train_params["precision"] = 16 if fp16 else 32
             train_params["amp_level"] = fp16_opt_level
 
-        if n_tpu_cores > 0:
-            train_params["num_tpu_cores"] = n_tpu_cores
+        if tpu_cores > 0:
+            train_params["tpu_cores"] = tpu_cores
             train_params["gpus"] = 0
             n_gpu = 0
 
@@ -546,8 +545,6 @@ class aitextgen:
 
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
 
-        if n_tpu_cores > 0:
-            xm.rendezvous("save_model")
         self.model.save_pretrained(output_dir)
 
         if save_gdrive:
