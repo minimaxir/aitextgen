@@ -4,7 +4,7 @@ from transformers import (
     AutoModelForCausalLM,
     GPT2Config,
 )
-from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
+from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
 )
 from transformers.modeling_utils import Conv1D
@@ -103,7 +103,7 @@ class aitextgen:
                 logging.getLogger(module).setLevel(logging.WARN)
             logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
-        elif tf_gpt2:
+        if tf_gpt2:
             # Download + convert the TF weights if a PyTorch model has not been created
             if not os.path.isfile(
                 os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
