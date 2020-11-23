@@ -5,3 +5,4 @@ test_notebooks/
 *.egg-info
 .vscode/settings.json
 /site
+.DS_Store
