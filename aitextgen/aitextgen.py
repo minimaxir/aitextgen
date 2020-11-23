@@ -214,11 +214,14 @@ class aitextgen:
         self,
         n: int = 1,
         prompt: str = None,
+        min_length: int = None,
         max_length: int = 256,
         temperature: float = 0.7,
         do_sample: bool = True,
         return_as_list: bool = False,
         seed: int = None,
+        pad_token_id: str = None,
+        use_cache: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -247,15 +250,21 @@ class aitextgen:
         if seed:
             set_seed(seed)
 
+        if pad_token_id is None:
+            pad_token_id = self.tokenizer.pad_token_id
+
         # prevent an error from using a length greater than the model
         max_length = min(self.model.config.n_positions, max_length)
 
         outputs = self.model.generate(
             input_ids=prompt,
+            min_length=min_length,
             max_length=max_length,
             temperature=temperature,
             do_sample=do_sample,
             num_return_sequences=n,
+            pad_token_id=pad_token_id,
+            use_cache=use_cache,
             **kwargs,
         )
 
