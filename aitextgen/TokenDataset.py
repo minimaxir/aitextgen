@@ -113,7 +113,9 @@ class TokenDataset(Dataset):
         # if a file is specified, and it's line-delimited,
         # the text must be processed line-by-line into a a single bulk file
         elif line_by_line:
-            assert os.path.isfile(file_path)
+            assert os.path.isfile(
+                file_path
+            ), f"{file_path} is not present in the current directory."
 
             text_delim = None
             self.file_path = file_path
@@ -122,7 +124,9 @@ class TokenDataset(Dataset):
         # if a file is specified, and it's not line-delimited,
         # the texts must be parsed as a single bulk file.
         else:
-            assert os.path.isfile(file_path)
+            assert os.path.isfile(
+                file_path
+            ), f"{file_path} is not present in the current directory."
             if file_path.endswith(".csv"):
                 logger.warning(
                     "You are tokenizing a CSV file, but you did not "
