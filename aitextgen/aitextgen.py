@@ -420,7 +420,7 @@ class aitextgen:
         avg_loss_smoothing: float = 0.01,
         save_gdrive: bool = False,
         run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
-        progress_bar_refresh_rate: int = 10,
+        progress_bar_refresh_rate: int = 20,
         **kwargs,
     ) -> None:
         """
