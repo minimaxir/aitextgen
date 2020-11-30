@@ -20,7 +20,6 @@ from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
 from .utils import (
     download_gpt2,
-    encode_text,
     set_seed,
     reset_seed,
 )
@@ -205,6 +204,8 @@ class aitextgen:
                 pad_token=self.pad_token,
             )
 
+        self.tokenizer.padding_side = "left"
+
         if to_gpu:
             if to_fp16:
                 self.to_fp16()
@@ -221,7 +222,6 @@ class aitextgen:
         return_as_list: bool = False,
         seed: int = None,
         pad_token_id: str = None,
-        use_cache: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -244,8 +244,19 @@ class aitextgen:
         """
 
         if prompt:
-            prompt_text = prompt
-            prompt = encode_text(prompt, self.tokenizer, self.get_device())
+            assert (
+                len(prompt) < self.model.config.n_positions
+            ), "The prompt is too large for the model."
+
+        prompt_text = prompt
+        prompt_tensors = self.tokenizer(text=prompt, return_tensors="pt")
+
+        input_ids = (
+            prompt_tensors["input_ids"].to(self.model.device) if prompt else None
+        )
+        attention_mask = (
+            prompt_tensors["attention_mask"].to(self.model.device) if prompt else None
+        )
 
         if seed:
             set_seed(seed)
@@ -257,14 +268,14 @@ class aitextgen:
         max_length = min(self.model.config.n_positions, max_length)
 
         outputs = self.model.generate(
-            input_ids=prompt,
+            input_ids=input_ids,
+            attention_mask=attention_mask,
             min_length=min_length,
             max_length=max_length,
             temperature=temperature,
             do_sample=do_sample,
             num_return_sequences=n,
             pad_token_id=pad_token_id,
-            use_cache=use_cache,
             **kwargs,
         )
 
