@@ -1,8 +1,8 @@
 from transformers import (
     GPT2LMHeadModel,
     GPT2Tokenizer,
-    AutoModelForCausalLM,
     GPT2Config,
+    AutoConfig,
 )
 from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
@@ -158,7 +158,9 @@ class aitextgen:
         elif config:
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
-            self.model = AutoModelForCausalLM.from_config(config=config)
+            if isinstance(config, str):
+                config = AutoConfig.from_pretrained(config)
+            self.model = GPT2LMHeadModel(config=config)
         else:
             # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
@@ -214,7 +216,7 @@ class aitextgen:
     def generate(
         self,
         n: int = 1,
-        prompt: str = None,
+        prompt: str = "",
         min_length: int = None,
         max_length: int = 256,
         temperature: float = 0.7,
@@ -254,9 +256,6 @@ class aitextgen:
         input_ids = (
             prompt_tensors["input_ids"].to(self.model.device) if prompt else None
         )
-        attention_mask = (
-            prompt_tensors["attention_mask"].to(self.model.device) if prompt else None
-        )
 
         if seed:
             set_seed(seed)
@@ -269,7 +268,6 @@ class aitextgen:
 
         outputs = self.model.generate(
             input_ids=input_ids,
-            attention_mask=attention_mask,
             min_length=min_length,
             max_length=max_length,
             temperature=temperature,

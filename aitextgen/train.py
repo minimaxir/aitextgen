@@ -189,7 +189,7 @@ class ATGProgressBar(ProgressBarBase):
             do_sample=True,
             num_return_sequences=self.n_generate,
             temperature=0.7,
-            pad_token_id=self.tokenizer.pad_token_id,
+            pad_token_id=pl_module.tokenizer.pad_token_id,
         )
         gen_texts = [
             pl_module.tokenizer.decode(output, skip_special_tokens=True)
