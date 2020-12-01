@@ -20,7 +20,7 @@ setup(
         "transformers>=4.0.0",
         "fire>=0.3.0",
         "pytorch-lightning>=1.0.8",
-        "tokenizers>=0.9.3",
+        "tokenizers>=0.9.4",
         "torch>=1.6.0",
     ],
 )
