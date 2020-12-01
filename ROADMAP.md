@@ -7,7 +7,6 @@ A rough roadmap for implementing new features. **All is subject to change at a m
 - Training using pytorch-lightning, with suppport for fp16 and Colab TPUs.
 - Training a GPT-2 model from scratch w/ parametricized context window sizes and parameters
 - PyTorch support for training/generating
-- Export to static Torchscript trace.
 - Generation from Transformer's native generate() function
 - Actual documentation
   - Examples

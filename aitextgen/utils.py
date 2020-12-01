@@ -60,19 +60,13 @@ def download_file_with_progress(
     with open(os.path.join(sub_dir, file_name), "wb") as f:
         file_size = int(r.headers["content-length"])
         with tqdm(
-            desc="Fetching " + file_name, total=file_size, unit_scale=True,
+            desc="Fetching " + file_name,
+            total=file_size,
+            unit_scale=True,
         ) as pbar:
             for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 f.write(chunk)
                 pbar.update(DOWNLOAD_CHUNK_SIZE)
-
-
-def encode_text(text: str, tokenizer, device: str = "cpu"):
-    """
-    Encodes text into an id-based tensor using the given tokenizer.
-    """
-
-    return torch.tensor(tokenizer.encode(text), device=device).unsqueeze(0)
 
 
 def set_seed(seed: int):
@@ -125,7 +119,7 @@ def build_gpt2_config(
 
 
 def GPT2ConfigCPU(
-    vocab_size: int = 5000, bos_token_id: int = 0, eos_token_id: int = 0, **kwargs
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, **kwargs
 ):
     """
     Returns a GPT-2 config more suitable for training on a regular consumer CPU.

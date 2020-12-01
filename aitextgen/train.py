@@ -1,7 +1,6 @@
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
-from pytorch_lightning.core.memory import get_gpu_memory_map
 from tqdm.auto import tqdm
 import sys
 import torch
@@ -9,11 +8,7 @@ from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
-
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    pass
+import subprocess
 
 
 class ATGTransformer(pl.LightningModule):
@@ -31,7 +26,7 @@ class ATGTransformer(pl.LightningModule):
         )
 
     def forward(self, inputs):
-        return self.model(**inputs)
+        return self.model(**inputs, return_dict=False)
 
     def training_step(self, batch, batch_num):
         "Compute loss and log."
@@ -39,7 +34,7 @@ class ATGTransformer(pl.LightningModule):
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
 
-        return {"loss": loss, "log": {"Loss": loss}}
+        return {"loss": loss}
 
     def train_dataloader(self):
         "Load datasets. Called after prepare data."
@@ -156,22 +151,30 @@ class ATGProgressBar(ProgressBarBase):
 
         if self.steps % self.progress_bar_refresh_rate == 0:
             if self.gpu:
-                desc += f" — GPU Mem: {get_gpu_memory_map()['gpu_0']} MB"
+                # via pytorch-lightning's get_gpu_memory_map()
+                result = subprocess.run(
+                    [
+                        shutil.which("nvidia-smi"),
+                        "--query-gpu=memory.used",
+                        "--format=csv,nounits,noheader",
+                    ],
+                    encoding="utf-8",
+                    # capture_output=True,          # valid for python version >=3.7
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+                    check=True,
+                )
+                gpu_memory = result.stdout.strip().split(os.linesep)[0]
+                desc += f" — GPU Mem: {gpu_memory} MB"
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
 
         if self.enabled:
 
             if self.save_every > 0 and self.steps % self.save_every == 0:
-                if pl_module.hparams["tpu"]:
-                    xm.rendezvous("save_model")
                 self.save_pytorch_model(trainer, pl_module)
 
-            if (
-                not pl_module.hparams["tpu"]
-                and self.generate_every > 0
-                and self.steps % self.generate_every == 0
-            ):
+            if self.generate_every > 0 and self.steps % self.generate_every == 0:
                 self.generate_sample_text(trainer, pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
@@ -186,6 +189,7 @@ class ATGProgressBar(ProgressBarBase):
             do_sample=True,
             num_return_sequences=self.n_generate,
             temperature=0.7,
+            pad_token_id=pl_module.tokenizer.pad_token_id,
         )
         gen_texts = [
             pl_module.tokenizer.decode(output, skip_special_tokens=True)

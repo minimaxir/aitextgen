@@ -113,7 +113,9 @@ class TokenDataset(Dataset):
         # if a file is specified, and it's line-delimited,
         # the text must be processed line-by-line into a a single bulk file
         elif line_by_line:
-            assert os.path.isfile(file_path)
+            assert os.path.isfile(
+                file_path
+            ), f"{file_path} is not present in the current directory."
 
             text_delim = None
             self.file_path = file_path
@@ -122,7 +124,9 @@ class TokenDataset(Dataset):
         # if a file is specified, and it's not line-delimited,
         # the texts must be parsed as a single bulk file.
         else:
-            assert os.path.isfile(file_path)
+            assert os.path.isfile(
+                file_path
+            ), f"{file_path} is not present in the current directory."
             if file_path.endswith(".csv"):
                 logger.warning(
                     "You are tokenizing a CSV file, but you did not "
@@ -256,7 +260,12 @@ def encode_tokens_from_file(
     else:
         num_texts = get_lines_in_file(file_path, newline)
 
-    pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
+    pbar = tqdm(
+        total=num_texts,
+        smoothing=0,
+        leave=True,
+        dynamic_ncols=True,
+    )
     tokens = np.full((num_texts, 1), -1, dtype=a_dtype)
     num_batches = 0
 
@@ -291,7 +300,7 @@ def encode_tokens_from_file(
                 batch,
                 add_special_tokens=False,
                 return_token_type_ids=False,
-                return_attention_masks=False,
+                return_attention_mask=False,
             )["input_ids"]
 
             for i, encoded_text in enumerate(encoded_texts):
@@ -300,7 +309,11 @@ def encode_tokens_from_file(
                     tokens = np.concatenate(
                         (
                             tokens,
-                            np.full((num_texts, cols_to_add), -1, dtype=a_dtype,),
+                            np.full(
+                                (num_texts, cols_to_add),
+                                -1,
+                                dtype=a_dtype,
+                            ),
                         ),
                         axis=1,
                     )
@@ -335,7 +348,12 @@ def encode_tokens_from_list(
     a_dtype = get_dtype(tokenizer.vocab_size)
     logger.info(f"Encoding {num_texts:,} texts.")
 
-    pbar = tqdm(total=num_texts, smoothing=0, leave=True, dynamic_ncols=True,)
+    pbar = tqdm(
+        total=num_texts,
+        smoothing=0,
+        leave=True,
+        dynamic_ncols=True,
+    )
     tokens = np.full((len(texts), 1), -1, dtype=a_dtype)
 
     for i_start in range(num_texts // batch_size + 1):
@@ -350,14 +368,21 @@ def encode_tokens_from_list(
             batch,
             add_special_tokens=False,
             return_token_type_ids=False,
-            return_attention_masks=False,
+            return_attention_mask=False,
         )["input_ids"]
 
         for i, encoded_text in enumerate(encoded_texts):
             if len(encoded_text) > tokens.shape[1]:
                 cols_to_add = len(encoded_text) - tokens.shape[1]
                 tokens = np.concatenate(
-                    (tokens, np.full((num_texts, cols_to_add), -1, dtype=a_dtype,),),
+                    (
+                        tokens,
+                        np.full(
+                            (num_texts, cols_to_add),
+                            -1,
+                            dtype=a_dtype,
+                        ),
+                    ),
                     axis=1,
                 )
             tokens[(i_start * batch_size) + i, : len(encoded_text)] = encoded_text

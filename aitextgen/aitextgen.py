@@ -1,10 +1,10 @@
 from transformers import (
     GPT2LMHeadModel,
     GPT2Tokenizer,
-    AutoModelWithLMHead,
     GPT2Config,
+    AutoConfig,
 )
-from transformers.convert_gpt2_original_tf_checkpoint_to_pytorch import (
+from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
 )
 from transformers.modeling_utils import Conv1D
@@ -20,7 +20,6 @@ from .TokenDataset import TokenDataset
 import pytorch_lightning as pl
 from .utils import (
     download_gpt2,
-    encode_text,
     set_seed,
     reset_seed,
 )
@@ -59,8 +58,6 @@ class aitextgen:
     :param to_fp16: Whether to convert the model to FP16 before loading
     to GPU (for supported GPUs only)
     :param verbose: Whether to enable logging from base Huggingface packages
-    :param torchscript: Whether the input model is a TorchScript traced model
-    :param ts_to_trace: Whether to prep the input model to be exported to TorchScript
     :param bos_token: String to override the beginning-of-string token
     :param eos_token: String to override the end-of-string token
     :param unk_token: String to override the unknown token
@@ -88,8 +85,6 @@ class aitextgen:
         to_gpu: bool = False,
         to_fp16: bool = False,
         verbose: bool = False,
-        torchscript: bool = False,
-        ts_to_trace: bool = False,
         bos_token: str = None,
         eos_token: str = None,
         unk_token: str = None,
@@ -107,21 +102,7 @@ class aitextgen:
                 logging.getLogger(module).setLevel(logging.WARN)
             logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
-        if torchscript:
-            assert model
-            logger.info(f"Loading traced GPT-2 model from provided {model}.")
-            if config is None:
-                config = GPT2Config()
-            self.torchscript = True
-            self.model = GPT2LMHeadModel(config)
-
-            # Transpose the traced model attributes to a GPT2LMHeadModel class
-            # so it can inherit its functions
-            pt_model = torch.jit.load(model)
-            self.model.transformer = pt_model.transformer
-            self.model.lm_head = pt_model.lm_head
-
-        elif tf_gpt2:
+        if tf_gpt2:
             # Download + convert the TF weights if a PyTorch model has not been created
             if not os.path.isfile(
                 os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
@@ -147,7 +128,9 @@ class aitextgen:
                 config_path = os.path.join(cache_dir, tf_gpt2, "hparams.json")
 
                 convert_gpt2_checkpoint_to_pytorch(
-                    os.path.join(cache_dir, tf_gpt2), config_path, cache_dir,
+                    os.path.join(cache_dir, tf_gpt2),
+                    config_path,
+                    cache_dir,
                 )
 
                 os.rename(
@@ -171,15 +154,13 @@ class aitextgen:
             logger.info(f"Loading GPT-2 model from provided {model}.")
             if config is None:
                 config = GPT2Config()
-            if ts_to_trace:
-                config.torchscript = True
             self.model = GPT2LMHeadModel.from_pretrained(model, config=config)
         elif config:
-            if ts_to_trace:
-                config.torchscript = True
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
-            self.model = AutoModelWithLMHead.from_config(config=config)
+            if isinstance(config, str):
+                config = AutoConfig.from_pretrained(config)
+            self.model = GPT2LMHeadModel(config=config)
         else:
             # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
@@ -187,12 +168,13 @@ class aitextgen:
             else:
                 logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
             self.model = GPT2LMHeadModel.from_pretrained(
-                model or "gpt2", cache_dir=cache_dir, torchscript=ts_to_trace
+                model or "gpt2", cache_dir=cache_dir
             )
             if model and "gpt2" not in model:
                 logger.info(f"Using the tokenizer for {model}.")
                 self.tokenizer = GPT2Tokenizer.from_pretrained(
-                    model, cache_dir=cache_dir,
+                    model,
+                    cache_dir=cache_dir,
                 )
 
         if self.tokenizer is None:
@@ -224,20 +206,28 @@ class aitextgen:
                 pad_token=self.pad_token,
             )
 
+        self.tokenizer.padding_side = "left"
+
         if to_gpu:
             if to_fp16:
+                logger.warn(
+                    "Currently, FP16 text generation results in random output. "
+                    + "You may want to avoid using to_fp16 for the time being."
+                )
                 self.to_fp16()
             self.to_gpu()
 
     def generate(
         self,
         n: int = 1,
-        prompt: str = None,
+        prompt: str = "",
+        min_length: int = None,
         max_length: int = 256,
         temperature: float = 0.7,
         do_sample: bool = True,
         return_as_list: bool = False,
         seed: int = None,
+        pad_token_id: str = None,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -260,21 +250,34 @@ class aitextgen:
         """
 
         if prompt:
-            prompt_text = prompt
-            prompt = encode_text(prompt, self.tokenizer, self.get_device())
+            assert (
+                len(prompt) < self.model.config.n_positions
+            ), "The prompt is too large for the model."
+
+        prompt_text = prompt
+        prompt_tensors = self.tokenizer(text=prompt, return_tensors="pt")
+
+        input_ids = (
+            prompt_tensors["input_ids"].to(self.model.device) if prompt else None
+        )
 
         if seed:
             set_seed(seed)
+
+        if pad_token_id is None:
+            pad_token_id = self.tokenizer.pad_token_id
 
         # prevent an error from using a length greater than the model
         max_length = min(self.model.config.n_positions, max_length)
 
         outputs = self.model.generate(
-            input_ids=prompt,
+            input_ids=input_ids,
+            min_length=min_length,
             max_length=max_length,
             temperature=temperature,
             do_sample=do_sample,
             num_return_sequences=n,
+            pad_token_id=pad_token_id,
             **kwargs,
         )
 
@@ -400,11 +403,11 @@ class aitextgen:
         fp16: bool = False,
         fp16_opt_level: str = "O1",
         n_gpu: int = -1,
-        n_tpu_cores: int = 0,
+        tpu_cores: int = 0,
         max_grad_norm: float = 0.5,
         gradient_accumulation_steps: int = 1,
         seed: int = None,
-        learning_rate: float = 1e-4,
+        learning_rate: float = 1e-3,
         weight_decay: float = 0.05,
         adam_epsilon: float = 1e-8,
         warmup_steps: int = 0,
@@ -419,7 +422,7 @@ class aitextgen:
         avg_loss_smoothing: float = 0.01,
         save_gdrive: bool = False,
         run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
-        progress_bar_refresh_rate: int = 10,
+        progress_bar_refresh_rate: int = 20,
         **kwargs,
     ) -> None:
         """
@@ -432,7 +435,7 @@ class aitextgen:
         :param fp16: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
         :param fp16_opt_level: Option level for FP16/APEX training.
         :param n_gpu: Number of GPU to use (-1 implies all available GPUs)
-        :param n_tpu_cores: Number of TPU cores to use (should be a multiple of 8)
+        :param tpu_cores: Number of TPU cores to use (should be a multiple of 8)
         :param max_grad_norm: Maximum gradient normalization
         :param gradient_accumulation_steps: Number of gradient acc steps
         :param seed: Interger representing the training seed.
@@ -481,10 +484,10 @@ class aitextgen:
                 **kwargs,
             )
 
-        if num_workers is None:
+        if num_workers is None and tpu_cores == 0:
             # Use all CPU cores as workers if not training on CPU
             # Can overload 2x w/o diminishing returns
-            if is_gpu_used or n_tpu_cores > 0:
+            if is_gpu_used:
                 num_workers = os.cpu_count() * 2
             # If training on the CPU, use half the CPUs
             else:
@@ -501,7 +504,6 @@ class aitextgen:
             num_workers=num_workers,
             save_every=save_every,
             generate_every=generate_every,
-            tpu=n_tpu_cores > 0,
         )
 
         # Wrap the model in a pytorch-lightning module
@@ -524,7 +526,6 @@ class aitextgen:
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
             max_steps=num_steps,
-            show_progress_bar=True,
             gradient_clip_val=max_grad_norm if not fp16 else 0,
             checkpoint_callback=False,
             logger=loggers if loggers else False,
@@ -548,8 +549,8 @@ class aitextgen:
             train_params["precision"] = 16 if fp16 else 32
             train_params["amp_level"] = fp16_opt_level
 
-        if n_tpu_cores > 0:
-            train_params["num_tpu_cores"] = n_tpu_cores
+        if tpu_cores > 0:
+            train_params["tpu_cores"] = tpu_cores
             train_params["gpus"] = 0
             n_gpu = 0
 
@@ -566,8 +567,6 @@ class aitextgen:
 
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
 
-        if n_tpu_cores > 0:
-            xm.rendezvous("save_model")
         self.model.save_pretrained(output_dir)
 
         if save_gdrive:
@@ -655,23 +654,13 @@ class aitextgen:
             self.model, {Linear, Embedding, Conv1D}, inplace=True
         )
 
-    def export(self, quantize: bool = True, batch_size: int = 1) -> None:
+    def export(
+        self,
+        quantize: bool = True,
+    ) -> None:
         """
-        Exports the model to TorchScript, with optional quantization
+        Exports the model, with optional quantization
         """
-
-        temp_model = self.model
-
-        if quantize:
-            temp_model = torch.quantization.quantize_dynamic(
-                temp_model, {Linear, Embedding, Conv1D}, inplace=True
-            )
-
-        example = torch.zeros(
-            (batch_size, self.model.config.n_positions), dtype=torch.long
-        )
-        temp_model = torch.jit.trace(temp_model.eval(), example)
-        temp_model.save("model.pt")
 
     def to_gpu(self, index: int = 0) -> None:
         """Moves the model to the specified GPU."""
