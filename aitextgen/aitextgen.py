@@ -407,7 +407,7 @@ class aitextgen:
         max_grad_norm: float = 0.5,
         gradient_accumulation_steps: int = 1,
         seed: int = None,
-        learning_rate: float = 1e-4,
+        learning_rate: float = 1e-3,
         weight_decay: float = 0.05,
         adam_epsilon: float = 1e-8,
         warmup_steps: int = 0,
