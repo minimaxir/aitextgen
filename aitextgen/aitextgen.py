@@ -210,6 +210,10 @@ class aitextgen:
 
         if to_gpu:
             if to_fp16:
+                logger.warn(
+                    "Currently, FP16 text generation results in random output. "
+                    + "You may want to avoid using to_fp16 for the time being."
+                )
                 self.to_fp16()
             self.to_gpu()
 
