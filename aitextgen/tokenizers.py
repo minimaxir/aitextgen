@@ -1,4 +1,4 @@
-from tokenizers import Tokenizer, trainers, models
+from tokenizers import Tokenizer, trainers, models, ByteLevelBPETokenizer
 from typing import Union, List
 import logging
 
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 def train_tokenizer(
     files: Union[str, List[str]],
     dropout: float = None,
-    vocab_size: int = 5000,
+    vocab_size: int = 1000,
     min_frequency: int = 2,
     save_path: str = "",
     added_tokens: List[str] = [],
@@ -38,17 +38,20 @@ def train_tokenizer(
         files, list
     ), "files must be a string or a list."
 
-    tokenizer = Tokenizer(models.BPE(dropout=dropout))
-    trainer = trainers.BpeTrainer(
-        vocab_size=vocab_size,
+    assert isinstance(added_tokens, list), "added_tokens must be a list."
+
+    if isinstance(files, str):
+        files = [files]
+
+    tokenizer = ByteLevelBPETokenizer(dropout=dropout)
+
+    tokenizer.train(
+        files=files,
+        vocab_size=vocab_size - len(added_tokens),
         min_frequency=min_frequency,
         special_tokens=[bos_token, eos_token, unk_token],
     )
 
-    tokenizer.train(trainer, files=files)
-
-    # Currently doesn't do anything
-    # See: https://github.com/huggingface/tokenizers/issues/233
     tokenizer.add_tokens(added_tokens)
 
     PREFIX = "aitextgen"
@@ -58,10 +61,10 @@ def train_tokenizer(
             f"Saving {PREFIX}.tokenizer.json to {save_path_str}. "
             + "You will need this file to build the GPT2Tokenizer."
         )
-        tokenizer.save_model(f"{PREFIX}.tokenizer.json", PREFIX)
+        tokenizer.save(f"{PREFIX}.tokenizer.json")
     else:
         logger.info(
             f"Saving {PREFIX}-vocab.json and {PREFIX}-merges.txt to {save_path_str}. "
             + "You will need both files to build the GPT2Tokenizer."
         )
-        tokenizer.save(save_path, PREFIX)
+        tokenizer.save_model(save_path, PREFIX)
