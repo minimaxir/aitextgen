@@ -1,4 +1,4 @@
-from tokenizers import Tokenizer, trainers, models, ByteLevelBPETokenizer
+from tokenizers import ByteLevelBPETokenizer
 from typing import Union, List
 import logging
 
@@ -15,7 +15,7 @@ def train_tokenizer(
     bos_token: str = "<|endoftext|>",
     eos_token: str = "<|endoftext|>",
     unk_token: str = "<|endoftext|>",
-    serialize: bool = False,
+    serialize: bool = True,
 ) -> None:
     """
     Tokenizes the text(s) as a tokenizer, wrapping the tokenizer package.
