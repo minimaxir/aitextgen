@@ -10,6 +10,9 @@ from pkg_resources import resource_filename
 import itertools
 from tqdm.auto import tqdm
 import numpy as np
+import sys
+
+csv.field_size_limit(sys.maxsize)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
