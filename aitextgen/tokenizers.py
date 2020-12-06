@@ -47,12 +47,10 @@ def train_tokenizer(
 
     tokenizer.train(
         files=files,
-        vocab_size=vocab_size - len(added_tokens),
+        vocab_size=vocab_size,
         min_frequency=min_frequency,
-        special_tokens=[bos_token, eos_token, unk_token],
+        special_tokens=[bos_token, eos_token, unk_token] + added_tokens,
     )
-
-    tokenizer.add_tokens(added_tokens)
 
     PREFIX = "aitextgen"
     save_path_str = "the current directory" if save_path == "" else save_path
