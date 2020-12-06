@@ -199,7 +199,7 @@ class aitextgen:
                 logger.info("Using the default GPT-2 Tokenizer.")
 
             if tokenizer_file:
-                # load the custom GPT-3 tokenizer from a serialized tokenizer
+                # load the custom GPT-2 tokenizer from a serialized tokenizer
                 self.tokenizer = GPT2TokenizerFast(
                     vocab_file=None,
                     merges_file=None,
@@ -487,8 +487,7 @@ class aitextgen:
 
         if isinstance(train_data, str):
             train_data = TokenDataset(
-                vocab_file=self.vocab_file,
-                merges_file=self.merges_file,
+                tokenizer=self.tokenizer,
                 bos_token=self.bos_token,
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,

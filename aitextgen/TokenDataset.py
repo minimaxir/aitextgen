@@ -53,6 +53,8 @@ class TokenDataset(Dataset):
         file_path: str = None,
         vocab_file: str = os.path.join(STATIC_PATH, "gpt2_vocab.json"),
         merges_file: str = os.path.join(STATIC_PATH, "gpt2_merges.txt"),
+        tokenizer: GPT2TokenizerFast = None,
+        tokenizer_file: str = None,
         texts: List[str] = None,
         line_by_line: bool = False,
         from_cache: bool = False,
@@ -82,14 +84,27 @@ class TokenDataset(Dataset):
 
         assert any([texts, file_path]), "texts or file_path must be specified."
 
-        tokenizer = GPT2TokenizerFast(
-            vocab_file=vocab_file,
-            merges_file=merges_file,
-            bos_token=bos_token,
-            eos_token=eos_token,
-            unk_token=unk_token,
-            pad_token=pad_token,
-        )
+        if not tokenizer:
+            if tokenizer_file:
+                # load the custom GPT-2 tokenizer from a serialized tokenizer
+                tokenizer = GPT2TokenizerFast(
+                    vocab_file=None,
+                    merges_file=None,
+                    tokenizer_file=tokenizer_file,
+                    bos_token=bos_token,
+                    eos_token=eos_token,
+                    unk_token=unk_token,
+                    pad_token=pad_token,
+                )
+            else:
+                tokenizer = GPT2TokenizerFast(
+                    vocab_file=vocab_file,
+                    merges_file=merges_file,
+                    bos_token=bos_token,
+                    eos_token=eos_token,
+                    unk_token=unk_token,
+                    pad_token=pad_token,
+                )
 
         # If a cache path is provided, load it.
         if from_cache:
