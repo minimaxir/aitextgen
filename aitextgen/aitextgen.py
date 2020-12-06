@@ -1,6 +1,6 @@
 from transformers import (
     GPT2LMHeadModel,
-    GPT2Tokenizer,
+    GPT2TokenizerFast,
     GPT2Config,
     AutoConfig,
 )
@@ -30,7 +30,7 @@ from pkg_resources import resource_filename
 import shutil
 
 try:
-    import torch_xla.core.xla_model as xm
+    import torch_xla.core.xla_model as xm  # noqa
 except ImportError:
     pass
 
@@ -80,6 +80,7 @@ class aitextgen:
         config: Union[str, GPT2Config] = None,
         vocab_file: str = None,
         merges_file: str = None,
+        tokenizer_file: str = None,
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
@@ -172,7 +173,7 @@ class aitextgen:
             )
             if model and "gpt2" not in model:
                 logger.info(f"Using the tokenizer for {model}.")
-                self.tokenizer = GPT2Tokenizer.from_pretrained(
+                self.tokenizer = GPT2TokenizerFast.from_pretrained(
                     model,
                     cache_dir=cache_dir,
                 )
@@ -197,14 +198,26 @@ class aitextgen:
             else:
                 logger.info("Using the default GPT-2 Tokenizer.")
 
-            self.tokenizer = GPT2Tokenizer(
-                vocab_file=self.vocab_file,
-                merges_file=self.merges_file,
-                bos_token=self.bos_token,
-                eos_token=self.eos_token,
-                unk_token=self.unk_token,
-                pad_token=self.pad_token,
-            )
+            if tokenizer_file:
+                # load the custom GPT-3 tokenizer from a serialized tokenizer
+                self.tokenizer = GPT2TokenizerFast(
+                    vocab_file=None,
+                    merges_file=None,
+                    tokenizer_file=tokenizer_file,
+                    bos_token=self.bos_token,
+                    eos_token=self.eos_token,
+                    unk_token=self.unk_token,
+                    pad_token=self.pad_token,
+                )
+            else:
+                self.tokenizer = GPT2TokenizerFast(
+                    vocab_file=self.vocab_file,
+                    merges_file=self.merges_file,
+                    bos_token=self.bos_token,
+                    eos_token=self.eos_token,
+                    unk_token=self.unk_token,
+                    pad_token=self.pad_token,
+                )
 
         self.tokenizer.padding_side = "left"
 
