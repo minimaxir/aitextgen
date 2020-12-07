@@ -28,6 +28,7 @@ from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 import shutil
+import json
 
 try:
     import torch_xla.core.xla_model as xm  # noqa
@@ -209,6 +210,11 @@ class aitextgen:
                     unk_token=self.unk_token,
                     pad_token=self.pad_token,
                 )
+                with open(tokenizer_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.schema_tokens = {
+                        x["id"]: x["content"] for x in data["added_tokens"]
+                    }
             else:
                 self.tokenizer = GPT2TokenizerFast(
                     vocab_file=self.vocab_file,
