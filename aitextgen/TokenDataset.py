@@ -69,7 +69,7 @@ class TokenDataset(Dataset):
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
         pad_token: str = "<|endoftext|>",
-        progress_bar_refresh_rate: int = 10,
+        progress_bar_refresh_rate: int = 20,
         **kwargs,
     ) -> None:
 
@@ -260,7 +260,7 @@ def encode_tokens_from_file(
     tokenizer: GPT2TokenizerFast,
     newline: str,
     header: bool = True,
-    progress_bar_refresh_rate: int = 10,
+    progress_bar_refresh_rate: int = 20,
     batch_size: int = 1024,
 ) -> List[int]:
     """
@@ -352,7 +352,7 @@ def encode_tokens_from_list(
     texts: List[str],
     eos_token: str,
     tokenizer: GPT2TokenizerFast,
-    progress_bar_refresh_rate: int = 10,
+    progress_bar_refresh_rate: int = 20,
     batch_size: int = 1024,
 ) -> List[int]:
     """
