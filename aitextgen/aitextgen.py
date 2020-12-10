@@ -213,7 +213,10 @@ class aitextgen:
                 with open(tokenizer_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self.schema_tokens = {
-                        x["id"]: x["content"] for x in data["added_tokens"]
+                        x["id"]: x["content"]
+                        for x in data["added_tokens"]
+                        if x["content"]
+                        not in [self.bos_token, self.eos_token, self.unk_token]
                     }
             else:
                 self.tokenizer = GPT2TokenizerFast(
