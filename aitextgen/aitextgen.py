@@ -82,6 +82,8 @@ class aitextgen:
         vocab_file: str = None,
         merges_file: str = None,
         tokenizer_file: str = None,
+        schema_tokens: List[str] = None,
+        schema_return: List[str] = None,
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
@@ -179,6 +181,12 @@ class aitextgen:
                     cache_dir=cache_dir,
                 )
 
+        if schema_tokens:
+            self.model.config["schema_tokens"] = schema_tokens
+
+        if schema_tokens:
+            self.model.config["schema_return"] = schema_return
+
         if self.tokenizer is None:
             # Update tokenizer settings (if not set already)
             args = locals()
@@ -210,14 +218,6 @@ class aitextgen:
                     unk_token=self.unk_token,
                     pad_token=self.pad_token,
                 )
-                with open(tokenizer_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    self.schema_tokens = {
-                        x["id"]: x["content"]
-                        for x in data["added_tokens"]
-                        if x["content"]
-                        not in [self.bos_token, self.eos_token, self.unk_token]
-                    }
             else:
                 self.tokenizer = GPT2TokenizerFast(
                     vocab_file=self.vocab_file,
@@ -250,6 +250,9 @@ class aitextgen:
         return_as_list: bool = False,
         seed: int = None,
         pad_token_id: str = None,
+        schema: str = None,
+        schema_tokens: List[str] = None,
+        schema_return: List[str] = None,
         **kwargs,
     ) -> Optional[str]:
         """
