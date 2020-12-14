@@ -136,3 +136,20 @@ def GPT2ConfigCPU(
         eos_token_id=eos_token_id,
         **kwargs,
     )
+
+
+def find_index_of_subset(large_list, small_list):
+    """
+    Returns the index after the small_list within the large list,
+    Returns None if not present.
+
+    Adapted from https://stackoverflow.com/a/45819222 which shows that it is
+    performant for input lengths < 1000, which is the common case for this function.
+    """
+    length_small_list = len(small_list)
+    firstneedle = small_list[0]
+    for idx, item in enumerate(large_list):
+        if item == firstneedle:
+            if large_list[idx : idx + length_small_list] == small_list:
+                return idx + length_small_list
+    return None
