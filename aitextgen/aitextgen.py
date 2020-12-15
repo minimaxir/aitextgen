@@ -22,6 +22,7 @@ from .utils import (
     download_gpt2,
     set_seed,
     reset_seed,
+    find_index_of_subset,
 )
 from .train import ATGTransformer, ATGProgressBar
 from .colab import create_gdrive_folder
@@ -250,9 +251,7 @@ class aitextgen:
         return_as_list: bool = False,
         seed: int = None,
         pad_token_id: str = None,
-        schema: str = None,
-        schema_tokens: List[str] = None,
-        schema_return: List[str] = None,
+        schema: str = False,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -310,25 +309,58 @@ class aitextgen:
         if seed:
             reset_seed()
 
-        if n > 1:
-            gen_texts = [
-                self.tokenizer.decode(output, skip_special_tokens=True)
-                for output in outputs
-            ]
-        else:
-            gen_texts = [self.tokenizer.decode(outputs[0], skip_special_tokens=True)]
+        # Schema token handling
+        if schema:
+            schema_tokens = self.model.config.get("schema_tokens")
+            schema_return = self.model.config.get("schema_return")
+            schema_tokens_enc = self.tokenizer(text=schema_tokens)["input_ids"]
 
-        if not return_as_list:
-            if prompt is not None:
-                # Bold the prompt if printing to console
-                gen_texts = [
-                    text.replace(prompt_text, f"\033[1m{prompt_text}\033[0m", 1)
-                    for text in gen_texts
-                ]
+            outputs = outputs.tolist()
+            gen_texts = []
+            for output in outputs:
+                gen_text_dict = {}
+                index = 0
+                for i, token_enc in enumerate(schema_tokens_enc):
+                    end_index = find_index_of_subset(output, token_enc)
+                    gen_text_dict[schema_tokens[i]] = output[index:end_index]
+                    index = end_index
 
-            print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+                # remove fields not in schema_return
+                if schema_return:
+                    for key in gen_text_dict.keys():
+                        if key not in schema_return:
+                            gen_text_dict.pop(key, None)
+
+                gen_texts.append(gen_text_dict)
+
+            if not return_as_list:
+                print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+            else:
+                if n > 1:
+                    return gen_texts
+                else:
+                    return gen_texts[0]
+
+        # Typical use case
         else:
-            return gen_texts
+            if n > 1:
+                gen_texts = self.tokenizer.batch_decode(
+                    outputs, skip_special_tokens=True
+                )
+            else:
+                gen_texts = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            if not return_as_list:
+                if prompt is not None:
+                    # Bold the prompt if printing to console
+                    gen_texts = [
+                        text.replace(prompt_text, f"\033[1m{prompt_text}\033[0m", 1)
+                        for text in gen_texts
+                    ]
+
+                print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+            else:
+                return gen_texts
 
     def generate_one(self, **kwargs) -> None:
         """
