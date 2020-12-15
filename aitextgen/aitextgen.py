@@ -322,11 +322,15 @@ class aitextgen:
                 index = 0
                 for i, token_enc in enumerate(schema_tokens_enc):
                     end_index = find_index_of_subset(output, token_enc)
-                    gen_text_dict[schema_tokens[i]] = output[index:end_index]
+                    gen_text_dict[schema_tokens[i]] = self.tokenizer.decode(
+                        output[index:end_index], skip_special_tokens=True
+                    )
                     index = end_index
 
                 # remove fields not in schema_return
                 if schema_return:
+                    if len(schema_return) == 1:
+                        gen_text_dict = gen_text_dict[schema_return[0]]
                     for key in gen_text_dict.keys():
                         if key not in schema_return:
                             gen_text_dict.pop(key, None)
