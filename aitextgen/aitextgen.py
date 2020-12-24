@@ -90,6 +90,7 @@ class aitextgen:
         to_gpu: bool = False,
         to_fp16: bool = False,
         verbose: bool = False,
+        gradient_checkpointing: bool = False,
         bos_token: str = None,
         eos_token: str = None,
         unk_token: str = None,
@@ -121,6 +122,7 @@ class aitextgen:
 
                 if tf_gpt2 != "124M":
                     self.openai_gpt2_large = True
+                    gradient_checkpointing = True
 
                 logger.info(
                     f"Downloading the {tf_gpt2} GPT-2 TensorFlow weights/config "
@@ -184,6 +186,9 @@ class aitextgen:
                     model,
                     cache_dir=cache_dir,
                 )
+
+        if gradient_checkpointing:
+            self.model.config["gradient_checkpointing"] = True
 
         if schema_tokens:
             self.model.config["schema_tokens"] = schema_tokens
