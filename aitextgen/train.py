@@ -166,9 +166,8 @@ class ATGProgressBar(ProgressBarBase):
                         "--format=csv,nounits,noheader",
                     ],
                     encoding="utf-8",
-                    # capture_output=True,          # valid for python version >=3.7
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+                    stderr=subprocess.PIPE,
                     check=True,
                 )
                 gpu_memory = result.stdout.strip().split(os.linesep)[0]
@@ -195,16 +194,23 @@ class ATGProgressBar(ProgressBarBase):
         gen_length = min(pl_module.model.config.n_positions, 256)
 
         outputs = pl_module.model.generate(
+            input_ids=None,
             max_length=gen_length,
             do_sample=True,
             num_return_sequences=self.n_generate,
             temperature=0.7,
             pad_token_id=pl_module.tokenizer.pad_token_id,
         )
-        gen_texts = [
-            pl_module.tokenizer.decode(output, skip_special_tokens=True)
-            for output in outputs
-        ]
+
+        if self.n_generate > 1:
+            gen_texts = pl_module.tokenizer.batch_decode(
+                outputs, skip_special_tokens=True
+            )
+        else:
+            gen_texts = [
+                pl_module.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            ]
+
         for text in gen_texts:
             self.main_progress_bar.write("=" * 10)
             self.main_progress_bar.write(text)
@@ -232,9 +238,8 @@ class ATGProgressBar(ProgressBarBase):
 
     def modify_nontransformer_layers(self, pl_module, unfreeze):
         if self.train_transformers_only:
-            layers = ["transformer.wte.weight"]
             for name, param in pl_module.model.named_parameters():
-                if name in layers:
+                if name == "transformer.wte.weight":
                     param.requires_grad = unfreeze
 
     def freeze_nontransformer_layers(self, pl_module):
