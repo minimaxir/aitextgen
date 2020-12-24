@@ -109,6 +109,10 @@ class aitextgen:
             logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
         if tf_gpt2:
+            if tf_gpt2 != "124M":
+                self.openai_gpt2_large = True
+                gradient_checkpointing = True
+
             # Download + convert the TF weights if a PyTorch model has not been created
             if not os.path.isfile(
                 os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
@@ -119,10 +123,6 @@ class aitextgen:
                     "774M",
                     "1558M",
                 ], "Invalid TensorFlow GPT-2 model size."
-
-                if tf_gpt2 != "124M":
-                    self.openai_gpt2_large = True
-                    gradient_checkpointing = True
 
                 logger.info(
                     f"Downloading the {tf_gpt2} GPT-2 TensorFlow weights/config "
@@ -551,6 +551,10 @@ class aitextgen:
                 **kwargs,
             )
 
+        if train_transformers_only or self.openai_gpt2_large:
+            logger.info("Training Transformer layers only.")
+            train_transformers_only = True
+
         if num_workers is None and tpu_cores == 0:
             # Use all CPU cores as workers if not training on CPU
             # Can overload 2x w/o diminishing returns
@@ -597,6 +601,7 @@ class aitextgen:
             checkpoint_callback=False,
             logger=loggers if loggers else False,
             weights_summary=None,
+            progress_bar_refresh_rate=progress_bar_refresh_rate,  # ignored
             callbacks=[
                 ATGProgressBar(
                     save_every,
@@ -608,6 +613,7 @@ class aitextgen:
                     run_id,
                     save_gdrive,
                     progress_bar_refresh_rate,
+                    train_transformers_only,
                 )
             ],
         )
@@ -629,20 +635,8 @@ class aitextgen:
         if n_gpu > 1:
             train_params["distributed_backend"] = "ddp"
 
-        if train_transformers_only or self.openai_gpt2_large:
-            logger.info("Training Transformer layers only.")
-            for name, param in train_model.model.named_parameters():
-                if ".h." in name:
-                    param.requires_grad = False
-
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
-
-        # Unfreeze Transformer layers after done
-        if train_transformers_only or self.openai_gpt2_large:
-            for name, param in train_model.model.named_parameters():
-                if ".h." in name:
-                    param.requires_grad = True
 
         logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
 

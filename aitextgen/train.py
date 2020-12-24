@@ -98,6 +98,7 @@ class ATGProgressBar(ProgressBarBase):
         run_id,
         save_gdrive,
         progress_bar_refresh_rate,
+        train_transformers_only,
     ):
         super().__init__()
         self.enabled = True
@@ -112,6 +113,7 @@ class ATGProgressBar(ProgressBarBase):
         self.run_id = run_id
         self.save_gdrive = save_gdrive
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
+        self.train_transformers_only = train_transformers_only
 
     def enabled(self):
         self.enabled = True
@@ -129,6 +131,11 @@ class ATGProgressBar(ProgressBarBase):
             dynamic_ncols=True,
             file=sys.stdout,
         )
+        self.freeze_nontransformer_layers(pl_module)
+
+    def on_train_end(self, trainer, pl_module):
+        self.main_progress_bar.close()
+        self.unfreeze_nontransformer_layers(pl_module)
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -170,12 +177,15 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.set_description(desc)
 
         if self.enabled:
-
             if self.save_every > 0 and self.steps % self.save_every == 0:
+                self.unfreeze_nontransformer_layers(pl_module)
                 self.save_pytorch_model(trainer, pl_module)
 
             if self.generate_every > 0 and self.steps % self.generate_every == 0:
+                self.unfreeze_nontransformer_layers(pl_module)
                 self.generate_sample_text(trainer, pl_module)
+
+        self.freeze_nontransformer_layers(pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
         self.main_progress_bar.write(
@@ -219,3 +229,16 @@ class ATGProgressBar(ProgressBarBase):
             return current_loss
         else:
             return (smoothing * current_loss) + (1 - smoothing) * prev_avg_loss
+
+    def modify_nontransformer_layers(self, pl_module, unfreeze):
+        if self.train_transformers_only:
+            layers = ["transformer.wte.weight"]
+            for name, param in pl_module.model.named_parameters():
+                if name in layers:
+                    param.requires_grad = unfreeze
+
+    def freeze_nontransformer_layers(self, pl_module):
+        self.modify_nontransformer_layers(pl_module, False)
+
+    def unfreeze_nontransformer_layers(self, pl_module):
+        self.modify_nontransformer_layers(pl_module, True)
