@@ -14,6 +14,7 @@ def train_tokenizer(
     eos_token: str = "<|endoftext|>",
     unk_token: str = "<|endoftext|>",
     serialize: bool = True,
+    trim_offsets: bool = True,
 ) -> None:
     """
     Tokenizes the text(s) as a tokenizer, wrapping the tokenizer package.
@@ -42,7 +43,7 @@ def train_tokenizer(
     if isinstance(files, str):
         files = [files]
 
-    tokenizer = ByteLevelBPETokenizer(dropout=dropout)
+    tokenizer = ByteLevelBPETokenizer(dropout=dropout, trim_offsets=trim_offsets)
 
     tokenizer.train(
         files=files,
