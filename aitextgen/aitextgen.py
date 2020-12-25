@@ -493,6 +493,7 @@ class aitextgen:
         run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
         progress_bar_refresh_rate: int = 20,
         train_transformers_only: bool = False,
+        num_layers_freeze: int = None,
         **kwargs,
     ) -> None:
         """
@@ -614,6 +615,7 @@ class aitextgen:
                     save_gdrive,
                     progress_bar_refresh_rate,
                     train_transformers_only,
+                    num_layers_freeze,
                 )
             ],
         )

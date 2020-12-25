@@ -99,6 +99,7 @@ class ATGProgressBar(ProgressBarBase):
         save_gdrive,
         progress_bar_refresh_rate,
         train_transformers_only,
+        num_layers_freeze,
     ):
         super().__init__()
         self.enabled = True
@@ -114,6 +115,7 @@ class ATGProgressBar(ProgressBarBase):
         self.save_gdrive = save_gdrive
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
+        self.num_layers_freeze = num_layers_freeze
 
     def enabled(self):
         self.enabled = True
@@ -239,7 +241,12 @@ class ATGProgressBar(ProgressBarBase):
     def modify_nontransformer_layers(self, pl_module, unfreeze):
         if self.train_transformers_only:
             for name, param in pl_module.model.named_parameters():
-                if name == "transformer.wte.weight":
+                if self.num_layers_freeze:
+                    layer_num = int(name.split(".")[2]) if ".h." in name else None
+                    to_freeze = layer_num and layer_num < self.num_layers_freeze
+                else:
+                    to_freeze = False
+                if name == "transformer.wte.weight" or to_freeze:
                     param.requires_grad = unfreeze
 
     def freeze_nontransformer_layers(self, pl_module):
