@@ -319,8 +319,8 @@ class aitextgen:
 
         # Schema token handling
         if schema:
-            schema_tokens = self.model.config.get("schema_tokens")
-            schema_return = self.model.config.get("schema_return")
+            schema_tokens = getattr(self.model.config, "schema_tokens")
+            schema_return = getattr(self.model.config, "schema_return")
             schema_tokens_enc = self.tokenizer(text=schema_tokens)["input_ids"]
 
             outputs = outputs.tolist()
