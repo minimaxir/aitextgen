@@ -492,7 +492,7 @@ class aitextgen:
         save_gdrive: bool = False,
         run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
         progress_bar_refresh_rate: int = 20,
-        train_transformers_only: bool = False,
+        freeze_layers: bool = False,
         num_layers_freeze: int = None,
         **kwargs,
     ) -> None:
@@ -552,9 +552,12 @@ class aitextgen:
                 **kwargs,
             )
 
-        if train_transformers_only or self.openai_gpt2_large:
-            logger.info("Training Transformer layers only.")
-            train_transformers_only = True
+        if freeze_layers or self.openai_gpt2_large:
+            freeze_layers = True
+            if num_layers_freeze:
+                assert (
+                    num_layers_freeze < self.model.config.n_layer
+                ), "You are freezing more Transformer layers than in the model."
 
         if num_workers is None and tpu_cores == 0:
             # Use all CPU cores as workers if not training on CPU
@@ -614,7 +617,7 @@ class aitextgen:
                     run_id,
                     save_gdrive,
                     progress_bar_refresh_rate,
-                    train_transformers_only,
+                    freeze_layers,
                     num_layers_freeze,
                 )
             ],

@@ -133,11 +133,11 @@ class ATGProgressBar(ProgressBarBase):
             dynamic_ncols=True,
             file=sys.stdout,
         )
-        self.freeze_nontransformer_layers(pl_module)
+        self.freeze_layers(pl_module)
 
     def on_train_end(self, trainer, pl_module):
         self.main_progress_bar.close()
-        self.unfreeze_nontransformer_layers(pl_module)
+        self.unfreeze_layers(pl_module)
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -178,15 +178,19 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.set_description(desc)
 
         if self.enabled:
+            did_unfreeze = False
             if self.save_every > 0 and self.steps % self.save_every == 0:
-                self.unfreeze_nontransformer_layers(pl_module)
+                self.unfreeze_layers(pl_module)
                 self.save_pytorch_model(trainer, pl_module)
+                did_unfreeze = True
 
             if self.generate_every > 0 and self.steps % self.generate_every == 0:
-                self.unfreeze_nontransformer_layers(pl_module)
+                self.unfreeze_layers(pl_module)
                 self.generate_sample_text(trainer, pl_module)
+                did_unfreeze = True
 
-        self.freeze_nontransformer_layers(pl_module)
+            if did_unfreeze:
+                self.freeze_layers(pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
         self.main_progress_bar.write(
@@ -238,7 +242,7 @@ class ATGProgressBar(ProgressBarBase):
         else:
             return (smoothing * current_loss) + (1 - smoothing) * prev_avg_loss
 
-    def modify_nontransformer_layers(self, pl_module, unfreeze):
+    def modify_layers(self, pl_module, unfreeze):
         if self.train_transformers_only:
             for name, param in pl_module.model.named_parameters():
                 if self.num_layers_freeze:
@@ -249,8 +253,8 @@ class ATGProgressBar(ProgressBarBase):
                 if name == "transformer.wte.weight" or to_freeze:
                     param.requires_grad = unfreeze
 
-    def freeze_nontransformer_layers(self, pl_module):
-        self.modify_nontransformer_layers(pl_module, False)
+    def freeze_layers(self, pl_module):
+        self.modify_layers(pl_module, False)
 
-    def unfreeze_nontransformer_layers(self, pl_module):
-        self.modify_nontransformer_layers(pl_module, True)
+    def unfreeze_layers(self, pl_module):
+        self.modify_layers(pl_module, True)
