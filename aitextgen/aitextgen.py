@@ -559,11 +559,14 @@ class aitextgen:
                     num_layers_freeze < self.model.config.n_layer
                 ), "You are freezing more Transformer layers than in the model."
 
-        if num_workers is None and tpu_cores == 0:
+        if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
             # Can overload 2x w/o diminishing returns
             if is_gpu_used:
                 num_workers = os.cpu_count() * 2
+            # TPUs want same amount of workers as CPUs
+            elif tpu_cores > 0:
+                num_workers = os.cpu_count()
             # If training on the CPU, use half the CPUs
             else:
                 num_workers = int(os.cpu_count() / 2)
@@ -575,10 +578,11 @@ class aitextgen:
             warmup_steps=warmup_steps,
             batch_size=batch_size,
             num_steps=num_steps,
-            pin_memory=True if is_gpu_used else False,
+            pin_memory=is_gpu_used,
             num_workers=num_workers,
             save_every=save_every,
             generate_every=generate_every,
+            use_tpu=tpu_cores > 0,
         )
 
         # Wrap the model in a pytorch-lightning module

@@ -10,6 +10,11 @@ import os
 import shutil
 import subprocess
 
+try:
+    import torch_xla.core.xla_model as xm  # noqa
+except ImportError:
+    pass
+
 
 class ATGTransformer(pl.LightningModule):
     """
@@ -38,11 +43,20 @@ class ATGTransformer(pl.LightningModule):
 
     def train_dataloader(self):
         "Load datasets. Called after prepare data."
+        sampler = None
+        if self.hparams.use_tpu:
+            sampler = torch.utils.data.distributed.DistributedSampler(
+                self.dataset,
+                num_replicas=xm.xrt_world_size(),
+                rank=xm.get_ordinal(),
+                shuffle=True,
+            )
 
         return DataLoader(
             self.dataset,
+            sampler=sampler,
             batch_size=self.hparams["batch_size"],
-            shuffle=True,
+            shuffle=not sampler,
             pin_memory=self.hparams["pin_memory"],
             num_workers=self.hparams["num_workers"],
         )
@@ -210,11 +224,11 @@ class ATGProgressBar(ProgressBarBase):
 
         if self.n_generate > 1:
             gen_texts = pl_module.tokenizer.batch_decode(
-                outputs, skip_special_tokens=True
+                outputs, skip_special_tokens=False
             )
         else:
             gen_texts = [
-                pl_module.tokenizer.decode(outputs[0], skip_special_tokens=True)
+                pl_module.tokenizer.decode(outputs[0], skip_special_tokens=False)
             ]
 
         for text in gen_texts:
