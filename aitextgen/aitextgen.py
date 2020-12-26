@@ -29,7 +29,6 @@ from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 import shutil
-import json
 
 try:
     import torch_xla.core.xla_model as xm  # noqa
@@ -638,7 +637,7 @@ class aitextgen:
 
         # benchmark gives a boost for GPUs if input size is constant,
         # which will always be the case with aitextgen training
-        if n_gpu != 0 and benchmark:
+        if is_gpu_used and benchmark:
             train_params["benchmark"] = True
 
         if n_gpu > 1:

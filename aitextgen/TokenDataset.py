@@ -311,7 +311,7 @@ def encode_tokens_from_file(
             if not batch:
                 break
 
-            encoded_texts = tokenizer.batch_encode_plus(
+            encoded_texts = tokenizer(
                 batch,
                 add_special_tokens=False,
                 return_token_type_ids=False,
@@ -379,7 +379,7 @@ def encode_tokens_from_list(
             ]
         ]
 
-        encoded_texts = tokenizer.batch_encode_plus(
+        encoded_texts = tokenizer(
             batch,
             add_special_tokens=False,
             return_token_type_ids=False,

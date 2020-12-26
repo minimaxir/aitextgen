@@ -1,4 +1,3 @@
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
 from tqdm.auto import tqdm
@@ -9,11 +8,6 @@ from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
 import subprocess
-
-try:
-    import torch_xla.core.xla_model as xm  # noqa
-except ImportError:
-    pass
 
 
 class ATGTransformer(pl.LightningModule):
