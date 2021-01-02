@@ -4,6 +4,7 @@ from tqdm.auto import tqdm
 import sys
 import torch
 from torch.optim import AdamW
+from torch.utils.data import DataLoader
 from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
@@ -28,29 +29,16 @@ class ATGTransformer(pl.LightningModule):
         return self.model(**inputs, return_dict=False)
 
     def training_step(self, batch, batch_num):
-        "Compute loss and log."
-
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
 
         return {"loss": loss}
 
     def train_dataloader(self):
-        "Load datasets. Called after prepare data."
-        sampler = None
-        if self.hparams.use_tpu:
-            sampler = torch.utils.data.distributed.DistributedSampler(
-                self.dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=True,
-            )
-
         return DataLoader(
             self.dataset,
-            sampler=sampler,
             batch_size=self.hparams["batch_size"],
-            shuffle=not sampler,
+            shuffle=True,
             pin_memory=self.hparams["pin_memory"],
             num_workers=self.hparams["num_workers"],
         )
