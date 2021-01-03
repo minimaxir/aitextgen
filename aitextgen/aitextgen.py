@@ -29,6 +29,7 @@ from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 import shutil
+import re
 
 try:
     import torch_xla.core.xla_model as xm  # noqa
@@ -259,6 +260,7 @@ class aitextgen:
         seed: int = None,
         pad_token_id: str = None,
         schema: str = False,
+        normalize_key: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -322,17 +324,35 @@ class aitextgen:
             schema_return = getattr(self.model.config, "schema_return")
             schema_tokens_enc = self.tokenizer(text=schema_tokens)["input_ids"]
 
+            nonalphanum_pattern = re.compile(r"[\W_]+")
+
             outputs = outputs.tolist()
             gen_texts = []
             for output in outputs:
                 gen_text_dict = {}
-                index = 0
-                for i, token_enc in enumerate(schema_tokens_enc):
-                    end_index = find_index_of_subset(output, token_enc)
-                    gen_text_dict[schema_tokens[i]] = self.tokenizer.decode(
-                        output[index:end_index], skip_special_tokens=True
+
+                # Get indices of each schema token within the text
+                schema_token_indices = [
+                    (schema_tokens[i], find_index_of_subset(output, token_enc))
+                    for i, token_enc in enumerate(schema_tokens_enc)
+                ]
+                schema_token_indices.sort(key=lambda x: x[1])
+
+                for i, token_tuple in enumerate(schema_token_indices):
+                    start_index = token_tuple[1]
+                    end_index = (
+                        schema_token_indices[i + 1][1] - 1
+                        if i + 1 < len(schema_token_indices)
+                        else None
                     )
-                    index = end_index
+                    key = (
+                        nonalphanum_pattern.sub("", token_tuple[0])
+                        if normalize_key
+                        else token_tuple[0]
+                    )
+                    gen_text_dict[key] = self.tokenizer.decode(
+                        output[start_index:end_index], skip_special_tokens=False
+                    )
 
                 # remove fields not in schema_return
                 if schema_return:
