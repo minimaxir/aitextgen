@@ -324,7 +324,7 @@ class aitextgen:
             schema_return = getattr(self.model.config, "schema_return")
             schema_tokens_enc = self.tokenizer(text=schema_tokens)["input_ids"]
 
-            nonalphanum_pattern = re.compile(r"[\W_]+")
+            nonalphanum_pattern = re.compile(r"[\W_]+", re.UNICODE)
 
             outputs = outputs.tolist()
             gen_texts = []

@@ -1,5 +1,5 @@
-transformers>=4.0.0
+transformers>=4.2.1
 fire>=0.3.0
-pytorch-lightning>=1.0.8
+pytorch-lightning>=1.1.4
 tokenizers>=0.9.4
 torch>=1.6.0
