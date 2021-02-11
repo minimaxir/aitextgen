@@ -189,6 +189,7 @@ class aitextgen:
 
         if gradient_checkpointing:
             setattr(self.model.config, "gradient_checkpointing", True)
+            setattr(self.model.config, "use_cache", False)
 
         if schema_tokens:
             setattr(self.model.config, "schema_tokens", schema_tokens)
@@ -261,6 +262,7 @@ class aitextgen:
         pad_token_id: str = None,
         schema: str = False,
         normalize_key: bool = True,
+        use_cache: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -311,6 +313,7 @@ class aitextgen:
             do_sample=do_sample,
             num_return_sequences=n,
             pad_token_id=pad_token_id,
+            use_cache=use_cache,
             **kwargs,
         )
 
