@@ -392,7 +392,10 @@ class aitextgen:
                         for text in gen_texts
                     ]
 
-                print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+                if n > 1:
+                    print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+                else:
+                    print(gen_texts)
             else:
                 return gen_texts
 
