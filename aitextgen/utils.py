@@ -35,7 +35,7 @@ def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None
     ]:
         if not os.path.isfile(os.path.join(sub_dir, file_name)):
             download_file_with_progress(
-                url_base="https://storage.googleapis.com/gpt-2",
+                url_base="https://openaipublic.blob.core.windows.net/gpt-2",
                 sub_dir=sub_dir,
                 model_name=model_name,
                 file_name=file_name,
