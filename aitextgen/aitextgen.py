@@ -1,6 +1,6 @@
 from transformers import (
     GPT2LMHeadModel,
-    GPT2TokenizerFast,
+    GPT2Tokenizer,
     GPT2Config,
     AutoConfig,
 )
@@ -219,7 +219,7 @@ class aitextgen:
 
             if tokenizer_file:
                 # load the custom GPT-2 tokenizer from a serialized tokenizer
-                self.tokenizer = GPT2TokenizerFast(
+                self.tokenizer = GPT2Tokenizer(
                     vocab_file=None,
                     merges_file=None,
                     tokenizer_file=tokenizer_file,
@@ -229,7 +229,7 @@ class aitextgen:
                     pad_token=self.pad_token,
                 )
             else:
-                self.tokenizer = GPT2TokenizerFast(
+                self.tokenizer = GPT2Tokenizer(
                     vocab_file=self.vocab_file,
                     merges_file=self.merges_file,
                     bos_token=self.bos_token,
@@ -385,7 +385,7 @@ class aitextgen:
                 gen_texts = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
             if not return_as_list:
-                if prompt is not None:
+                if prompt:
                     # Bold the prompt if printing to console
                     gen_texts = [
                         text.replace(prompt_text, f"\033[1m{prompt_text}\033[0m", 1)
