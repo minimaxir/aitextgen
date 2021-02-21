@@ -1,6 +1,6 @@
 from transformers import (
     GPT2LMHeadModel,
-    GPT2Tokenizer,
+    GPT2TokenizerFast,
     GPT2Config,
     AutoConfig,
 )
@@ -23,6 +23,7 @@ from .utils import (
     set_seed,
     reset_seed,
     find_index_of_subset,
+    skip_special_tokens,
 )
 from .train import ATGTransformer, ATGProgressBar
 from .colab import create_gdrive_folder
@@ -219,7 +220,7 @@ class aitextgen:
 
             if tokenizer_file:
                 # load the custom GPT-2 tokenizer from a serialized tokenizer
-                self.tokenizer = GPT2Tokenizer(
+                self.tokenizer = GPT2TokenizerFast(
                     vocab_file=None,
                     merges_file=None,
                     tokenizer_file=tokenizer_file,
@@ -229,7 +230,7 @@ class aitextgen:
                     pad_token=self.pad_token,
                 )
             else:
-                self.tokenizer = GPT2Tokenizer(
+                self.tokenizer = GPT2TokenizerFast(
                     vocab_file=self.vocab_file,
                     merges_file=self.merges_file,
                     bos_token=self.bos_token,
@@ -263,6 +264,7 @@ class aitextgen:
         schema: str = False,
         normalize_key: bool = True,
         use_cache: bool = True,
+        lstrip: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -284,16 +286,17 @@ class aitextgen:
         and model.
         """
 
-        if prompt:
-            assert (
-                len(prompt) < self.model.config.n_positions
-            ), "The prompt is too large for the model."
-
         prompt_text = prompt
         prompt_tensors = self.tokenizer(text=prompt, return_tensors="pt")
 
+        if prompt:
+            prompt_num_tokens = list(prompt_tensors["input_ids"].shape)[1]
+            assert (
+                prompt_num_tokens < self.model.config.n_positions
+            ), f"The prompt is too large for the model. ({prompt_num_tokens} tokens)"
+
         input_ids = (
-            prompt_tensors["input_ids"].to(self.model.device) if prompt else None
+            prompt_tensors["input_ids"].to(self.get_device()) if prompt else None
         )
 
         if seed:
@@ -377,12 +380,23 @@ class aitextgen:
 
         # Typical use case
         else:
-            if n > 1:
-                gen_texts = self.tokenizer.batch_decode(
-                    outputs, skip_special_tokens=True
+            # Handle special token stripping at the PyTorch level
+            gen_texts = [
+                skip_special_tokens(
+                    text,
+                    self.get_device(),
+                    [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id],
                 )
+                for text in outputs
+            ]
+            if n > 1:
+                gen_texts = self.tokenizer.batch_decode(gen_texts)
             else:
-                gen_texts = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+                gen_texts = [self.tokenizer.decode(gen_texts[0])]
+
+            # Handle stripping tokenization spaces w/ regex
+            if lstrip:
+                gen_texts = [re.sub(r"^\W+", "", text) for text in gen_texts]
 
             if not return_as_list:
                 if prompt:
@@ -395,7 +409,7 @@ class aitextgen:
                 if n > 1:
                     print(*gen_texts, sep="\n" + "=" * 10 + "\n")
                 else:
-                    print(gen_texts)
+                    print(gen_texts[0])
             else:
                 return gen_texts
 

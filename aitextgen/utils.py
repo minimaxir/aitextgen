@@ -153,3 +153,21 @@ def find_index_of_subset(large_list, small_list):
             if large_list[idx : idx + length_small_list] == small_list:
                 return idx + length_small_list
     return None
+
+
+def skip_special_tokens(tensor, device, special_token_ids):
+    """Filters out special tokens by ids in the given 1D tensor.
+
+    Adapted from https://stackoverflow.com/a/62588955
+
+    Args:
+        tensor (tensor): PyTorch Tensor
+        device (str): Device, usually "cpu" or "cuda:0"
+        token_ids (set): List of Token IDs
+    """
+    special_token_id_tensor = torch.unique(torch.as_tensor(special_token_ids)).to(
+        device
+    )
+    return tensor[
+        ~tensor.unsqueeze(1).eq(special_token_id_tensor.unsqueeze(1)).any(1)
+    ].tolist()
