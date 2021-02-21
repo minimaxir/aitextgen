@@ -34,7 +34,7 @@ import re
 
 try:
     import torch_xla.core.xla_model as xm  # noqa
-except ImportError:
+except ModuleNotFoundError:
     pass
 
 logger = logging.getLogger("aitextgen")
@@ -533,6 +533,7 @@ class aitextgen:
         progress_bar_refresh_rate: int = 20,
         freeze_layers: bool = False,
         num_layers_freeze: int = None,
+        use_deepspeed: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -640,6 +641,19 @@ class aitextgen:
         if not is_gpu_used:
             n_gpu = 0
 
+        # use the deepseed plugin if installed and specified
+        deepspeed_plugin = None
+        # if is_gpu_used and use_deepspeed:
+        #     deepspeed_config = gen_deepspeed_config(
+        #         self.get_device(), learning_rate, weight_decay
+        #     )
+        #     deepspeed_plugin = DeepSpeedPlugin(deepseed_config)
+        #     logger.info("Using DeepSpeed training.")
+        # logger.warning(
+        #     "deepspeed was attempted to be used, but was not installed. "
+        #     + "Using normal training behavior."
+        # )
+
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
@@ -664,6 +678,7 @@ class aitextgen:
                     num_layers_freeze,
                 )
             ],
+            plugins=deepspeed_plugin,
         )
 
         if fp16:

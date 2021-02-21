@@ -171,3 +171,48 @@ def skip_special_tokens(tensor, device, special_token_ids):
     return tensor[
         ~tensor.unsqueeze(1).eq(special_token_id_tensor.unsqueeze(1)).any(1)
     ].tolist()
+
+
+def gen_deepspeed_config(device, lr, weight_decay):
+    """Deepspeed OneBitAdam config.
+
+    Adapted from https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html#deepspeed
+
+    Args:
+        device ([type]): Device for training
+        lr ([type]): Learning rate
+        weight_decay ([type]): Weight decay
+    """
+
+    deepspeed_config = {
+        "zero_allow_untested_optimizer": True,
+        "optimizer": {
+            "type": "OneBitAdam",
+            "params": {
+                "lr": lr,
+                "betas": [0.998, 0.999],
+                "eps": 1e-5,
+                "weight_decay": weight_decay,
+                "cuda_aware": "cuda" in device,
+            },
+        },
+        "scheduler": {
+            "type": "WarmupLR",
+            "params": {
+                "last_batch_iteration": -1,
+                "warmup_min_lr": 0,
+                "warmup_max_lr": 3e-5,
+                "warmup_num_steps": 100,
+            },
+        },
+        "zero_optimization": {
+            "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
+            "cpu_offload": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "contiguous_gradients": True,  # Reduce gradient fragmentation.
+            "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
+            "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.
+            "reduce_bucket_size": 2e8,  # Number of elements we reduce/allreduce at once.
+        },
+    }
+
+    return deepspeed_config
