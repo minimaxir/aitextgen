@@ -356,9 +356,14 @@ class aitextgen:
                         if normalize_key
                         else token_tuple[0]
                     )
-                    gen_text_dict[key] = self.tokenizer.decode(
-                        output[start_index:end_index], skip_special_tokens=False
+
+                    gen_text = skip_special_tokens(
+                        output[start_index:end_index],
+                        self.get_device(),
+                        [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id],
                     )
+
+                    gen_text_dict[key] = self.tokenizer.decode(gen_text)
 
                 # remove fields not in schema_return
                 if schema_return:
