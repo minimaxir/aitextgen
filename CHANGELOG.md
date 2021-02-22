@@ -4,13 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.0] - TBD
+## [0.4.0] - 2021-02-21
 
+- Increased minimum versions of dependencies (`transformers` to 4.3.0, `pytorch-lightning` to 1.2.0)
+  - Remove dependency on `tokenizers` as `transformers` pins it.
 - Made Fast tokenizers the default (as it is the default in `transformers` 4.0.0)
 - Made serialized tokenizers the default for custom tokenizers, and added support for loading them for both `aitextgen` and `TokenDataset`s
 - Added gradient checkpointing for GPT-2, and set it to the default for training 355M and 774M.
 - Added layer freezing to freeze the first `n` layers of GPT-2 while training. This allows 1.5B GPT-2 to be trained with a high `n`.
 - Added schema-based generation for specificed schema_tokens (which can be encoded in the Transformers config). This can be used with an appropriate dataset for schema-based generation.
+- Switched TensorFlow weight download URL from GCP (as OpenAI removed it from there) to Azure
+- Fixed issue where prompt character length was used to check for a too-long assert instead of prompt token length (#90)
+- Workaround breaking issue in Transformers 4.3.0 by moving special token stripping into aitextgen instead of the tokenizer (#90)
+- Added an `lstrip` param to generation, which strips all whitespace at the beginning of generated text (related to point above)
 
 ## [0.3.0] - 2020-11-30
 
