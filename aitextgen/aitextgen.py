@@ -1,6 +1,6 @@
 from transformers import (
     GPT2LMHeadModel,
-    GPT2Tokenizer,
+    GPT2TokenizerFast,
     GPT2Config,
     AutoConfig,
 )
@@ -22,16 +22,19 @@ from .utils import (
     download_gpt2,
     set_seed,
     reset_seed,
+    find_index_of_subset,
+    skip_special_tokens,
 )
 from .train import ATGTransformer, ATGProgressBar
 from .colab import create_gdrive_folder
 from typing import Union, Optional, List
 from pkg_resources import resource_filename
 import shutil
+import re
 
 try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
+    import torch_xla.core.xla_model as xm  # noqa
+except ModuleNotFoundError:
     pass
 
 logger = logging.getLogger("aitextgen")
@@ -63,7 +66,7 @@ class aitextgen:
     :param unk_token: String to override the unknown token
     """
 
-    torchscript = False
+    openai_tf_gpt2 = None
 
     # default values for GPT2Tokenizer
     tokenizer = None
@@ -80,11 +83,15 @@ class aitextgen:
         config: Union[str, GPT2Config] = None,
         vocab_file: str = None,
         merges_file: str = None,
+        tokenizer_file: str = None,
+        schema_tokens: List[str] = None,
+        schema_return: List[str] = None,
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
         to_fp16: bool = False,
         verbose: bool = False,
+        gradient_checkpointing: bool = False,
         bos_token: str = None,
         eos_token: str = None,
         unk_token: str = None,
@@ -103,6 +110,8 @@ class aitextgen:
             logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
         if tf_gpt2:
+            self.openai_tf_gpt2 = tf_gpt2
+
             # Download + convert the TF weights if a PyTorch model has not been created
             if not os.path.isfile(
                 os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
@@ -172,10 +181,21 @@ class aitextgen:
             )
             if model and "gpt2" not in model:
                 logger.info(f"Using the tokenizer for {model}.")
-                self.tokenizer = GPT2Tokenizer.from_pretrained(
+                self.tokenizer = GPT2TokenizerFast.from_pretrained(
                     model,
                     cache_dir=cache_dir,
                 )
+
+        if gradient_checkpointing or tf_gpt2 in ["355M", "774M", "1558M"]:
+            logger.info("Gradient checkpointing enabled for model training.")
+            setattr(self.model.config, "gradient_checkpointing", True)
+            setattr(self.model.config, "use_cache", False)
+
+        if schema_tokens:
+            setattr(self.model.config, "schema_tokens", schema_tokens)
+
+        if schema_tokens:
+            setattr(self.model.config, "schema_return", schema_return)
 
         if self.tokenizer is None:
             # Update tokenizer settings (if not set already)
@@ -197,14 +217,26 @@ class aitextgen:
             else:
                 logger.info("Using the default GPT-2 Tokenizer.")
 
-            self.tokenizer = GPT2Tokenizer(
-                vocab_file=self.vocab_file,
-                merges_file=self.merges_file,
-                bos_token=self.bos_token,
-                eos_token=self.eos_token,
-                unk_token=self.unk_token,
-                pad_token=self.pad_token,
-            )
+            if tokenizer_file:
+                # load the custom GPT-2 tokenizer from a serialized tokenizer
+                self.tokenizer = GPT2TokenizerFast(
+                    vocab_file=None,
+                    merges_file=None,
+                    tokenizer_file=tokenizer_file,
+                    bos_token=self.bos_token,
+                    eos_token=self.eos_token,
+                    unk_token=self.unk_token,
+                    pad_token=self.pad_token,
+                )
+            else:
+                self.tokenizer = GPT2TokenizerFast(
+                    vocab_file=self.vocab_file,
+                    merges_file=self.merges_file,
+                    bos_token=self.bos_token,
+                    eos_token=self.eos_token,
+                    unk_token=self.unk_token,
+                    pad_token=self.pad_token,
+                )
 
         self.tokenizer.padding_side = "left"
 
@@ -228,6 +260,10 @@ class aitextgen:
         return_as_list: bool = False,
         seed: int = None,
         pad_token_id: str = None,
+        schema: str = False,
+        normalize_key: bool = True,
+        use_cache: bool = True,
+        lstrip: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -249,16 +285,17 @@ class aitextgen:
         and model.
         """
 
-        if prompt:
-            assert (
-                len(prompt) < self.model.config.n_positions
-            ), "The prompt is too large for the model."
-
         prompt_text = prompt
         prompt_tensors = self.tokenizer(text=prompt, return_tensors="pt")
 
+        if prompt:
+            prompt_num_tokens = list(prompt_tensors["input_ids"].shape)[1]
+            assert (
+                prompt_num_tokens < self.model.config.n_positions
+            ), f"The prompt is too large for the model. ({prompt_num_tokens} tokens)"
+
         input_ids = (
-            prompt_tensors["input_ids"].to(self.model.device) if prompt else None
+            prompt_tensors["input_ids"].to(self.get_device()) if prompt else None
         )
 
         if seed:
@@ -278,6 +315,7 @@ class aitextgen:
             do_sample=do_sample,
             num_return_sequences=n,
             pad_token_id=pad_token_id,
+            use_cache=use_cache,
             **kwargs,
         )
 
@@ -285,25 +323,99 @@ class aitextgen:
         if seed:
             reset_seed()
 
-        if n > 1:
-            gen_texts = [
-                self.tokenizer.decode(output, skip_special_tokens=True)
-                for output in outputs
-            ]
-        else:
-            gen_texts = [self.tokenizer.decode(outputs[0], skip_special_tokens=True)]
+        # Schema token handling
+        if schema:
+            schema_tokens = getattr(self.model.config, "schema_tokens")
+            schema_return = getattr(self.model.config, "schema_return")
+            schema_tokens_enc = self.tokenizer(text=schema_tokens)["input_ids"]
 
-        if not return_as_list:
-            if prompt is not None:
-                # Bold the prompt if printing to console
-                gen_texts = [
-                    text.replace(prompt_text, f"\033[1m{prompt_text}\033[0m", 1)
-                    for text in gen_texts
+            nonalphanum_pattern = re.compile(r"[\W_]+", re.UNICODE)
+
+            outputs = outputs.tolist()
+            gen_texts = []
+            for output in outputs:
+                gen_text_dict = {}
+
+                # Get indices of each schema token within the text
+                schema_token_indices = [
+                    (schema_tokens[i], find_index_of_subset(output, token_enc))
+                    for i, token_enc in enumerate(schema_tokens_enc)
                 ]
+                schema_token_indices.sort(key=lambda x: x[1])
 
-            print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+                for i, token_tuple in enumerate(schema_token_indices):
+                    start_index = token_tuple[1]
+                    end_index = (
+                        schema_token_indices[i + 1][1] - 1
+                        if i + 1 < len(schema_token_indices)
+                        else None
+                    )
+                    key = (
+                        nonalphanum_pattern.sub("", token_tuple[0])
+                        if normalize_key
+                        else token_tuple[0]
+                    )
+
+                    gen_text = skip_special_tokens(
+                        output[start_index:end_index],
+                        self.get_device(),
+                        [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id],
+                    )
+
+                    gen_text_dict[key] = self.tokenizer.decode(gen_text)
+
+                # remove fields not in schema_return
+                if schema_return:
+                    if len(schema_return) == 1:
+                        gen_text_dict = gen_text_dict[schema_return[0]]
+                    for key in gen_text_dict.keys():
+                        if key not in schema_return:
+                            gen_text_dict.pop(key, None)
+
+                gen_texts.append(gen_text_dict)
+
+            if not return_as_list:
+                print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+            else:
+                if n > 1:
+                    return gen_texts
+                else:
+                    return gen_texts[0]
+
+        # Typical use case
         else:
-            return gen_texts
+            # Handle special token stripping at the PyTorch level
+            gen_texts = [
+                skip_special_tokens(
+                    text,
+                    self.get_device(),
+                    [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id],
+                )
+                for text in outputs
+            ]
+            if n > 1:
+                gen_texts = self.tokenizer.batch_decode(gen_texts)
+            else:
+                gen_texts = [self.tokenizer.decode(gen_texts[0])]
+
+            # Handle stripping tokenization spaces w/ regex
+            if lstrip:
+                gen_texts = [re.sub(r"^\W+", "", text) for text in gen_texts]
+
+            if not return_as_list:
+                if prompt:
+                    # Bold the prompt if printing to console
+                    gen_texts = [
+                        text.replace(prompt_text, f"\033[1m{prompt_text}\033[0m", 1)
+                        for text in gen_texts
+                    ]
+
+                if n > 1:
+                    print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+                else:
+                    print(gen_texts[0])
+            else:
+                return gen_texts
 
     def generate_one(self, **kwargs) -> None:
         """
@@ -423,6 +535,9 @@ class aitextgen:
         save_gdrive: bool = False,
         run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
         progress_bar_refresh_rate: int = 20,
+        freeze_layers: bool = False,
+        num_layers_freeze: int = None,
+        use_deepspeed: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -458,8 +573,6 @@ class aitextgen:
         the progress bar while training.
         """
 
-        assert not self.torchscript, "You cannot train a traced TorchScript model."
-
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -474,8 +587,7 @@ class aitextgen:
 
         if isinstance(train_data, str):
             train_data = TokenDataset(
-                vocab_file=self.vocab_file,
-                merges_file=self.merges_file,
+                tokenizer=self.tokenizer,
                 bos_token=self.bos_token,
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,
@@ -484,11 +596,22 @@ class aitextgen:
                 **kwargs,
             )
 
-        if num_workers is None and tpu_cores == 0:
+        if freeze_layers or self.openai_tf_gpt2 == "1558M":
+            logger.info("Layer freezing enabled for model training.")
+            freeze_layers = True
+            if num_layers_freeze:
+                assert (
+                    num_layers_freeze < self.model.config.n_layer
+                ), "You are freezing more Transformer layers than in the model."
+
+        if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
             # Can overload 2x w/o diminishing returns
             if is_gpu_used:
                 num_workers = os.cpu_count() * 2
+            # TPUs want same amount of workers as CPUs
+            elif tpu_cores > 0:
+                num_workers = os.cpu_count()
             # If training on the CPU, use half the CPUs
             else:
                 num_workers = int(os.cpu_count() / 2)
@@ -500,10 +623,11 @@ class aitextgen:
             warmup_steps=warmup_steps,
             batch_size=batch_size,
             num_steps=num_steps,
-            pin_memory=True if is_gpu_used else False,
+            pin_memory=is_gpu_used,
             num_workers=num_workers,
             save_every=save_every,
             generate_every=generate_every,
+            use_tpu=tpu_cores > 0,
         )
 
         # Wrap the model in a pytorch-lightning module
@@ -522,6 +646,19 @@ class aitextgen:
         if not is_gpu_used:
             n_gpu = 0
 
+        # use the deepseed plugin if installed and specified
+        deepspeed_plugin = None
+        # if is_gpu_used and use_deepspeed:
+        #     deepspeed_config = gen_deepspeed_config(
+        #         self.get_device(), learning_rate, weight_decay
+        #     )
+        #     deepspeed_plugin = DeepSpeedPlugin(deepseed_config)
+        #     logger.info("Using DeepSpeed training.")
+        # logger.warning(
+        #     "deepspeed was attempted to be used, but was not installed. "
+        #     + "Using normal training behavior."
+        # )
+
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
@@ -530,6 +667,7 @@ class aitextgen:
             checkpoint_callback=False,
             logger=loggers if loggers else False,
             weights_summary=None,
+            progress_bar_refresh_rate=progress_bar_refresh_rate,  # ignored
             callbacks=[
                 ATGProgressBar(
                     save_every,
@@ -541,8 +679,11 @@ class aitextgen:
                     run_id,
                     save_gdrive,
                     progress_bar_refresh_rate,
+                    freeze_layers,
+                    num_layers_freeze,
                 )
             ],
+            plugins=deepspeed_plugin,
         )
 
         if fp16:
@@ -556,7 +697,7 @@ class aitextgen:
 
         # benchmark gives a boost for GPUs if input size is constant,
         # which will always be the case with aitextgen training
-        if n_gpu != 0 and benchmark:
+        if is_gpu_used and benchmark:
             train_params["benchmark"] = True
 
         if n_gpu > 1:

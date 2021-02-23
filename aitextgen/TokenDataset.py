@@ -56,6 +56,8 @@ class TokenDataset(Dataset):
         file_path: str = None,
         vocab_file: str = os.path.join(STATIC_PATH, "gpt2_vocab.json"),
         merges_file: str = os.path.join(STATIC_PATH, "gpt2_merges.txt"),
+        tokenizer: GPT2TokenizerFast = None,
+        tokenizer_file: str = None,
         texts: List[str] = None,
         line_by_line: bool = False,
         from_cache: bool = False,
@@ -70,7 +72,7 @@ class TokenDataset(Dataset):
         eos_token: str = "<|endoftext|>",
         unk_token: str = "<|endoftext|>",
         pad_token: str = "<|endoftext|>",
-        progress_bar_refresh_rate: int = 10,
+        progress_bar_refresh_rate: int = 20,
         **kwargs,
     ) -> None:
 
@@ -85,14 +87,27 @@ class TokenDataset(Dataset):
 
         assert any([texts, file_path]), "texts or file_path must be specified."
 
-        tokenizer = GPT2TokenizerFast(
-            vocab_file=vocab_file,
-            merges_file=merges_file,
-            bos_token=bos_token,
-            eos_token=eos_token,
-            unk_token=unk_token,
-            pad_token=pad_token,
-        )
+        if not tokenizer:
+            if tokenizer_file:
+                # load the custom GPT-2 tokenizer from a serialized tokenizer
+                tokenizer = GPT2TokenizerFast(
+                    vocab_file=None,
+                    merges_file=None,
+                    tokenizer_file=tokenizer_file,
+                    bos_token=bos_token,
+                    eos_token=eos_token,
+                    unk_token=unk_token,
+                    pad_token=pad_token,
+                )
+            else:
+                tokenizer = GPT2TokenizerFast(
+                    vocab_file=vocab_file,
+                    merges_file=merges_file,
+                    bos_token=bos_token,
+                    eos_token=eos_token,
+                    unk_token=unk_token,
+                    pad_token=pad_token,
+                )
 
         # If a cache path is provided, load it.
         if from_cache:
@@ -248,7 +263,7 @@ def encode_tokens_from_file(
     tokenizer: GPT2TokenizerFast,
     newline: str,
     header: bool = True,
-    progress_bar_refresh_rate: int = 10,
+    progress_bar_refresh_rate: int = 20,
     batch_size: int = 1024,
 ) -> List[int]:
     """
@@ -299,7 +314,7 @@ def encode_tokens_from_file(
             if not batch:
                 break
 
-            encoded_texts = tokenizer.batch_encode_plus(
+            encoded_texts = tokenizer(
                 batch,
                 add_special_tokens=False,
                 return_token_type_ids=False,
@@ -340,7 +355,7 @@ def encode_tokens_from_list(
     texts: List[str],
     eos_token: str,
     tokenizer: GPT2TokenizerFast,
-    progress_bar_refresh_rate: int = 10,
+    progress_bar_refresh_rate: int = 20,
     batch_size: int = 1024,
 ) -> List[int]:
     """
@@ -367,7 +382,7 @@ def encode_tokens_from_list(
             ]
         ]
 
-        encoded_texts = tokenizer.batch_encode_plus(
+        encoded_texts = tokenizer(
             batch,
             add_special_tokens=False,
             return_token_type_ids=False,

@@ -1,10 +1,10 @@
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
 from tqdm.auto import tqdm
 import sys
 import torch
 from torch.optim import AdamW
+from torch.utils.data import DataLoader
 from transformers import get_linear_schedule_with_warmup
 import os
 import shutil
@@ -29,16 +29,12 @@ class ATGTransformer(pl.LightningModule):
         return self.model(**inputs, return_dict=False)
 
     def training_step(self, batch, batch_num):
-        "Compute loss and log."
-
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
 
         return {"loss": loss}
 
     def train_dataloader(self):
-        "Load datasets. Called after prepare data."
-
         return DataLoader(
             self.dataset,
             batch_size=self.hparams["batch_size"],
@@ -98,6 +94,8 @@ class ATGProgressBar(ProgressBarBase):
         run_id,
         save_gdrive,
         progress_bar_refresh_rate,
+        train_transformers_only,
+        num_layers_freeze,
     ):
         super().__init__()
         self.enabled = True
@@ -112,6 +110,8 @@ class ATGProgressBar(ProgressBarBase):
         self.run_id = run_id
         self.save_gdrive = save_gdrive
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
+        self.train_transformers_only = train_transformers_only
+        self.num_layers_freeze = num_layers_freeze
 
     def enabled(self):
         self.enabled = True
@@ -129,6 +129,11 @@ class ATGProgressBar(ProgressBarBase):
             dynamic_ncols=True,
             file=sys.stdout,
         )
+        self.freeze_layers(pl_module)
+
+    def on_train_end(self, trainer, pl_module):
+        self.main_progress_bar.close()
+        self.unfreeze_layers(pl_module)
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -159,9 +164,8 @@ class ATGProgressBar(ProgressBarBase):
                         "--format=csv,nounits,noheader",
                     ],
                     encoding="utf-8",
-                    # capture_output=True,          # valid for python version >=3.7
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+                    stderr=subprocess.PIPE,
                     check=True,
                 )
                 gpu_memory = result.stdout.strip().split(os.linesep)[0]
@@ -170,12 +174,19 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.set_description(desc)
 
         if self.enabled:
-
+            did_unfreeze = False
             if self.save_every > 0 and self.steps % self.save_every == 0:
+                self.unfreeze_layers(pl_module)
                 self.save_pytorch_model(trainer, pl_module)
+                did_unfreeze = True
 
             if self.generate_every > 0 and self.steps % self.generate_every == 0:
+                self.unfreeze_layers(pl_module)
                 self.generate_sample_text(trainer, pl_module)
+                did_unfreeze = True
+
+            if did_unfreeze:
+                self.freeze_layers(pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
         self.main_progress_bar.write(
@@ -185,16 +196,32 @@ class ATGProgressBar(ProgressBarBase):
         gen_length = min(pl_module.model.config.n_positions, 256)
 
         outputs = pl_module.model.generate(
+            input_ids=None,
             max_length=gen_length,
             do_sample=True,
             num_return_sequences=self.n_generate,
             temperature=0.7,
             pad_token_id=pl_module.tokenizer.pad_token_id,
         )
-        gen_texts = [
-            pl_module.tokenizer.decode(output, skip_special_tokens=True)
+
+        special_token_id_tensor = torch.unique(
+            torch.as_tensor(
+                [pl_module.tokenizer.bos_token_id, pl_module.tokenizer.eos_token_id]
+            )
+        ).to(pl_module.model.device.type)
+
+        outputs = [
+            output[
+                ~output.unsqueeze(1).eq(special_token_id_tensor.unsqueeze(1)).any(1)
+            ].tolist()
             for output in outputs
         ]
+
+        if self.n_generate > 1:
+            gen_texts = pl_module.tokenizer.batch_decode(outputs)
+        else:
+            gen_texts = [pl_module.tokenizer.decode(outputs[0])]
+
         for text in gen_texts:
             self.main_progress_bar.write("=" * 10)
             self.main_progress_bar.write(text)
@@ -219,3 +246,20 @@ class ATGProgressBar(ProgressBarBase):
             return current_loss
         else:
             return (smoothing * current_loss) + (1 - smoothing) * prev_avg_loss
+
+    def modify_layers(self, pl_module, unfreeze):
+        if self.train_transformers_only:
+            for name, param in pl_module.model.named_parameters():
+                if self.num_layers_freeze:
+                    layer_num = int(name.split(".")[2]) if ".h." in name else None
+                    to_freeze = layer_num and layer_num < self.num_layers_freeze
+                else:
+                    to_freeze = False
+                if name == "transformer.wte.weight" or to_freeze:
+                    param.requires_grad = unfreeze
+
+    def freeze_layers(self, pl_module):
+        self.modify_layers(pl_module, False)
+
+    def unfreeze_layers(self, pl_module):
+        self.modify_layers(pl_module, True)

@@ -5,8 +5,8 @@ A robust Python tool for text-based AI training and generation using [OpenAI's](
 aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hugging Face Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to [textgenrnn](https://github.com/minimaxir/textgenrnn) and [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), taking the best of both packages:
 
 - Finetunes on a pretrained 124M GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
-- Generates text faster than gpt-2-simple and with better memory efficiency! (even [from the 1.5B GPT-2 model](https://docs.aitextgen.io/tutorials/generate_1_5b/)!)
-- With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks, download custom GPT-2 models from the Hugging Face model repository, and upload your own models! Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
+- Generates text faster than gpt-2-simple and with better memory efficiency!
+- With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks, download custom GPT-2 models from the HuggingFace model repository, and upload your own models! Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
 - With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress bar, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode megabytes of data in seconds, cache, and compress it on a local computer before transporting to a remote server, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ on multiple datasets to create blended output.
 
@@ -54,7 +54,7 @@ aitextgen generate
 aitextgen generate --prompt "I believe in unicorns because" --to_file False
 ```
 
-Want to train your own mini GPT-2 model on your own computer? Download this [text file of Shakespeare's plays](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt), cd to that directory in a Terminal, open up a `python3` console and go:
+Want to train your own mini GPT-2 model on your own computer? You can follow along [in this Jupyter Notebook](/notebooks/training_hello_world.ipynb) or, download this [text file of Shakespeare's plays](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt), cd to that directory in a Terminal, open up a `python3` console and go:
 
 ```python
 from aitextgen.TokenDataset import TokenDataset
@@ -66,29 +66,36 @@ from aitextgen import aitextgen
 file_name = "input.txt"
 
 # Train a custom BPE Tokenizer on the downloaded text
-# This will save two files: aitextgen-vocab.json and aitextgen-merges.txt,
-# which are needed to rebuild the tokenizer.
+# This will save one file: `aitextgen.tokenizer.json`, which contains the
+# information needed to rebuild the tokenizer.
 train_tokenizer(file_name)
-vocab_file = "aitextgen-vocab.json"
-merges_file = "aitextgen-merges.txt"
+tokenizer_file = "aitextgen.tokenizer.json"
 
 # GPT2ConfigCPU is a mini variant of GPT-2 optimized for CPU-training
 # e.g. the # of input tokens here is 64 vs. 1024 for base GPT-2.
 config = GPT2ConfigCPU()
 
 # Instantiate aitextgen using the created tokenizer and config
-ai = aitextgen(vocab_file=vocab_file, merges_file=merges_file, config=config)
+ai = aitextgen(tokenizer_file=tokenizer_file, config=config)
 
 # You can build datasets for training by creating TokenDatasets,
 # which automatically processes the dataset with the appropriate size.
-data = TokenDataset(file_name, vocab_file=vocab_file, merges_file=merges_file, block_size=64)
+data = TokenDataset(file_name, tokenizer_file=tokenizer_file, block_size=64)
 
 # Train the model! It will save pytorch_model.bin periodically and after completion.
-# On a 2016 MacBook Pro, this took ~25 minutes to run.
-ai.train(data, batch_size=16, num_steps=5000)
+# On a 2020 8-core iMac, this took ~25 minutes to run.
+ai.train(data, batch_size=8, num_steps=50000, generate_every=5000, save_every=5000)
 
 # Generate text from it!
 ai.generate(10, prompt="ROMEO:")
+
+# With your trained model, you can reload the model at any time by
+# providing the pytorch_model.bin model weights, the config, and the tokenizer.
+ai2 = aitextgen(model="trained_model/pytorch_model.bin",
+                tokenizer_file="aitextgen.tokenizer.json",
+                config="trained_model/config.json")
+
+ai2.generate(10, prompt="ROMEO:")
 ```
 
 Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or [follow the documentation](https://docs.aitextgen.io/) to get more information and learn some helpful tips!
@@ -102,7 +109,7 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 ## Upcoming Features
 
-The current release (v0.2.X) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
+The current release (v0.4.X) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
 
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (See [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept.)
 

@@ -35,7 +35,7 @@ def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None
     ]:
         if not os.path.isfile(os.path.join(sub_dir, file_name)):
             download_file_with_progress(
-                url_base="https://storage.googleapis.com/gpt-2",
+                url_base="https://openaipublic.blob.core.windows.net/gpt-2",
                 sub_dir=sub_dir,
                 model_name=model_name,
                 file_name=file_name,
@@ -136,3 +136,83 @@ def GPT2ConfigCPU(
         eos_token_id=eos_token_id,
         **kwargs,
     )
+
+
+def find_index_of_subset(large_list, small_list):
+    """
+    Returns the index after the small_list within the large list,
+    Returns None if not present.
+
+    Adapted from https://stackoverflow.com/a/45819222 which shows that it is
+    performant for input lengths < 1000, which is the common case for this function.
+    """
+    length_small_list = len(small_list)
+    firstneedle = small_list[0]
+    for idx, item in enumerate(large_list):
+        if item == firstneedle:
+            if large_list[idx : idx + length_small_list] == small_list:
+                return idx + length_small_list
+    return None
+
+
+def skip_special_tokens(tensor, device, special_token_ids):
+    """Filters out special tokens by ids in the given 1D tensor.
+
+    Adapted from https://stackoverflow.com/a/62588955
+
+    Args:
+        tensor (tensor): PyTorch Tensor
+        device (str): Device, usually "cpu" or "cuda:0"
+        token_ids (set): List of Token IDs
+    """
+    special_token_id_tensor = torch.unique(torch.as_tensor(special_token_ids)).to(
+        device
+    )
+    return tensor[
+        ~tensor.unsqueeze(1).eq(special_token_id_tensor.unsqueeze(1)).any(1)
+    ].tolist()
+
+
+def gen_deepspeed_config(device, lr, weight_decay):
+    """Deepspeed OneBitAdam config.
+
+    Adapted from https://pytorch-lightning.readthedocs.io/en/stable/advanced/multi_gpu.html#deepspeed
+
+    Args:
+        device ([type]): Device for training
+        lr ([type]): Learning rate
+        weight_decay ([type]): Weight decay
+    """
+
+    deepspeed_config = {
+        "zero_allow_untested_optimizer": True,
+        "optimizer": {
+            "type": "OneBitAdam",
+            "params": {
+                "lr": lr,
+                "betas": [0.998, 0.999],
+                "eps": 1e-5,
+                "weight_decay": weight_decay,
+                "cuda_aware": "cuda" in device,
+            },
+        },
+        "scheduler": {
+            "type": "WarmupLR",
+            "params": {
+                "last_batch_iteration": -1,
+                "warmup_min_lr": 0,
+                "warmup_max_lr": 3e-5,
+                "warmup_num_steps": 100,
+            },
+        },
+        "zero_optimization": {
+            "stage": 2,  # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
+            "cpu_offload": True,  # Enable Offloading optimizer state/calculation to the host CPU
+            "contiguous_gradients": True,  # Reduce gradient fragmentation.
+            "overlap_comm": True,  # Overlap reduce/backward operation of gradients for speed.
+            "allgather_bucket_size": 2e8,  # Number of elements to all gather at once.
+            "reduce_bucket_size": 2e8,  # Number of elements we reduce/allreduce at once.
+        },
+    }
+
+    return deepspeed_config
