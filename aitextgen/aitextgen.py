@@ -400,7 +400,7 @@ class aitextgen:
 
             # Handle stripping tokenization spaces w/ regex
             if lstrip:
-                gen_texts = [re.sub(r"^\W+", "", text) for text in gen_texts]
+                gen_texts = [re.sub(r"^\s+", "", text) for text in gen_texts]
 
             if not return_as_list:
                 if prompt:
