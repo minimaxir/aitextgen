@@ -4,7 +4,7 @@ A robust Python tool for text-based AI training and generation using [OpenAI's](
 
 aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hugging Face Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to [textgenrnn](https://github.com/minimaxir/textgenrnn) and [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), taking the best of both packages:
 
-- Finetunes on a pretrained 124M GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
+- Finetunes on a pretrained 124M/355M/774M GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency!
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks, download custom GPT-2 models from the HuggingFace model repository, and upload your own models! Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
 - With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress bar, with the ability to add optional loggers.
@@ -103,9 +103,6 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 ## Known Issues
 
 - TPUs cannot be used to train a model: although you _can_ train an aitextgen model on TPUs by setting `n_tpu_cores=8` in an appropriate runtime, and the training loss indeed does decrease, there are a number of miscellaneous blocking problems. [[Tracking GitHub Issue](https://github.com/minimaxir/aitextgen/issues/3)]
-- TorchScript exporting, although it works with `ai.export()`, behaves oddly when reloaded back into Python, and is therefore not supported (yet). [[Tracking GitHub Issue](https://github.com/minimaxir/aitextgen/issues/5)]
-- Finetuning the 355M GPT-2 model or larger on a GPU will cause the GPU to go OOM, even 16 GB VRAM GPUs (355M _does_ work with FP16 + 16 GB VRAM however). This is a [known issue with the Transformers GPT-2 implementation](https://github.com/huggingface/transformers/pull/2356), unfortunately. Gradient checkpointing may need to be implemented within the training loop of aitextgen. [[Tracking GitHub Issue](https://github.com/minimaxir/aitextgen/issues/6)]
-  - As a temporary workaround, you can finetune larger models with [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), then [convert the TensorFlow weights to a PyTorch model](https://docs.aitextgen.io/gpt-2-simple/).
 
 ## Upcoming Features
 
