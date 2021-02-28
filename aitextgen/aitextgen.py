@@ -204,6 +204,7 @@ class aitextgen:
             for attr in [
                 "vocab_file",
                 "merges_file",
+                "tokenizer_file",
                 "bos_token",
                 "eos_token",
                 "unk_token",
