@@ -10,9 +10,8 @@ from pkg_resources import resource_filename
 import itertools
 from tqdm.auto import tqdm
 import numpy as np
-import sys
 
-csv.field_size_limit(sys.maxsize)
+csv.field_size_limit(2 ** 31 - 1)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
