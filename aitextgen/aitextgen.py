@@ -265,6 +265,7 @@ class aitextgen:
         normalize_key: bool = True,
         use_cache: bool = True,
         lstrip: bool = True,
+        special_tokens: List[str] = None,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -324,6 +325,9 @@ class aitextgen:
         if seed:
             reset_seed()
 
+        if special_tokens is None:
+            special_tokens = [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id]
+
         # Schema token handling
         if schema:
             schema_tokens = getattr(self.model.config, "schema_tokens")
@@ -360,7 +364,7 @@ class aitextgen:
                     gen_text = skip_special_tokens(
                         output[start_index:end_index],
                         self.get_device(),
-                        [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id],
+                        special_tokens,
                     )
 
                     gen_text_dict[key] = self.tokenizer.decode(gen_text)
@@ -390,7 +394,7 @@ class aitextgen:
                 skip_special_tokens(
                     text,
                     self.get_device(),
-                    [self.tokenizer.bos_token_id, self.tokenizer.eos_token_id],
+                    special_tokens,
                 )
                 for text in outputs
             ]
