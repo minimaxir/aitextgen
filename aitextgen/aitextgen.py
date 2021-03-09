@@ -265,7 +265,7 @@ class aitextgen:
         normalize_key: bool = True,
         use_cache: bool = True,
         lstrip: bool = True,
-        special_tokens: List[str] = None,
+        special_tokens: List[int] = None,
         **kwargs,
     ) -> Optional[str]:
         """
