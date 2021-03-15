@@ -657,12 +657,16 @@ class aitextgen:
         if is_gpu_used and use_deepspeed:
             deepspeed_plugin = DeepSpeedPlugin()
             logger.info("Using DeepSpeed training.")
+            if not fp16:
+                logger.info("Setting FP16 to True for DeepSpeed ZeRO Training.")
+                fp16 = True
+
 
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
             max_steps=num_steps,
-            gradient_clip_val=max_grad_norm if not fp16 else 0,
+            gradient_clip_val=max_grad_norm,
             checkpoint_callback=False,
             logger=loggers if loggers else False,
             weights_summary=None,
