@@ -115,7 +115,10 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
-        self.save_every_check = self.save_every > 0 and self.steps % self.save_every == 0
+        
+    @property
+    def save_every_check(self):
+        return self.save_every > 0 and self.steps % self.save_every == 0
 
     def enabled(self):
         self.enabled = True
