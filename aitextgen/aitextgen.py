@@ -1,3 +1,4 @@
+from pytorch_lightning.plugins import DeepSpeedPlugin
 from transformers import (
     GPT2LMHeadModel,
     GPT2TokenizerFast,
@@ -651,24 +652,21 @@ class aitextgen:
         if not is_gpu_used:
             n_gpu = 0
 
-        # use the deepseed plugin if installed and specified
+        # use the DeepSpeed plugin if installed and specified
         deepspeed_plugin = None
-        # if is_gpu_used and use_deepspeed:
-        #     deepspeed_config = gen_deepspeed_config(
-        #         self.get_device(), learning_rate, weight_decay
-        #     )
-        #     deepspeed_plugin = DeepSpeedPlugin(deepseed_config)
-        #     logger.info("Using DeepSpeed training.")
-        # logger.warning(
-        #     "deepspeed was attempted to be used, but was not installed. "
-        #     + "Using normal training behavior."
-        # )
+        if is_gpu_used and use_deepspeed:
+            deepspeed_plugin = DeepSpeedPlugin()
+            logger.info("Using DeepSpeed training.")
+            if not fp16:
+                logger.info("Setting FP16 to True for DeepSpeed ZeRO Training.")
+                fp16 = True
+
 
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,
             gpus=n_gpu,
             max_steps=num_steps,
-            gradient_clip_val=max_grad_norm if not fp16 else 0,
+            gradient_clip_val=max_grad_norm,
             checkpoint_callback=False,
             logger=loggers if loggers else False,
             weights_summary=None,
