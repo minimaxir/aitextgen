@@ -4,6 +4,7 @@ from transformers import (
     GPT2TokenizerFast,
     GPT2Config,
     AutoConfig,
+    AutoModelForCausalLM,
 )
 from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
@@ -25,6 +26,7 @@ from .utils import (
     reset_seed,
     find_index_of_subset,
     skip_special_tokens,
+    model_max_length,
 )
 from .train import ATGTransformer, ATGProgressBar
 from .colab import create_gdrive_folder
@@ -161,23 +163,29 @@ class aitextgen:
 
         elif model and os.path.exists(model):
             # A pytorch_model.bin (+ optional config/config.json) is provided
-            logger.info(f"Loading GPT-2 model from provided {model}.")
             if config is None:
                 config = GPT2Config()
-            self.model = GPT2LMHeadModel.from_pretrained(model, config=config)
+                logger.info(f"Loading GPT-2 model from provided weights at {model}.")
+            else:
+                logger.info(
+                    f"Loading model from provided weights at {model} and config at {config}."
+                )
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model, config=config, local_files_only=True
+            )
         elif config:
             # Manually construct a GPT-2 model from scratch
             logger.info("Constructing GPT-2 model from provided config.")
             if isinstance(config, str):
                 config = AutoConfig.from_pretrained(config)
-            self.model = GPT2LMHeadModel(config=config)
+            self.model = AutoModelForCausalLM(config=config, local_files_only=True)
         else:
             # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
                 logger.info(f"Loading {model or 'gpt2'} model from /{cache_dir}.")
             else:
                 logger.info(f"Downloading {model or 'gpt2'} model to /{cache_dir}.")
-            self.model = GPT2LMHeadModel.from_pretrained(
+            self.model = AutoModelForCausalLM.from_pretrained(
                 model or "gpt2", cache_dir=cache_dir
             )
             if model and "gpt2" not in model:
@@ -220,7 +228,8 @@ class aitextgen:
                 logger.info("Using the default GPT-2 Tokenizer.")
 
             if tokenizer_file:
-                # load the custom GPT-2 tokenizer from a serialized tokenizer
+                # load the custom GPT-2 tokenizer from a serialized tokenizer.
+                # GPT-Neo uses the GPT-2 tokenizer.
                 self.tokenizer = GPT2TokenizerFast(
                     vocab_file=None,
                     merges_file=None,
@@ -293,8 +302,8 @@ class aitextgen:
 
         if prompt:
             prompt_num_tokens = list(prompt_tensors["input_ids"].shape)[1]
-            assert (
-                prompt_num_tokens < self.model.config.n_positions
+            assert prompt_num_tokens < model_max_length(
+                self.model.config
             ), f"The prompt is too large for the model. ({prompt_num_tokens} tokens)"
 
         input_ids = (
@@ -305,10 +314,13 @@ class aitextgen:
             set_seed(seed)
 
         if pad_token_id is None:
-            pad_token_id = self.tokenizer.pad_token_id
+            pad_token_id = getattr(self.tokenizer, "pad_token_id", None) or getattr(
+                self.tokenizer, "eos_token_id", None
+            )
 
         # prevent an error from using a length greater than the model
-        max_length = min(self.model.config.n_positions, max_length)
+        gen_max_length = model_max_length(self.model.config)
+        max_length = min(gen_max_length, max_length)
 
         outputs = self.model.generate(
             input_ids=input_ids,
@@ -543,7 +555,7 @@ class aitextgen:
         progress_bar_refresh_rate: int = 20,
         freeze_layers: bool = False,
         num_layers_freeze: int = None,
-        use_deepspeed: bool = True,
+        use_deepspeed: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -592,13 +604,17 @@ class aitextgen:
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
 
         if isinstance(train_data, str):
+            block_size = model_max_length(self.model.config)
+            logger.info(
+                f"Loading text from {train_data} with generation length of {block_size}."
+            )
             train_data = TokenDataset(
                 tokenizer=self.tokenizer,
                 bos_token=self.bos_token,
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,
                 file_path=train_data,
-                block_size=self.model.config.n_positions,
+                block_size=block_size,
                 **kwargs,
             )
 
@@ -612,11 +628,7 @@ class aitextgen:
 
         if num_workers is None:
             # Use all CPU cores as workers if not training on CPU
-            # Can overload 2x w/o diminishing returns
-            if is_gpu_used:
-                num_workers = os.cpu_count() * 2
-            # TPUs want same amount of workers as CPUs
-            elif tpu_cores > 0:
+            if is_gpu_used or tpu_cores > 0:
                 num_workers = os.cpu_count()
             # If training on the CPU, use half the CPUs
             else:
@@ -660,7 +672,6 @@ class aitextgen:
             if not fp16:
                 logger.info("Setting FP16 to True for DeepSpeed ZeRO Training.")
                 fp16 = True
-
 
         train_params = dict(
             accumulate_grad_batches=gradient_accumulation_steps,

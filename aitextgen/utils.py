@@ -172,3 +172,9 @@ def skip_special_tokens(tensor, device, special_token_ids):
         ~tensor.unsqueeze(1).eq(special_token_id_tensor.unsqueeze(1)).any(1)
     ].tolist()
 
+
+def model_max_length(config):
+    """Returns the maximum generation length for the given model."""
+    return getattr(config, "n_positions", None) or getattr(
+        config, "max_position_embeddings", None
+    )

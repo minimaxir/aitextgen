@@ -193,7 +193,14 @@ class ATGProgressBar(ProgressBarBase):
             f"\033[1m{self.steps:,} steps reached: generating sample texts.\033[0m"
         )
 
-        gen_length = min(pl_module.model.config.n_positions, 256)
+        gen_length_max = getattr(
+            pl_module.model.config, "n_positions", None
+        ) or getattr(pl_module.model.config, "max_position_embeddings", None)
+        gen_length = min(gen_length_max, 256)
+
+        pad_token_id = getattr(pl_module.tokenizer, "pad_token_id", None) or getattr(
+            pl_module.tokenizer, "eos_token_id", None
+        )
 
         outputs = pl_module.model.generate(
             input_ids=None,
@@ -201,7 +208,7 @@ class ATGProgressBar(ProgressBarBase):
             do_sample=True,
             num_return_sequences=self.n_generate,
             temperature=0.7,
-            pad_token_id=pl_module.tokenizer.pad_token_id,
+            pad_token_id=pad_token_id,
         )
 
         special_token_id_tensor = torch.unique(
