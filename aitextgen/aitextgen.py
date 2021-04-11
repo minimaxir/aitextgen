@@ -83,6 +83,7 @@ class aitextgen:
     def __init__(
         self,
         model: str = None,
+        model_folder: str = None,
         config: Union[str, GPT2Config] = None,
         vocab_file: str = None,
         merges_file: str = None,
@@ -161,17 +162,20 @@ class aitextgen:
 
             self.model = GPT2LMHeadModel.from_pretrained(model, config=config)
 
-        elif model and os.path.exists(model):
-            # A pytorch_model.bin (+ optional config/config.json) is provided
-            if config is None:
-                config = GPT2Config()
-                logger.info(f"Loading GPT-2 model from provided weights at {model}.")
-            else:
-                logger.info(
-                    f"Loading model from provided weights at {model} and config at {config}."
-                )
+        elif model_folder:
+            # A folder is provided containing pytorch_model.bin and config.json
+            assert os.path.exists(
+                os.path.join(model_folder, "pytorch_model.bin")
+            ), f"There is no pytorch_model.bin in /{model_folder}."
+            assert os.path.exists(
+                os.path.join(model_folder, "config.json")
+            ), f"There is no config.json in /{model_folder}."
+
+            logger.info(
+                f"Loading model from provided weights and config in /{model_folder}."
+            )
             self.model = AutoModelForCausalLM.from_pretrained(
-                model, config=config, local_files_only=True
+                model_folder, local_files_only=True
             )
         elif config:
             # Manually construct a GPT-2 model from scratch
