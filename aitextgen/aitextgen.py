@@ -15,6 +15,7 @@ import torch
 import os
 import logging
 import sys
+import platform
 from tqdm.auto import trange
 from datetime import datetime
 from random import randint
@@ -667,6 +668,13 @@ class aitextgen:
         # if try to use a GPU but no CUDA, use CPU
         if not is_gpu_used:
             n_gpu = 0
+
+        # force single-GPU on Windows
+        if platform.system() == "Windows" and is_gpu_used and n_gpu != 1:
+            logger.warning(
+                "Windows does not support multi-GPU training. Setting to 1 GPU."
+            )
+            n_gpu = 1
 
         # use the DeepSpeed plugin if installed and specified
         deepspeed_plugin = None
