@@ -174,11 +174,11 @@ class aitextgen:
                 model_folder, local_files_only=True
             )
         elif config:
-            # Manually construct a GPT-2 model from scratch
-            logger.info("Constructing GPT-2 model from provided config.")
+            # Manually construct a model from scratch
+            logger.info("Constructing model from provided config.")
             if isinstance(config, str):
                 config = AutoConfig.from_pretrained(config)
-            self.model = AutoModelForCausalLM(config=config, local_files_only=True)
+            self.model = AutoModelForCausalLM.from_config(config=config)
         else:
             # Download and cache model from Huggingface
             if os.path.isdir(cache_dir) and len(os.listdir(cache_dir)) > 0:
@@ -839,5 +839,5 @@ class aitextgen:
     def __repr__(self) -> str:
         # https://discuss.pytorch.org/t/how-do-i-check-the-number-of-parameters-of-a-model/4325/24
         num_params_m = int(sum(p.numel() for p in self.model.parameters()) / 10 ** 6)
-        architecture = getattr(self.model.config, "architectures")[0]
-        return f"{architecture} loaded with {num_params_m}M parameters."
+        model_name = type(self.model.config).__name__.replace("Config", "")
+        return f"{model_name} loaded with {num_params_m}M parameters."
