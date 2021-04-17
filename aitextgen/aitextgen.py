@@ -12,7 +12,6 @@ import pytorch_lightning as pl
 import torch
 from pkg_resources import resource_filename
 from pytorch_lightning.plugins import DeepSpeedPlugin
-from torch.nn import Embedding, Linear
 from tqdm.auto import trange
 from transformers import (
     AutoConfig,
@@ -21,7 +20,6 @@ from transformers import (
     GPT2LMHeadModel,
     GPT2TokenizerFast,
 )
-from transformers.modeling_utils import Conv1D
 from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
 )
@@ -805,20 +803,6 @@ class aitextgen:
         """
         self.model.save_pretrained(target_folder)
         self.tokenizer.save_pretrained(target_folder)
-
-    def quantize(self):
-        """
-        Quantizes the model, which gives it a generation performance boost.
-        Should only be used to generate on a supported CPU.
-
-        Currently only the lm_head layer is quantized:
-        https://github.com/pytorch/pytorch/issues/34074
-        """
-        assert self.get_device() == "cpu", "quantize() can only be used on a CPU."
-
-        self.model = torch.quantization.quantize_dynamic(
-            self.model, {Linear, Embedding, Conv1D}, inplace=True
-        )
 
     def export(
         self,
