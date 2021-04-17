@@ -106,6 +106,11 @@ class TokenDataset(Dataset):
                     eos_token=eos_token,
                     unk_token=unk_token,
                     pad_token=pad_token,
+                    verbose=False,
+                )
+                # https://github.com/huggingface/transformers/issues/10202
+                tokenizer.add_special_tokens(
+                    {"additional_special_tokens": ["<|endoftext|>"]}
                 )
 
         # If a cache path is provided, load it.

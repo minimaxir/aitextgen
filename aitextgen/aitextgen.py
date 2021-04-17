@@ -33,7 +33,6 @@ from .utils import (
     model_max_length,
     reset_seed,
     set_seed,
-    skip_special_tokens,
 )
 
 logger = logging.getLogger("aitextgen")
@@ -249,7 +248,13 @@ class aitextgen:
                     eos_token=self.eos_token,
                     unk_token=self.unk_token,
                     pad_token=self.pad_token,
+                    verbose=False,
                 )
+                if not custom_tokenizer:
+                    # https://github.com/huggingface/transformers/issues/10202
+                    self.tokenizer.add_special_tokens(
+                        {"additional_special_tokens": ["<|endoftext|>"]}
+                    )
 
         self.tokenizer.padding_side = "left"
 
@@ -376,13 +381,9 @@ class aitextgen:
                         else token_tuple[0]
                     )
 
-                    gen_text = skip_special_tokens(
-                        output[start_index:end_index],
-                        self.get_device(),
-                        special_tokens,
+                    gen_text_dict[key] = self.tokenizer.decode(
+                        output[start_index:end_index], skip_special_tokens=True
                     )
-
-                    gen_text_dict[key] = self.tokenizer.decode(gen_text)
 
                 # remove fields not in schema_return
                 if schema_return:
@@ -404,19 +405,7 @@ class aitextgen:
 
         # Typical use case
         else:
-            # Handle special token stripping at the PyTorch level
-            gen_texts = [
-                skip_special_tokens(
-                    text,
-                    self.get_device(),
-                    special_tokens,
-                )
-                for text in outputs
-            ]
-            if n > 1:
-                gen_texts = self.tokenizer.batch_decode(gen_texts)
-            else:
-                gen_texts = [self.tokenizer.decode(gen_texts[0])]
+            gen_texts = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
             # Handle stripping tokenization spaces w/ regex
             if lstrip:

@@ -211,23 +211,7 @@ class ATGProgressBar(ProgressBarBase):
             pad_token_id=pad_token_id,
         )
 
-        special_token_id_tensor = torch.unique(
-            torch.as_tensor(
-                [pl_module.tokenizer.bos_token_id, pl_module.tokenizer.eos_token_id]
-            )
-        ).to(pl_module.model.device.type)
-
-        outputs = [
-            output[
-                ~output.unsqueeze(1).eq(special_token_id_tensor.unsqueeze(1)).any(1)
-            ].tolist()
-            for output in outputs
-        ]
-
-        if self.n_generate > 1:
-            gen_texts = pl_module.tokenizer.batch_decode(outputs)
-        else:
-            gen_texts = [pl_module.tokenizer.decode(outputs[0])]
+        gen_texts = pl_module.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
         for text in gen_texts:
             self.main_progress_bar.write("=" * 10)
