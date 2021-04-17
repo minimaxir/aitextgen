@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 import torch
 import numpy as np
 import random
-from transformers import GPT2Config
+from transformers import GPT2Config, GPTNeoConfig
 
 
 def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None:
@@ -132,6 +132,25 @@ def GPT2ConfigCPU(
         n_embd=128,
         n_layer=4,
         n_head=4,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
+
+
+def GPTNeoConfigCPU(
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, **kwargs
+):
+    """
+    Returns a GPT Neo config more suitable for training on a regular consumer CPU.
+    """
+
+    return GPTNeoConfig(
+        vocab_size=vocab_size,
+        max_position_embeddings=64,
+        hidden_size=256,
+        attention_types=[[["global", "local"], 4]],
+        num_heads=4,
         bos_token_id=bos_token_id,
         eos_token_id=eos_token_id,
         **kwargs,
