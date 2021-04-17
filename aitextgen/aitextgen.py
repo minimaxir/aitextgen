@@ -1,45 +1,42 @@
+import logging
+import os
+import platform
+import re
+import shutil
+import sys
+from datetime import datetime
+from random import randint
+from typing import List, Optional, Union
+
+import pytorch_lightning as pl
+import torch
+from pkg_resources import resource_filename
 from pytorch_lightning.plugins import DeepSpeedPlugin
+from torch.nn import Embedding, Linear
+from tqdm.auto import trange
 from transformers import (
-    GPT2LMHeadModel,
-    GPT2TokenizerFast,
-    GPT2Config,
     AutoConfig,
     AutoModelForCausalLM,
+    GPT2Config,
+    GPT2LMHeadModel,
+    GPT2TokenizerFast,
 )
+from transformers.modeling_utils import Conv1D
 from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
 )
-from transformers.modeling_utils import Conv1D
-from torch.nn import Linear, Embedding
-import torch
-import os
-import logging
-import sys
-import platform
-from tqdm.auto import trange
-from datetime import datetime
-from random import randint
+
+from .colab import create_gdrive_folder
 from .TokenDataset import TokenDataset
-import pytorch_lightning as pl
+from .train import ATGProgressBar, ATGTransformer
 from .utils import (
     download_gpt2,
-    set_seed,
-    reset_seed,
     find_index_of_subset,
-    skip_special_tokens,
     model_max_length,
+    reset_seed,
+    set_seed,
+    skip_special_tokens,
 )
-from .train import ATGTransformer, ATGProgressBar
-from .colab import create_gdrive_folder
-from typing import Union, Optional, List
-from pkg_resources import resource_filename
-import shutil
-import re
-
-try:
-    import torch_xla.core.xla_model as xm  # noqa
-except ModuleNotFoundError:
-    pass
 
 logger = logging.getLogger("aitextgen")
 logger.setLevel(logging.INFO)
@@ -842,11 +839,6 @@ class aitextgen:
         """Moves the model to the specified CPU."""
 
         self.model.to(torch.device("cpu", index))
-
-    def to_tpu(self) -> None:
-        """Moves the model to the TPU."""
-
-        self.model.to(xm.xla_device())
 
     def to_fp16(self) -> None:
         """
