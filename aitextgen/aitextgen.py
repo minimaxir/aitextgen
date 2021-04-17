@@ -200,6 +200,8 @@ class aitextgen:
                     cache_dir=cache_dir,
                 )
 
+        logger.info(self)
+
         if gradient_checkpointing or tf_gpt2 in ["355M", "774M", "1558M"]:
             logger.info("Gradient checkpointing enabled for model training.")
             setattr(self.model.config, "gradient_checkpointing", True)
@@ -857,3 +859,9 @@ class aitextgen:
     def get_device(self) -> str:
         """Getter for the current device where the model is located."""
         return self.model.device.type
+
+    def __repr__(self) -> str:
+        # https://discuss.pytorch.org/t/how-do-i-check-the-number-of-parameters-of-a-model/4325/24
+        num_params_m = int(sum(p.numel() for p in self.model.parameters()) / 10 ** 6)
+        architecture = getattr(self.model.config, "architectures")[0]
+        return f"{architecture} loaded with {num_params_m}M parameters."
