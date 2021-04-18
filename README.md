@@ -1,10 +1,10 @@
 # aitextgen
 
-A robust Python tool for text-based AI training and generation using [OpenAI's](https://openai.com) [GPT-2](https://openai.com/blog/better-language-models/) architecture.
+A robust Python tool for text-based AI training and generation using [OpenAI's](https://openai.com) [GPT-2](https://openai.com/blog/better-language-models/) and [EleutherAI's](https://www.eleuther.ai) [GPT Neo/GPT-3](https://github.com/EleutherAI/gpt-neo) architecture.
 
 aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hugging Face Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to [textgenrnn](https://github.com/minimaxir/textgenrnn) and [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), taking the best of both packages:
 
-- Finetunes on a pretrained 124M/355M/774M GPT-2 model from OpenAI...or create your own GPT-2 model + tokenizer and train from scratch!
+- Finetunes on a pretrained 124M/355M/774M GPT-2 model from OpenAI or a 1325M/355M GPT Neo model from EleutherAI...or create your own GPT-2/GPT Neo model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency!
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks, download custom GPT-2 models from the HuggingFace model repository, and upload your own models! Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
 - With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress bar, with the ability to add optional loggers.
@@ -16,7 +16,7 @@ You can read more about aitextgen [in the documentation](https://docs.aitextgen.
 
 You can play with aitextgen _for free_ with powerful GPUs using these Colaboratory Notebooks!
 
-- [Finetune OpenAI's 124M GPT-2 model on your own dataset (GPU)](https://colab.research.google.com/drive/15qBZx5y9rdaQSyWpsreMDnTiZ5IlN0zD?usp=sharing)
+- [Finetune OpenAI's 124M GPT-2 model (or GPT Neo) on your own dataset (GPU)](https://colab.research.google.com/drive/15qBZx5y9rdaQSyWpsreMDnTiZ5IlN0zD?usp=sharing)
 - [Train a GPT-2 model + tokenizer from scratch (GPU)](https://colab.research.google.com/drive/144MdX5aLqrQ3-YW-po81CQMrD6kpgpYh?usp=sharing)
 
 You can also play with custom [Reddit](notebooks/reddit_demo.ipynb) and [Hacker News](notebooks/hacker_news_demo.ipynb) demo models on your own PC.
@@ -90,10 +90,9 @@ ai.train(data, batch_size=8, num_steps=50000, generate_every=5000, save_every=50
 ai.generate(10, prompt="ROMEO:")
 
 # With your trained model, you can reload the model at any time by
-# providing the pytorch_model.bin model weights, the config, and the tokenizer.
-ai2 = aitextgen(model="trained_model/pytorch_model.bin",
-                tokenizer_file="aitextgen.tokenizer.json",
-                config="trained_model/config.json")
+# providing the folder containing the pytorch_model.bin model weights + the config, and providing the tokenizer.
+ai2 = aitextgen(model_folder="trained_model",
+                tokenizer_file="aitextgen.tokenizer.json")
 
 ai2.generate(10, prompt="ROMEO:")
 ```
@@ -106,7 +105,7 @@ Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos s
 
 ## Upcoming Features
 
-The current release (v0.4.X) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
+The current release (v0.5.X) of aitextgen **is considered to be a beta**, targeting the most common use cases. The Notebooks and examples written so far are tested to work, but more fleshing out of the docs/use cases will be done over the next few months in addition to fixing the known issues noted above.
 
 The next versions of aitextgen (and one of the reasons I made this package in the first place) will have native support for _schema-based generation_. (See [this repo](https://github.com/minimaxir/gpt-2-keyword-generation) for a rough proof-of-concept.)
 
