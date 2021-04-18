@@ -6,7 +6,7 @@ You can create loggers with popular tools such as [TensorBoard](https://www.tens
 
 For example, if you want to create a TensorBoard logger, you can create it:
 
-```python
+```py3
 from pytorch_lightning import loggers
 
 tb_logger = loggers.TensorBoardLogger('logs/')
@@ -14,6 +14,6 @@ tb_logger = loggers.TensorBoardLogger('logs/')
 
 Then pass it to the `loggers` parameter for `ai.train()`.
 
-```python
+```py3
 ai.train(train_data=data, loggers=tb_logger)
 ```

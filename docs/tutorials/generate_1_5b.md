@@ -45,16 +45,16 @@ Now go back to the Launcher and create a Python 3 Notebook (or upload the one he
 <!-- prettier-ignore -->
 !!! warning "CUDA"
     You may want to ensure the Notebook sees the CUDA installation, which appears to be somewhat random. This can be verified by running `import torch` in a cell, then `torch.cuda.is_available()`.
-    
+
 In a cell, load aitextgen:
 
-```python
+```py3
 from aitextgen import aitextgen
 ```
 
 In another cell, input and run:
 
-```python
+```py3
 ai = aitextgen(tf_gpt2="1558M", to_gpu=True, to_fp16=True)
 ```
 
@@ -71,7 +71,7 @@ Now we can generate texts! The T4, for GPT-2 1.5B in FP16 mode, can generate abo
 
 Create a cell and add:
 
-```python
+```py3
 ai.generate_to_file(n=300, batch_size=30)
 ```
 
@@ -83,7 +83,7 @@ And it will generate the texts to a file! When completed, you can double-click t
 
 More importantly, all parameters to `generate` are valid, allowing massive flexibility!
 
-```python
+```py3
 ai.generate_to_file(n=150, batch_size=15, max_length=1024, top_p=0.9, temperature=1.2, prompt="President Donald Trump has magically transformed into a unicorn.")
 ```
 

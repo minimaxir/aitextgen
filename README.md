@@ -4,7 +4,7 @@ A robust Python tool for text-based AI training and generation using [OpenAI's](
 
 aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hugging Face Transformers](https://github.com/huggingface/transformers) and [pytorch-lightning](https://github.com/PyTorchLightning/pytorch-lightning) with specific optimizations for text generation using GPT-2, plus _many_ added features. It is the successor to [textgenrnn](https://github.com/minimaxir/textgenrnn) and [gpt-2-simple](https://github.com/minimaxir/gpt-2-simple), taking the best of both packages:
 
-- Finetunes on a pretrained 124M/355M/774M GPT-2 model from OpenAI or a 1325M/355M GPT Neo model from EleutherAI...or create your own GPT-2/GPT Neo model + tokenizer and train from scratch!
+- Finetunes on a pretrained 124M/355M/774M GPT-2 model from OpenAI or a 125M/350M GPT Neo model from EleutherAI...or create your own GPT-2/GPT Neo model + tokenizer and train from scratch!
 - Generates text faster than gpt-2-simple and with better memory efficiency!
 - With Transformers, aitextgen preserves compatibility with the base package, allowing you to use the model for other NLP tasks, download custom GPT-2 models from the HuggingFace model repository, and upload your own models! Also, it uses the included `generate()` function to allow a massive amount of control over the generated text.
 - With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress bar, with the ability to add optional loggers.
@@ -35,7 +35,7 @@ Here's how you can quickly test out aitextgen on your own computer, even if you 
 
 For generating text from a pretrained GPT-2 model:
 
-```python
+```py3
 from aitextgen import aitextgen
 
 # Without any parameters, aitextgen() will download, cache, and load the 124M GPT-2 "small" model
@@ -56,7 +56,7 @@ aitextgen generate --prompt "I believe in unicorns because" --to_file False
 
 Want to train your own mini GPT-2 model on your own computer? You can follow along [in this Jupyter Notebook](/notebooks/training_hello_world.ipynb) or, download this [text file of Shakespeare's plays](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt), cd to that directory in a Terminal, open up a `python3` console and go:
 
-```python
+```py3
 from aitextgen.TokenDataset import TokenDataset
 from aitextgen.tokenizers import train_tokenizer
 from aitextgen.utils import GPT2ConfigCPU

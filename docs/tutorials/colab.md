@@ -11,11 +11,11 @@ The Colab Notebooks also contain utilities to make it easier to export the model
 A Notebook for finetuning OpenAI's model on a GPU. This is the most common use case.
 
 <!-- prettier-ignore -->
-!!! note "124M Only"
-    Currently you can only finetune the 124M OpenAI GPT-2 model.
+!!! note
+    Currently you can only finetune the 124M/355M/774M OpenAI GPT-2 models, with the latter two forcing `gradient_checkpointing=True` to ensure it does not cause the Colab GPU to go OOM.
 
 ## Training Your Own GPT-2 Model
 
 [Colab Notebook](https://colab.research.google.com/drive/144MdX5aLqrQ3-YW-po81CQMrD6kpgpYh?usp=sharing)
 
-A Notebook for creating your own GPT-2 model with your own tokenizer. See the Model From Scratch on the advantages and disadvantages of this approach.
+A Notebook for creating your own GPT-2 model with your own tokenizer. See the Model From Scratch section on the advantages and disadvantages of this approach.
