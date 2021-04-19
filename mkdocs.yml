@@ -1,5 +1,5 @@
 site_name: aitextgen
-site_description: A robust Python tool for text-based AI training and generation using GPT-2.
+site_description: A robust Python tool for text-based AI training and generation using GPT-2 and GPT Neo.
 site_author: Max Woolf (@minimaxir)
 
 nav:
@@ -8,15 +8,15 @@ nav:
   - Loading a Model: load-model.md
   - Saving a Model: save-model.md
   - TokenDataset: dataset.md
-  - Training an aitextgen Model:
+  - Training a Model:
       - Colaboratory Notebooks: tutorials/colab.md
       # - Improving Training Performance: train-performance.md
       - Training a GPT-2 Model From Scratch: tutorials/model-from-scratch.md
       - Loggers: loggers.md
-  - Generating from an aitextgen Model:
+  - Generating from a Model:
       - Generating Text: generate.md
-      - Improving Generation Performance: generate-performance.md
-      - Generating From GPT-2 1.5B: tutorials/generate_1_5b.md
+      # - Improving Generation Performance: generate-performance.md
+      # - Generating From GPT-2 1.5B: tutorials/generate_1_5b.md
   - Importing from gpt-2-simple: gpt-2-simple.md
   - Helpful Notes: helpful-notes.md
   - Ethics: ethics.md
@@ -26,9 +26,17 @@ nav:
 theme:
   name: "material"
   palette:
-    scheme: "slate"
-    primary: "light blue"
-    accent: "light blue"
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
   font:
     text: "Source Sans Pro"
     code: "Fira Code"
@@ -43,7 +51,7 @@ repo_name: minimaxir/aitextgen
 repo_url: https://github.com/minimaxir/aitextgen
 edit_uri: ""
 
-copyright: "Copyright &copy; 2019 - 2020 Max Woolf"
+copyright: "Copyright &copy; 2019 - 2021 Max Woolf"
 
 extra:
   social:
@@ -53,9 +61,8 @@ extra:
       link: "https://twitter.com/minimaxir"
 
 markdown_extensions:
-  - codehilite:
-      guess_lang: false
-  - mkautodoc
+  - pymdownx.highlight
+  - pymdownx.superfences
   - admonition
   - toc:
       permalink: true

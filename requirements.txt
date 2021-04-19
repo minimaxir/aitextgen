@@ -1,4 +1,4 @@
-transformers>=4.5.0
+transformers>=4.5.1
 fire>=0.3.0
-pytorch-lightning>=1.2.3
+pytorch-lightning>=1.2.7
 torch>=1.6.0

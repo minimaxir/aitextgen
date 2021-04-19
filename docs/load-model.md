@@ -8,45 +8,62 @@ There are several ways to load models.
 
 ## Loading an aitextgen model
 
-The closer to the default 124M GPT-2 model, the fewer files you need!
+For the base case, loading the default 124M GPT-2 model via Huggingface:
 
-For the base case, loading the default model via Huggingface:
-
-```python
+```py3
 ai = aitextgen()
 ```
 
 The downloaded model will be downloaded to `cache_dir`: `/aitextgen` by default.
 
-If you've finetuned a 124M GPT-2 model using aitextgen, you can pass the generated `pytorch_model.bin` to aitextgen:
+If you're loading a custom model for a different GPT-2/GPT-Neo architecture _from scratch_ but with the normal GPT-2 tokenizer, you can pass only a config.
 
-```python
-ai = aitextgen(model="pytorch_model.bin")
+```py3
+from aitextgen.utils import GPT2ConfigCPU
+config = GPT2ConfigCPU()
+ai = aitextgen(config=config)
 ```
 
-If you're loading a finetuned model of a different GPT-2 architecture, you'll must also pass the generated `config.json` to aitextgen:
+While training/finetuning a model, two files will be created: the `pytorch_model.bin` which contains the weights for the model, and a `config.json` illustrating the architecture for the model. Both of these files are needed to reload the model.
 
-```python
-ai = aitextgen(model="pytorch_model.bin", config=config)
+If you've finetuned a model using aitextgen (the default model), you can pass the **folder name** containing the generated `pytorch_model.bin` and `config.json` to aitextgen (e.g. `trained_model`, which is where trained models will be saved by default).
+
+<!--prettier-ignore-->
+!!! note "Same Directory"
+    If both files are in the current directory, you can pass `model_folder="."`.
+
+```py3
+ai = aitextgen(model_folder="trained_model")
 ```
 
-If you want to download an alternative GPT-2 model from Huggingface's repository of models, pass that model name to `model`.
+These examples assume you are using the default GPT-2 tokenizer. If you have a _custom tokenizer_, you'll need to pass that along with loading the model.
 
-```python
+```py3
+ai3 = aitextgen(model_folder="trained_model",
+                tokenizer_file="aitextgen.tokenizer.json")
+```
+
+If you want to download an alternative GPT-2 model from Hugging Face's repository of models, pass that model name to `model`.
+
+```py3
 ai = aitextgen(model="minimaxir/hacker-news")
 ```
 
 The model and associated config + tokenizer will be downloaded into `cache_dir`.
 
+This can also be used to download the [pretrained GPT Neo models](https://huggingface.co/EleutherAI) from EleutherAI.
+
+```py3
+ai = aitextgen(model="EleutherAI/gpt-neo-125M")
+```
+
 ## Loading TensorFlow-based GPT-2 models
 
-aitextgen lets you download the models from Google's servers that OpenAI had uploaded back when GPT-2 was first released in 2019. These models are then converted to a PyTorch format.
-
-It's counterintuitive, but it's _substantially_ faster than downloading from Huggingface's servers, especially if you are running your code on Google Cloud Platform (e.g. Colab notebooks)
+aitextgen lets you download the models from Microsoft's servers that OpenAI had uploaded back when GPT-2 was first released in 2019. These models are then converted to a PyTorch format.
 
 To use this workflow, pass the corresponding model number to `tf_gpt2`:
 
-```python
+```py3
 ai = aitextgen(tf_gpt2="124M")
 ```
 

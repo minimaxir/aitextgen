@@ -10,7 +10,7 @@ PyTorch has the ability to quantize models on the CPU. Currently, it will only q
 
 To quantize a model after it's loaded, just run:
 
-```python
+```py3
 ai.quantize()
 ```
 
@@ -22,13 +22,13 @@ Certain GPUs, notably the cheap T4 and the expensive V100, support the ability t
 
 Assuming you are using a compatable GPU and already have [apex](https://github.com/NVIDIA/apex) installed, you can convert a model to the "half" FP16 mode with this:
 
-```python
+```py3
 ai.to_fp16()
 ```
 
 If you want to convert the model _before_ loading it into GPU memory (which may help avoid memory leaks), you can instantiate the model like this:
 
-```python
+```py3
 ai.to_fp16(to_gpu=True, to_fp16=True)
 ```
 

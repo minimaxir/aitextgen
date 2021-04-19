@@ -16,6 +16,7 @@ from tqdm.auto import trange
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
+    AutoTokenizer,
     GPT2Config,
     GPT2LMHeadModel,
     GPT2TokenizerFast,
@@ -96,6 +97,12 @@ class aitextgen:
         unk_token: str = None,
         **kwargs,
     ) -> None:
+
+        if model:
+            assert not os.path.isfile(model), (
+                "As of aitextgen 0.5.0, you must "
+                + "use `model_folder` to load an existing model."
+            )
 
         if not verbose:
             for module in [
@@ -189,7 +196,7 @@ class aitextgen:
             )
             if model and "gpt2" not in model:
                 logger.info(f"Using the tokenizer for {model}.")
-                self.tokenizer = GPT2TokenizerFast.from_pretrained(
+                self.tokenizer = AutoTokenizer.from_pretrained(
                     model,
                     cache_dir=cache_dir,
                 )
@@ -472,7 +479,6 @@ class aitextgen:
         destination_path: str = None,
         sample_delim: str = "=" * 20 + "\n",
         seed: int = None,
-        cleanup: bool = True,
         **kwargs,
     ) -> None:
         """
@@ -515,15 +521,6 @@ class aitextgen:
 
         for _ in range(n // batch_size):
             gen_texts = self.generate(n=batch_size, return_as_list=True, **kwargs)
-
-            # Remove empty texts and strip out extra newlines/extra spaces
-            if cleanup:
-                texts_to_clean = gen_texts
-                gen_texts = []
-                for text in texts_to_clean:
-                    clean_text = text.strip().strip("\n")
-                    if clean_text and len(clean_text) >= 2:
-                        gen_texts.append(clean_text)
 
             for gen_text in gen_texts:
                 f.write("{}\n{}".format(gen_text, sample_delim))
