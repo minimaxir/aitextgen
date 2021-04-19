@@ -16,6 +16,7 @@ from tqdm.auto import trange
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
+    AutoTokenizer,
     GPT2Config,
     GPT2LMHeadModel,
     GPT2TokenizerFast,
@@ -96,6 +97,12 @@ class aitextgen:
         unk_token: str = None,
         **kwargs,
     ) -> None:
+
+        if model:
+            assert not os.path.isfile(model), (
+                "As of aitextgen 0.5.0, you must "
+                + "use `model_folder` to load an existing model."
+            )
 
         if not verbose:
             for module in [
@@ -189,7 +196,7 @@ class aitextgen:
             )
             if model and "gpt2" not in model:
                 logger.info(f"Using the tokenizer for {model}.")
-                self.tokenizer = GPT2TokenizerFast.from_pretrained(
+                self.tokenizer = AutoTokenizer.from_pretrained(
                     model,
                     cache_dir=cache_dir,
                 )
