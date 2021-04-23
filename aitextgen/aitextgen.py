@@ -290,6 +290,7 @@ class aitextgen:
         use_cache: bool = True,
         lstrip: bool = True,
         nonempty_output: bool = True,
+        skip_special_tokens: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -383,7 +384,7 @@ class aitextgen:
                         )
 
                         gen_text_dict[key] = self.tokenizer.decode(
-                            output[start_index:end_index], skip_special_tokens=True
+                            output[start_index:end_index], skip_special_tokens=False
                         )
 
                     # remove fields not in schema_return
@@ -412,7 +413,7 @@ class aitextgen:
             # Typical use case
             else:
                 gen_texts = self.tokenizer.batch_decode(
-                    outputs, skip_special_tokens=True
+                    outputs, skip_special_tokens=skip_special_tokens
                 )
 
                 # Handle stripping tokenization spaces w/ regex
