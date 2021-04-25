@@ -1,11 +1,19 @@
 from .aitextgen import aitextgen
 from .TokenDataset import TokenDataset
+from .tokenizers import train_tokenizer
 import fire
 
 
 def aitextgen_cli(**kwargs):
     """Entrypoint for the CLI"""
-    fire.Fire({"encode": encode_cli, "train": train_cli, "generate": generate_cli})
+    fire.Fire(
+        {
+            "encode": encode_cli,
+            "train": train_cli,
+            "generate": generate_cli,
+            "train_tokenizer": train_tokenizer_cli,
+        }
+    )
 
 
 def encode_cli(file_path: str, **kwargs):
@@ -31,3 +39,8 @@ def generate_cli(to_file: bool = True, **kwargs):
         ai.generate_to_file(**kwargs)
     else:
         ai.generate(**kwargs)
+
+
+def train_tokenizer_cli(files: str, **kwargs):
+    """Trains a tokenizer on the specified file."""
+    train_tokenizer(files, **kwargs)
