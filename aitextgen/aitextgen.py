@@ -277,6 +277,7 @@ class aitextgen:
         self,
         n: int = 1,
         prompt: str = "",
+        prepend_bos: bool = False,
         min_length: int = None,
         max_length: int = 256,
         temperature: float = 0.7,
@@ -323,6 +324,13 @@ class aitextgen:
         input_ids = (
             prompt_tensors["input_ids"].to(self.get_device()) if prompt else None
         )
+
+        if prepend_bos:
+            bos = torch.tensor([[self.tokenizer.bos_token_id]]).to(self.get_device())
+            if prompt:
+                input_ids = torch.cat((bos, input_ids), dim=1)
+            else:
+                input_ids = bos
 
         if seed:
             set_seed(seed)
