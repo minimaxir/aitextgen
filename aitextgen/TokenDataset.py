@@ -121,6 +121,7 @@ class TokenDataset(Dataset):
                 self.tokens = np.load(f)
             self.num_subsets = self.tokens.shape[0] - block_size
             self.block_size = block_size
+            self.line_by_line = line_by_line
             self.str_suffix = "via cache."
 
             logger.info(

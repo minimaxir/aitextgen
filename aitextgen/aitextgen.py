@@ -277,7 +277,7 @@ class aitextgen:
         self,
         n: int = 1,
         prompt: str = "",
-        prepend_bos: bool = False,
+        prepend_bos: bool = None,
         min_length: int = None,
         max_length: int = 256,
         temperature: float = 0.7,
@@ -324,6 +324,9 @@ class aitextgen:
         input_ids = (
             prompt_tensors["input_ids"].to(self.get_device()) if prompt else None
         )
+
+        if prepend_bos is None:
+            prepend_bos = getattr(self.model.config, "line_by_line", None)
 
         if prepend_bos:
             bos = torch.tensor([[self.tokenizer.bos_token_id]]).to(self.get_device())
