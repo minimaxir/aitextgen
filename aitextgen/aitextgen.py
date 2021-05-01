@@ -212,7 +212,7 @@ class aitextgen:
         if schema_tokens:
             setattr(self.model.config, "schema_tokens", schema_tokens)
 
-        if schema_tokens:
+        if schema_return:
             setattr(self.model.config, "schema_return", schema_return)
 
         if self.tokenizer is None:
