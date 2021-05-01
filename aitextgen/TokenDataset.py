@@ -75,6 +75,8 @@ class TokenDataset(Dataset):
         **kwargs,
     ) -> None:
 
+        self.line_by_line = False
+
         # Special case; load tokenized texts immediately
         if tokenized_texts:
             self.tokens = tokenized_texts
@@ -138,6 +140,7 @@ class TokenDataset(Dataset):
             ), f"{file_path} is not present in the current directory."
 
             text_delim = None
+            self.line_by_line = True
             self.file_path = file_path
             self.str_suffix = f"from line-by-line file at {file_path}."
 

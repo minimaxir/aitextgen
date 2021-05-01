@@ -636,6 +636,9 @@ class aitextgen:
                 **kwargs,
             )
 
+        if train_data.line_by_line:
+            setattr(self.model.config, "line_by_line", True)
+
         if freeze_layers or self.openai_tf_gpt2 == "1558M":
             logger.info("Layer freezing enabled for model training.")
             freeze_layers = True
