@@ -5,7 +5,7 @@ import os
 import gzip
 from torch.utils.data import Dataset
 from typing import List
-from transformers import GPT2TokenizerFast
+from transformers import GPT2TokenizerFast, PreTrainedTokenizerFast
 from pkg_resources import resource_filename
 import itertools
 from tqdm.auto import tqdm
@@ -88,10 +88,8 @@ class TokenDataset(Dataset):
 
         if not tokenizer:
             if tokenizer_file:
-                # load the custom GPT-2 tokenizer from a serialized tokenizer
-                tokenizer = GPT2TokenizerFast(
-                    vocab_file=None,
-                    merges_file=None,
+                # load the custom tokenizer from a serialized tokenizer
+                tokenizer = PreTrainedTokenizerFast(
                     tokenizer_file=tokenizer_file,
                     bos_token=bos_token,
                     eos_token=eos_token,

@@ -20,6 +20,7 @@ from transformers import (
     GPT2Config,
     GPT2LMHeadModel,
     GPT2TokenizerFast,
+    PreTrainedTokenizerFast,
 )
 from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
@@ -238,9 +239,7 @@ class aitextgen:
             if tokenizer_file:
                 # load the custom GPT-2 tokenizer from a serialized tokenizer.
                 # GPT-Neo uses the GPT-2 tokenizer.
-                self.tokenizer = GPT2TokenizerFast(
-                    vocab_file=None,
-                    merges_file=None,
+                self.tokenizer = PreTrainedTokenizerFast(
                     tokenizer_file=tokenizer_file,
                     bos_token=self.bos_token,
                     eos_token=self.eos_token,
