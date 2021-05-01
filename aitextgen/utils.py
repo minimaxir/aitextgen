@@ -163,7 +163,7 @@ def GPTNeoConfigCPU(
 def find_index_of_subset(large_list, small_list):
     """
     Returns the index after the small_list within the large list,
-    Returns None if not present.
+    Returns -1 if not present.
 
     Adapted from https://stackoverflow.com/a/45819222 which shows that it is
     performant for input lengths < 1000, which is the common case for this function.
@@ -174,7 +174,7 @@ def find_index_of_subset(large_list, small_list):
         if item == firstneedle:
             if large_list[idx : idx + length_small_list] == small_list:
                 return idx + length_small_list
-    return None
+    return -1
 
 
 def skip_special_tokens(tensor, device, special_token_ids):

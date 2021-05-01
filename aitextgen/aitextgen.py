@@ -367,24 +367,28 @@ class aitextgen:
                         (schema_tokens[i], find_index_of_subset(output, token_enc))
                         for i, token_enc in enumerate(schema_tokens_enc)
                     ]
+
                     schema_token_indices.sort(key=lambda x: x[1])
 
                     for i, token_tuple in enumerate(schema_token_indices):
                         start_index = token_tuple[1]
-                        end_index = (
-                            schema_token_indices[i + 1][1] - 1
-                            if i + 1 < len(schema_token_indices)
-                            else None
-                        )
                         key = (
                             nonalphanum_pattern.sub("", token_tuple[0])
                             if normalize_key
                             else token_tuple[0]
                         )
+                        if start_index == -1:
+                            gen_text_dict[key] = ""
+                        else:
+                            end_index = (
+                                schema_token_indices[i + 1][1] - 1
+                                if i + 1 < len(schema_token_indices)
+                                else None
+                            )
 
-                        gen_text_dict[key] = self.tokenizer.decode(
-                            output[start_index:end_index], skip_special_tokens=False
-                        )
+                            gen_text_dict[key] = self.tokenizer.decode(
+                                output[start_index:end_index], skip_special_tokens=True
+                            )
 
                     # remove fields not in schema_return
                     if schema_return:
@@ -402,8 +406,8 @@ class aitextgen:
 
                 if not return_as_list:
                     print(*gen_texts, sep="\n" + "=" * 10 + "\n")
+                    break
                 else:
-
                     if n > 1:
                         return gen_texts
                     else:
