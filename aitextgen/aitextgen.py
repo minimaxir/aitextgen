@@ -403,9 +403,10 @@ class aitextgen:
 
                     # remove fields not in schema_return
                     if schema_return:
+                        keys = gen_text_dict.keys()
                         if len(schema_return) == 1:
                             gen_text_dict = gen_text_dict[schema_return[0]]
-                        for key in gen_text_dict.keys():
+                        for key in keys:
                             if key not in schema_return:
                                 gen_text_dict.pop(key, None)
 
