@@ -363,7 +363,7 @@ class aitextgen:
             # Schema token handling
             if schema:
                 schema_tokens = getattr(self.model.config, "schema_tokens")
-                schema_return = getattr(self.model.config, "schema_return")
+                schema_return = getattr(self.model.config, "schema_return", None)
                 schema_tokens_enc = self.tokenizer(text=schema_tokens)["input_ids"]
 
                 nonalphanum_pattern = re.compile(r"[\W_]+", re.UNICODE)
