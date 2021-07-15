@@ -115,7 +115,7 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
-        
+
     @property
     def save_every_check(self):
         return self.save_every > 0 and self.steps % self.save_every == 0
@@ -179,7 +179,7 @@ class ATGProgressBar(ProgressBarBase):
                 desc += f" — GPU Mem: {gpu_memory} MB"
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
-        
+
         if _TPU_AVAILABLE and self.save_every_check:
             did_unfreeze = False
             if self.enabled:
@@ -188,7 +188,7 @@ class ATGProgressBar(ProgressBarBase):
             self.save_pytorch_model(trainer, pl_module, tpu=True)
             if did_unfreeze:
                 self.freeze_layers(pl_module)
-        
+
         if self.enabled:
             did_unfreeze = False
             if not _TPU_AVAILABLE and self.save_every_check:
@@ -236,13 +236,14 @@ class ATGProgressBar(ProgressBarBase):
         self.main_progress_bar.write("=" * 10)
 
     def save_pytorch_model(self, trainer, pl_module, tpu=False):
-        
+
         if self.enabled:
             self.main_progress_bar.write(
                 f"\033[1m{self.steps:,} steps reached: saving model to /{self.output_dir}\033[0m"
             )
         if tpu:
             import torch_xla.core.xla_model as xm
+
             pl_module.model.save_pretrained(self.output_dir, save_function=xm.save)
         else:
             pl_module.model.save_pretrained(self.output_dir)

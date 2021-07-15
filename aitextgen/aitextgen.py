@@ -28,7 +28,7 @@ from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch imp
 
 from .colab import create_gdrive_folder
 from .TokenDataset import TokenDataset
-from .train import ATGProgressBar, ATGTransformer
+from .train_pt import ATGProgressBar, ATGTransformer
 from .utils import (
     download_gpt2,
     find_index_of_subset,
