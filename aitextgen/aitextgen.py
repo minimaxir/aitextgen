@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 from random import randint
 from typing import List, Optional, Union
+import numpy as np
 
 import pytorch_lightning as pl
 import torch
@@ -550,7 +551,10 @@ class aitextgen:
 
     def train(
         self,
-        train_data: Union[str, TokenDataset],
+        train_data: Union[str, np.ndarray, TokenDataset],
+        val_data: Union[str, np.ndarray, TokenDataset],
+        val_num_steps = 1000,
+        validate_every = 1000,
         output_dir: str = "trained_model",
         fp16: bool = False,
         fp16_opt_level: str = "O1",
@@ -584,7 +588,10 @@ class aitextgen:
         Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
 
         :param train_data: Either a TokenDataset containing the samples to be trained, or
-        a string containing the text to be trained (shortcut instead of dataset)
+        a string containing the text to be trained (shortcut instead of dataset) or a numpy array
+        :param val_data: Either a TokenDataset containing the samples to be validated, or
+        a string containing the text to be validated (shortcut instead of dataset) or a numpy array
+        :param validate_every: Number of steps for each time to run validation 
         :param output_dir: A string indicating where to store the resulting
         model file folder.
         :param fp16: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
@@ -625,20 +632,44 @@ class aitextgen:
         self.model = self.model.train()
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
 
-        if isinstance(train_data, str):
+        if isinstance(train_data, (str, list, np.ndarray)):
             block_size = model_max_length(self.model.config)
             logger.info(
-                f"Loading text from {train_data} with generation length of {block_size}."
+                f"Loading text from train_data with generation length of {block_size}."
             )
-            train_data = TokenDataset(
+            
+            dataset_params = dict(
                 tokenizer=self.tokenizer,
                 bos_token=self.bos_token,
                 eos_token=self.eos_token,
                 unk_token=self.unk_token,
-                file_path=train_data,
                 block_size=block_size,
-                **kwargs,
+                **kwargs)
+            
+            if isinstance(train_data, str):
+                train_data = TokenDataset(**dict(dataset_params, file_path=train_data))
+            else:
+                train_data = TokenDataset(**dict(dataset_params, texts=train_data))
+            
+        if isinstance(val_data, (str, list, np.ndarray)):
+            logger.info(
+                f"Loading text from val_data with generation length of {block_size}."
             )
+            
+            dataset_params = dict(
+                tokenizer=self.tokenizer,
+                bos_token=self.bos_token,
+                eos_token=self.eos_token,
+                unk_token=self.unk_token,
+                block_size=block_size,
+                num_steps = val_num_steps,
+                **kwargs)
+            
+            if isinstance(val_data, str):
+                val_data = TokenDataset(**dict(dataset_params, file_path=val_data))
+            else:
+                val_data = TokenDataset(**dict(dataset_params, texts=val_data))
+                
 
         setattr(self.model.config, "line_by_line", train_data.line_by_line)
 
@@ -673,7 +704,7 @@ class aitextgen:
         )
 
         # Wrap the model in a pytorch-lightning module
-        train_model = ATGTransformer(self.model, train_data, hparams, self.tokenizer)
+        train_model = ATGTransformer(self.model, train_data, val_data, hparams, self.tokenizer)
 
         # Begin training
         if seed:
@@ -729,6 +760,7 @@ class aitextgen:
                 )
             ],
             plugins=deepspeed_plugin,
+            val_check_interval = validate_every,
         )
 
         if fp16:
@@ -764,6 +796,8 @@ class aitextgen:
 
         if seed:
             reset_seed()
+            
+        return trainer, train_model
 
     def cross_train(
         self,

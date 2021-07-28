@@ -72,10 +72,12 @@ class TokenDataset(Dataset):
         unk_token: str = "<|endoftext|>",
         pad_token: str = "<|endoftext|>",
         progress_bar_refresh_rate: int = 20,
+        num_steps = None,
         **kwargs,
     ) -> None:
 
         self.line_by_line = False
+        self.num_steps = num_steps
 
         # Special case; load tokenized texts immediately
         if tokenized_texts:
@@ -86,7 +88,7 @@ class TokenDataset(Dataset):
             self.str_suffix = "by merging TokenDatasets."
             return
 
-        assert any([texts, file_path]), "texts or file_path must be specified."
+        assert any([texts is not None, file_path is not None]), "texts or file_path must be specified."
 
         if not tokenizer:
             if tokenizer_file:
@@ -130,7 +132,7 @@ class TokenDataset(Dataset):
             return
 
         # if texts are present, just tokenize them.
-        elif texts:
+        elif texts is not None:
             self.str_suffix = "via application."
 
         # if a file is specified, and it's line-delimited,
@@ -163,7 +165,7 @@ class TokenDataset(Dataset):
             self.str_suffix = f"from file at {file_path}."
 
         # Encode tokens in a batched manner to ensure constant memory usage
-        if texts:
+        if texts is not None:
             self.tokens = encode_tokens_from_list(
                 texts, eos_token, tokenizer, progress_bar_refresh_rate
             )
@@ -209,7 +211,10 @@ class TokenDataset(Dataset):
             np.save(f, self.tokens)
 
     def __len__(self) -> int:
-        return self.num_subsets
+        if self.num_steps:
+            return self.num_steps
+        else:
+            return self.num_subsets
 
     def __getitem__(self, item: int) -> torch.Tensor:
         return torch.as_tensor(

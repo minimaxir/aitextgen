@@ -19,11 +19,12 @@ class ATGTransformer(pl.LightningModule):
     A training module for aitextgen.
     """
 
-    def __init__(self, model, dataset, hparams, tokenizer):
+    def __init__(self, model, train_dataset, val_dataset, hparams, tokenizer):
         super(ATGTransformer, self).__init__()
-        self.model, self.dataset, self.tokenizer = (
+        self.model, self.train_dataset, self.val_dataset, self.tokenizer = (
             model,
-            dataset,
+            train_dataset,
+            val_dataset,
             tokenizer,
         )
         self.save_hyperparameters(hparams)
@@ -34,18 +35,35 @@ class ATGTransformer(pl.LightningModule):
     def training_step(self, batch, batch_num):
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
-
         return {"loss": loss}
+    
+    def validation_step(self, batch, batch_num):
+        outputs = self({"input_ids": batch, "labels": batch})
+        loss = outputs[0]
+        return loss
+    
+    def validation_epoch_end(self, val_step_outputs):
+        val_loss = sum(val_step_outputs)/len(val_step_outputs)
+        self.log('val_loss', val_loss)
 
     def train_dataloader(self):
         return DataLoader(
-            self.dataset,
+            self.train_dataset,
             batch_size=self.hparams["batch_size"],
             shuffle=True,
             pin_memory=self.hparams["pin_memory"],
             num_workers=self.hparams["num_workers"],
         )
-
+    
+    def val_dataloader(self):
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.hparams["batch_size"],
+            shuffle=True,
+            pin_memory=self.hparams["pin_memory"],
+            num_workers=self.hparams["num_workers"],
+        )
+    
     def configure_optimizers(self):
         "Prepare optimizer"
 
@@ -142,6 +160,15 @@ class ATGProgressBar(ProgressBarBase):
         self.main_progress_bar.close()
         self.unfreeze_layers(pl_module)
 
+    def on_validation_epoch_end(self, trainer, pl_module):
+        super().on_validation_epoch_end(trainer, pl_module)
+        val_loss = trainer.logged_metrics['val_loss']
+        try:
+            self.main_progress_bar.write(f"Train Avg Loss: {self.prev_avg_loss:.3f}")
+            self.main_progress_bar.write(f"Val Avg Loss: {val_loss:.3f}")
+        except AttributeError:
+            print(f"Val Avg Loss: {val_loss:.3f}")
+
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
 
@@ -236,21 +263,21 @@ class ATGProgressBar(ProgressBarBase):
         self.main_progress_bar.write("=" * 10)
 
     def save_pytorch_model(self, trainer, pl_module, tpu=False):
-        
+        output_dir = os.path.join(self.output_dir, str(self.steps))
         if self.enabled:
             self.main_progress_bar.write(
-                f"\033[1m{self.steps:,} steps reached: saving model to /{self.output_dir}\033[0m"
+                f"\033[1m{self.steps:,} steps reached: saving model to /{output_dir}\033[0m"
             )
         if tpu:
             import torch_xla.core.xla_model as xm
-            pl_module.model.save_pretrained(self.output_dir, save_function=xm.save)
+            pl_module.model.save_pretrained(output_dir, save_function=xm.save)
         else:
-            pl_module.model.save_pretrained(self.output_dir)
+            pl_module.model.save_pretrained(output_dir)
 
         if self.enabled and self.save_gdrive:
             for pt_file in ["pytorch_model.bin", "config.json"]:
                 shutil.copyfile(
-                    os.path.join(self.output_dir, pt_file),
+                    os.path.join(output_dir, pt_file),
                     os.path.join("/content/drive/My Drive/", self.run_id, pt_file),
                 )
 
