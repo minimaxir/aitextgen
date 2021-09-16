@@ -580,6 +580,40 @@ class aitextgen:
         use_deepspeed: bool = False,
         **kwargs,
     ) -> None:
+        return None
+
+    def train_pt(
+        self,
+        train_data: Union[str, TokenDataset],
+        output_dir: str = "trained_model",
+        fp16: bool = False,
+        fp16_opt_level: str = "O1",
+        n_gpu: int = -1,
+        tpu_cores: int = 0,
+        max_grad_norm: float = 0.5,
+        gradient_accumulation_steps: int = 1,
+        seed: int = None,
+        learning_rate: float = 1e-3,
+        weight_decay: float = 0.05,
+        adam_epsilon: float = 1e-8,
+        warmup_steps: int = 0,
+        num_steps: int = 5000,
+        save_every: int = 1000,
+        generate_every: int = 1000,
+        n_generate: int = 1,
+        loggers: List = None,
+        batch_size: int = 1,
+        num_workers: int = None,
+        benchmark: bool = True,
+        avg_loss_smoothing: float = 0.01,
+        save_gdrive: bool = False,
+        run_id: str = f"ATG_{datetime.utcnow():%Y%m%d_%H%M%S}",
+        progress_bar_refresh_rate: int = 20,
+        freeze_layers: bool = False,
+        num_layers_freeze: int = None,
+        use_deepspeed: bool = False,
+        **kwargs,
+    ) -> None:
         """
         Trains/finetunes the model on the provided file/dataset using pytorch-lightning.
 
