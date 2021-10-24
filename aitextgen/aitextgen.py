@@ -561,6 +561,7 @@ class aitextgen:
         tpu_cores: int = 0,
         max_grad_norm: float = 0.5,
         gradient_accumulation_steps: int = 1,
+        gradient_checkpointing: bool = False,
         seed: int = None,
         learning_rate: float = 1e-3,
         weight_decay: float = 0.05,
@@ -612,6 +613,12 @@ class aitextgen:
 
         setattr(self.model.config, "line_by_line", train_data.line_by_line)
 
+        if tpu_cores > 0 and generate_every > 0:
+            logger.info(
+                "Generating text during training on a TPU causes issues: disabling generation."
+            )
+            generate_every = 0
+
         if freeze_layers or self.openai_tf_gpt2 == "1558M":
             logger.info("Layer freezing enabled for model training.")
             freeze_layers = True
@@ -632,10 +639,12 @@ class aitextgen:
             tpu_num_cores=tpu_cores,
             warmup_steps=500,
             learning_rate=learning_rate,
+            adam_epsilon=adam_epsilon,
             weight_decay=weight_decay,
             run_name=run_id,
             disable_tqdm=True,  # we use our own in the ATGProgressBar callback
             data_collator=default_data_collator,
+            gradient_checkpointing=gradient_checkpointing,
         )
 
         trainer = Trainer(
@@ -646,7 +655,14 @@ class aitextgen:
 
         trainer.add_callback(
             ATGProgressBar(
-                trainer, num_steps, self.tokenizer, progress_bar_refresh_rate
+                trainer,
+                self.model,  # the Trainer and the callback point to the same model
+                num_steps,
+                self.tokenizer,
+                progress_bar_refresh_rate,
+                save_every,
+                generate_every,
+                output_dir,
             )
         )
 
@@ -919,6 +935,7 @@ class aitextgen:
     def save(self, target_folder: str = os.getcwd()):
         """Saves the model into the specified directory."""
         self.model.save_pretrained(target_folder)
+        self.tokenizer.save_pretrained(target_folder)
 
     def save_for_upload(self, target_folder: str = "my-model"):
         """
