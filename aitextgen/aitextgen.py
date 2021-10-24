@@ -21,6 +21,9 @@ from transformers import (
     GPT2LMHeadModel,
     GPT2TokenizerFast,
     PreTrainedTokenizerFast,
+    Trainer,
+    TrainingArguments,
+    default_data_collator,
 )
 from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch import (
     convert_gpt2_checkpoint_to_pytorch,
@@ -580,7 +583,74 @@ class aitextgen:
         use_deepspeed: bool = False,
         **kwargs,
     ) -> None:
-        return None
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        if save_gdrive:
+            assert (
+                "google.colab" in sys.modules
+            ), "You must be in Colaboratory to copy to your Google Drive"
+            create_gdrive_folder(run_id)
+
+        self.model = self.model.train()
+
+        if isinstance(train_data, str):
+            block_size = model_max_length(self.model.config)
+            logger.info(
+                f"Loading text from {train_data} with generation length of {block_size}."
+            )
+            train_data = TokenDataset(
+                tokenizer=self.tokenizer,
+                bos_token=self.bos_token,
+                eos_token=self.eos_token,
+                unk_token=self.unk_token,
+                file_path=train_data,
+                block_size=block_size,
+                **kwargs,
+            )
+
+        setattr(self.model.config, "line_by_line", train_data.line_by_line)
+
+        if freeze_layers or self.openai_tf_gpt2 == "1558M":
+            logger.info("Layer freezing enabled for model training.")
+            freeze_layers = True
+            if num_layers_freeze:
+                assert (
+                    num_layers_freeze < self.model.config.n_layer
+                ), "You are freezing more Transformer layers than in the model."
+
+        training_args = TrainingArguments(
+            output_dir=output_dir,
+            overwrite_output_dir=True,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            max_grad_norm=max_grad_norm,
+            max_steps=num_steps,
+            per_device_train_batch_size=batch_size,
+            fp16=fp16,
+            fp16_opt_level=fp16_opt_level,
+            tpu_num_cores=tpu_cores,
+            warmup_steps=500,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            run_name=run_id,
+            disable_tqdm=True,  # we use our own in the ATGProgressBar callback
+            data_collator=default_data_collator,
+        )
+
+        trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=train_data,
+        )
+
+        trainer.add_callback(
+            ATGProgressBar(
+                trainer, num_steps, self.tokenizer, progress_bar_refresh_rate
+            )
+        )
+
+        trainer.train()
 
     def train_pt(
         self,
