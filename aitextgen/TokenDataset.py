@@ -212,14 +212,11 @@ class TokenDataset(Dataset):
         return self.num_subsets
 
     def __getitem__(self, item: int) -> torch.Tensor:
-        tensor = (
-            torch.as_tensor(
-                self.tokens[item : (item + self.block_size)].astype(
-                    np.int64, copy=False
-                ),
-                dtype=torch.long,
-            ),
+        tensor = torch.as_tensor(
+            self.tokens[item : (item + self.block_size)].astype(np.int, copy=False),
+            dtype=torch.long,
         )
+
         return {"input_ids": tensor, "labels": tensor}
 
     def __str__(self) -> str:

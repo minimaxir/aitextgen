@@ -30,6 +30,8 @@ class ATGProgressCallback(TrainerCallback):
         self.save_every = save_every
         self.generate_every = generate_every
         self.output_dir = output_dir
+        self.steps = 0
+        self.prev_avg_loss = None
 
     @property
     def save_every_check(self):
@@ -44,7 +46,6 @@ class ATGProgressCallback(TrainerCallback):
                 dynamic_ncols=True,
                 file=sys.stdout,
             )
-        self.current_step = 0
 
     def on_train_end(self, args, state, control, **kwargs):
         if state.is_local_process_zero:

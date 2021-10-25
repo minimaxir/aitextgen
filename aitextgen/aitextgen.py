@@ -31,6 +31,7 @@ from transformers.models.gpt2.convert_gpt2_original_tf_checkpoint_to_pytorch imp
 
 from .colab import create_gdrive_folder
 from .TokenDataset import TokenDataset
+from .train_callback import ATGProgressCallback
 from .train_pt import ATGProgressBar, ATGTransformer
 from .utils import (
     download_gpt2,
@@ -561,7 +562,6 @@ class aitextgen:
         tpu_cores: int = 0,
         max_grad_norm: float = 0.5,
         gradient_accumulation_steps: int = 1,
-        gradient_checkpointing: bool = False,
         seed: int = None,
         learning_rate: float = 1e-3,
         weight_decay: float = 0.05,
@@ -581,7 +581,6 @@ class aitextgen:
         progress_bar_refresh_rate: int = 20,
         freeze_layers: bool = False,
         num_layers_freeze: int = None,
-        use_deepspeed: bool = False,
         **kwargs,
     ) -> None:
 
@@ -619,13 +618,13 @@ class aitextgen:
             )
             generate_every = 0
 
-        if freeze_layers or self.openai_tf_gpt2 == "1558M":
-            logger.info("Layer freezing enabled for model training.")
-            freeze_layers = True
-            if num_layers_freeze:
-                assert (
-                    num_layers_freeze < self.model.config.n_layer
-                ), "You are freezing more Transformer layers than in the model."
+        # if freeze_layers or self.openai_tf_gpt2 == "1558M":
+        #     logger.info("Layer freezing enabled for model training.")
+        #     freeze_layers = True
+        #     if num_layers_freeze:
+        #         assert (
+        #             num_layers_freeze < self.model.config.n_layer
+        #         ), "You are freezing more Transformer layers than in the model."
 
         training_args = TrainingArguments(
             output_dir=output_dir,
@@ -642,19 +641,19 @@ class aitextgen:
             adam_epsilon=adam_epsilon,
             weight_decay=weight_decay,
             run_name=run_id,
-            disable_tqdm=True,  # we use our own in the ATGProgressBar callback
-            data_collator=default_data_collator,
-            gradient_checkpointing=gradient_checkpointing,
+            report_to="all",
+            disable_tqdm=True,  # we use our own in the ATGProgressCallback callback
         )
 
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=train_data,
+            data_collator=default_data_collator,
         )
 
         trainer.add_callback(
-            ATGProgressBar(
+            ATGProgressCallback(
                 trainer,
                 self.model,  # the Trainer and the callback point to the same model
                 num_steps,
