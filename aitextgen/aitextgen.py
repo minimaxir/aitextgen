@@ -618,6 +618,8 @@ class aitextgen:
             )
             generate_every = 0
 
+        is_gpu_used = torch.cuda.is_available() and n_gpu != 0
+
         # if freeze_layers or self.openai_tf_gpt2 == "1558M":
         #     logger.info("Layer freezing enabled for model training.")
         #     freeze_layers = True
@@ -654,14 +656,15 @@ class aitextgen:
 
         trainer.add_callback(
             ATGProgressCallback(
-                trainer,
                 self.model,  # the Trainer and the callback point to the same model
-                num_steps,
+                trainer,
                 self.tokenizer,
                 progress_bar_refresh_rate,
                 save_every,
                 generate_every,
                 output_dir,
+                avg_loss_smoothing,
+                is_gpu_used,
             )
         )
 

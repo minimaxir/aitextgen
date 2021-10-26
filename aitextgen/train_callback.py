@@ -14,23 +14,26 @@ class ATGProgressCallback(TrainerCallback):
         self,
         model,
         trainer,
-        num_steps,
         tokenizer,
         refresh_rate,
         save_every,
         generate_every,
         output_dir,
+        avg_loss_smoothing,
+        is_gpu_used,
     ):
         self.training_bar = None
         self.model = model
         self.trainer = trainer
-        self.num_steps = num_steps
         self.tokenizer = tokenizer
         self.refresh_rate = refresh_rate
         self.save_every = save_every
         self.generate_every = generate_every
         self.output_dir = output_dir
+        self.smoothing = avg_loss_smoothing
+        self.gpu = is_gpu_used
         self.steps = 0
+        self.current_loss = None
         self.prev_avg_loss = None
 
     @property
@@ -40,7 +43,7 @@ class ATGProgressCallback(TrainerCallback):
     def on_train_begin(self, args, state, control, **kwargs):
         if state.is_local_process_zero:
             self.training_bar = tqdm(
-                total=self.num_steps,
+                total=state.max_steps,
                 smoothing=0,
                 leave=True,
                 dynamic_ncols=True,
@@ -56,11 +59,12 @@ class ATGProgressCallback(TrainerCallback):
         if state.is_local_process_zero:
             self.current_loss = float(metrics.get("train_loss"))
 
-    def on_step_end(self, args, state, control, model, **kwargs):
+    def on_step_end(self, args, state, control, **kwargs):
 
         if state.is_local_process_zero:
             self.steps += 1
             avg_loss = 0
+            desc = ""
             if (
                 self.current_loss == self.current_loss
             ):  # don't add if current_loss is NaN
@@ -69,9 +73,10 @@ class ATGProgressCallback(TrainerCallback):
                 )
                 self.prev_avg_loss = avg_loss
 
-            desc = f"Loss: {self.current_loss:.3f} — Avg: {avg_loss:.3f}"
+            if self.current_loss:
+                desc = f"Loss: {self.current_loss:.3f} — Avg: {avg_loss:.3f}"
 
-            if state.global_step % self.progress_bar_refresh_rate == 0:
+            if state.global_step % self.refresh_rate == 0:
                 if self.gpu:
                     # via pytorch-lightning's get_gpu_memory_map()
                     result = subprocess.run(
@@ -87,8 +92,9 @@ class ATGProgressCallback(TrainerCallback):
                     )
                     gpu_memory = result.stdout.strip().split(os.linesep)[0]
                     desc += f" — GPU Mem: {gpu_memory} MB"
-                self.training_bar.update(self.progress_bar_refresh_rate)
-                self.training_bar.set_description(desc)
+                self.training_bar.update(self.refresh_rate)
+                if self.current_loss:
+                    self.training_bar.set_description(desc)
 
             if self.save_every > 0 and self.steps % self.save_every == 0:
                 self.save_pytorch_model()
