@@ -99,6 +99,7 @@ class ATGProgressBar(ProgressBarBase):
         progress_bar_refresh_rate,
         train_transformers_only,
         num_layers_freeze,
+        print_generated,
         callbacks
     ):
         super().__init__()
@@ -116,6 +117,7 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
+        self.print_generated = print_generated
         self.callbacks = callbacks
         
     @property
@@ -216,9 +218,10 @@ class ATGProgressBar(ProgressBarBase):
                 self.freeze_layers(pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
-        self.main_progress_bar.write(
-            f"\033[1m{self.steps:,} steps reached: generating sample texts.\033[0m"
-        )
+        if self.print_generated:
+            self.main_progress_bar.write(
+                f"\033[1m{self.steps:,} steps reached: generating sample texts.\033[0m"
+            )
 
         gen_length_max = getattr(
             pl_module.model.config, "n_positions", None
@@ -240,11 +243,12 @@ class ATGProgressBar(ProgressBarBase):
 
         gen_texts = pl_module.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-        for text in gen_texts:
-            self.main_progress_bar.write("=" * 10)
-            self.main_progress_bar.write(text)
+        if self.print_generated:
+            for text in gen_texts:
+                self.main_progress_bar.write("=" * 10)
+                self.main_progress_bar.write(text)
 
-        self.main_progress_bar.write("=" * 10)
+            self.main_progress_bar.write("=" * 10)
 
         # Call the on_sample_text_generated callback, if it exists
         self.callbacks.get('on_sample_text_generated', lambda texts: None)(gen_texts)
