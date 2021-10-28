@@ -99,6 +99,7 @@ class ATGProgressBar(ProgressBarBase):
         progress_bar_refresh_rate,
         train_transformers_only,
         num_layers_freeze,
+        callbacks
     ):
         super().__init__()
         self.enabled = True
@@ -115,6 +116,7 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
+        self.callbacks = callbacks
         
     @property
     def save_every_check(self):
@@ -138,9 +140,15 @@ class ATGProgressBar(ProgressBarBase):
         )
         self.freeze_layers(pl_module)
 
+        # Call the on_train_start callback, if it exists
+        self.callbacks.get('on_train_start', lambda: None)()
+
     def on_train_end(self, trainer, pl_module):
         self.main_progress_bar.close()
         self.unfreeze_layers(pl_module)
+
+        # Call the on_train_end callback, if it exists
+        self.callbacks.get('on_train_end', lambda: None)()
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -160,6 +168,9 @@ class ATGProgressBar(ProgressBarBase):
             self.prev_avg_loss = avg_loss
 
         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
+
+        # Call the on_batch_end callback, if it exists
+        self.callbacks.get('on_batch_end', lambda steps, max, curr, avg: None)(self.steps, trainer.max_steps, current_loss, avg_loss)
 
         if self.steps % self.progress_bar_refresh_rate == 0:
             if self.gpu:
@@ -234,6 +245,9 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.write(text)
 
         self.main_progress_bar.write("=" * 10)
+
+        # Call the on_sample_text_generated callback, if it exists
+        self.callbacks.get('on_sample_text_generated', lambda texts: None)(gen_texts)
 
     def save_pytorch_model(self, trainer, pl_module, tpu=False):
         

@@ -578,6 +578,7 @@ class aitextgen:
         freeze_layers: bool = False,
         num_layers_freeze: int = None,
         use_deepspeed: bool = False,
+        callbacks: dict = {},
         **kwargs,
     ) -> None:
         """
@@ -611,6 +612,10 @@ class aitextgen:
         :param run_id: Run identifier; used for save_gdrive
         :param progress_bar_refresh_rate: How often to update
         the progress bar while training.
+        :param callbacks: A dictionary containing callbacks for training events. Supported
+        callbacks are 'on_train_start' and 'on_train_end' with no arguments, 'on_batch_end'
+        with arguments (current_steps, total_steps, current_loss, avg_loss), and
+        'on_sample_text_generated' with argument (texts), a list of the generated text.
         """
 
         if not os.path.exists(output_dir):
@@ -726,6 +731,7 @@ class aitextgen:
                     progress_bar_refresh_rate,
                     freeze_layers,
                     num_layers_freeze,
+                    callbacks
                 )
             ],
             plugins=deepspeed_plugin,
