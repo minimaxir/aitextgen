@@ -274,6 +274,8 @@ class ATGProgressBar(ProgressBarBase):
                     os.path.join("/content/drive/My Drive/", self.run_id, pt_file),
                 )
 
+        self.callbacks.get('on_model_saved', lambda current_steps, max_steps, output: None)(self.steps, self.trainer.max_steps, self.output_dir)
+
     def average_loss(self, current_loss, prev_avg_loss, smoothing):
         if prev_avg_loss is None:
             return current_loss
