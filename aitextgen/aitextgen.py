@@ -579,6 +579,7 @@ class aitextgen:
         num_layers_freeze: int = None,
         use_deepspeed: bool = False,
         print_generated: bool = True,
+        print_saved: bool = True,
         callbacks: dict = {},
         **kwargs,
     ) -> None:
@@ -616,6 +617,7 @@ class aitextgen:
         :param print_generated: Whether to print generated sample texts. If this is set to
         False, sample texts will still be generated, but will not be displayed in the
         console - useful for applications where console output isn't necessary.
+        :param print_saved: Whether to print a message when the model is being saved
         :param callbacks: A dictionary containing callbacks for training events. Supported
         callbacks are 'on_train_start' and 'on_train_end' with no arguments, 'on_batch_end'
         with arguments (current_steps, total_steps, current_loss, avg_loss), and
@@ -736,6 +738,7 @@ class aitextgen:
                     freeze_layers,
                     num_layers_freeze,
                     print_generated,
+                    print_saved,
                     callbacks
                 )
             ],
@@ -762,7 +765,8 @@ class aitextgen:
         trainer = pl.Trainer(**train_params)
         trainer.fit(train_model)
 
-        logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
+        if print_saved:
+            logger.info(f"Saving trained model pytorch_model.bin to /{output_dir}")
 
         self.model.save_pretrained(output_dir)
 

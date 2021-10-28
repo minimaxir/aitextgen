@@ -100,6 +100,7 @@ class ATGProgressBar(ProgressBarBase):
         train_transformers_only,
         num_layers_freeze,
         print_generated,
+        print_saved,
         callbacks
     ):
         super().__init__()
@@ -118,6 +119,7 @@ class ATGProgressBar(ProgressBarBase):
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
         self.print_generated = print_generated
+        self.print_saved = print_saved
         self.callbacks = callbacks
         
     @property
@@ -255,7 +257,7 @@ class ATGProgressBar(ProgressBarBase):
 
     def save_pytorch_model(self, trainer, pl_module, tpu=False):
         
-        if self.enabled:
+        if self.enabled and self.print_saved:
             self.main_progress_bar.write(
                 f"\033[1m{self.steps:,} steps reached: saving model to /{self.output_dir}\033[0m"
             )
