@@ -174,7 +174,8 @@ class ATGProgressBar(ProgressBarBase):
         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
 
         # Call the on_batch_end callback, if it exists
-        self.callbacks.get('on_batch_end', lambda steps, max, curr, avg: None)(self.steps, trainer.max_steps, current_loss, avg_loss)
+        trainer: pl.Trainer
+        self.callbacks.get('on_batch_end', lambda steps, max, curr, avg, trainer: None)(self.steps, trainer.max_steps, current_loss, avg_loss, trainer)
 
         if self.steps % self.progress_bar_refresh_rate == 0:
             if self.gpu:

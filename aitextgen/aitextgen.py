@@ -620,7 +620,7 @@ class aitextgen:
         :param print_saved: Whether to print a message when the model is being saved
         :param callbacks: A dictionary containing callbacks for training events. Supported
         callbacks are 'on_train_start' and 'on_train_end' with no arguments, 'on_batch_end'
-        with arguments (current_steps, total_steps, current_loss, avg_loss),
+        with arguments (current_steps, total_steps, current_loss, avg_loss, trainer),
         'on_sample_text_generated' with argument (texts), a list of the generated text,
         and 'on_model_saved' with arguments (current_steps, max_steps, output_dir).
         """
