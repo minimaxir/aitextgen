@@ -18,7 +18,9 @@ class ATGProgressCallback(TrainerCallback):
         refresh_rate,
         save_every,
         generate_every,
+        n_generate,
         output_dir,
+        save_gdrive,
         avg_loss_smoothing,
         is_gpu_used,
     ):
@@ -29,7 +31,9 @@ class ATGProgressCallback(TrainerCallback):
         self.refresh_rate = refresh_rate
         self.save_every = save_every
         self.generate_every = generate_every
+        self.n_generate = n_generate
         self.output_dir = output_dir
+        self.save_gdrive = save_gdrive
         self.smoothing = avg_loss_smoothing
         self.gpu = is_gpu_used
         self.steps = 0

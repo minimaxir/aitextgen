@@ -662,7 +662,9 @@ class aitextgen:
                 progress_bar_refresh_rate,
                 save_every,
                 generate_every,
+                n_generate,
                 output_dir,
+                save_gdrive,
                 avg_loss_smoothing,
                 is_gpu_used,
             )
