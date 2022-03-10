@@ -57,7 +57,7 @@ class ATGProgressCallback(TrainerCallback):
 
     def on_evaluate(self, args, state, control, metrics, **kwargs):
         if state.is_local_process_zero:
-            self.current_loss = float(metrics.get("train_loss"))
+            self.current_loss = float(metrics.get("loss"))
 
     def on_step_end(self, args, state, control, **kwargs):
 

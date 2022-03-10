@@ -568,6 +568,7 @@ class aitextgen:
         adam_epsilon: float = 1e-8,
         warmup_steps: int = 0,
         num_steps: int = 5000,
+        logging_steps: int = 1000,
         save_every: int = 1000,
         generate_every: int = 1000,
         n_generate: int = 1,
@@ -581,6 +582,7 @@ class aitextgen:
         progress_bar_refresh_rate: int = 20,
         freeze_layers: bool = False,
         num_layers_freeze: int = None,
+        lr_scheduler_type: str = "cosine_with_restarts",
         **kwargs,
     ) -> None:
 
@@ -620,6 +622,14 @@ class aitextgen:
 
         is_gpu_used = torch.cuda.is_available() and n_gpu != 0
 
+        if num_workers is None:
+            # Use all CPU cores as workers if not training on CPU
+            if is_gpu_used or tpu_cores > 0:
+                num_workers = os.cpu_count()
+            # If training on the CPU, use half the CPUs
+            else:
+                num_workers = int(os.cpu_count() / 2)
+
         # if freeze_layers or self.openai_tf_gpt2 == "1558M":
         #     logger.info("Layer freezing enabled for model training.")
         #     freeze_layers = True
@@ -634,6 +644,7 @@ class aitextgen:
             gradient_accumulation_steps=gradient_accumulation_steps,
             max_grad_norm=max_grad_norm,
             max_steps=num_steps,
+            logging_steps=logging_steps,
             per_device_train_batch_size=batch_size,
             fp16=fp16,
             fp16_opt_level=fp16_opt_level,
@@ -643,8 +654,13 @@ class aitextgen:
             adam_epsilon=adam_epsilon,
             weight_decay=weight_decay,
             run_name=run_id,
+            evaluation_strategy="no",
             report_to="all",
-            disable_tqdm=True,  # we use our own in the ATGProgressCallback callback
+            push_to_hub=False,
+            lr_scheduler_type=lr_scheduler_type,
+            # disable_tqdm=True,  # we use our own in the ATGProgressCallback callback
+            save_strategy="no",  # we save manually in ATGProgressCallback
+            dataloader_num_workers=num_workers,
         )
 
         trainer = Trainer(
@@ -654,19 +670,19 @@ class aitextgen:
             data_collator=default_data_collator,
         )
 
-        trainer.add_callback(
-            ATGProgressCallback(
-                self.model,  # the Trainer and the callback point to the same model
-                trainer,
-                self.tokenizer,
-                progress_bar_refresh_rate,
-                save_every,
-                generate_every,
-                output_dir,
-                avg_loss_smoothing,
-                is_gpu_used,
-            )
-        )
+        # trainer.add_callback(
+        #     ATGProgressCallback(
+        #         self.model,  # the Trainer and the callback point to the same model
+        #         trainer,
+        #         self.tokenizer,
+        #         progress_bar_refresh_rate,
+        #         save_every,
+        #         generate_every,
+        #         output_dir,
+        #         avg_loss_smoothing,
+        #         is_gpu_used,
+        #     )
+        # )
 
         trainer.train()
 
