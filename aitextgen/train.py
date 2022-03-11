@@ -12,6 +12,7 @@ from transformers import get_linear_schedule_with_warmup
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
 from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.trainer.supporters import CombinedLoader
 
 
 class ATGTransformer(pl.LightningModule):
@@ -19,12 +20,13 @@ class ATGTransformer(pl.LightningModule):
     A training module for aitextgen.
     """
 
-    def __init__(self, model, train_dataset, val_dataset, hparams, tokenizer):
+    def __init__(self, model, train_dataset, val_datasets_dict, hparams, tokenizer):
         super(ATGTransformer, self).__init__()
-        self.model, self.train_dataset, self.val_dataset, self.tokenizer = (
+        self.model, self.train_dataset, self.val_datasets_dict, self.val_dataset_names, self.tokenizer = (
             model,
             train_dataset,
-            val_dataset,
+            val_datasets_dict,
+            list(val_datasets_dict.keys()),
             tokenizer,
         )
         self.save_hyperparameters(hparams)
@@ -36,15 +38,33 @@ class ATGTransformer(pl.LightningModule):
         outputs = self({"input_ids": batch, "labels": batch})
         loss = outputs[0]
         return {"loss": loss}
-    
+
+    def val_dataloader(self):
+        val_loaders = {}
+        for name in self.val_dataset_names:
+            val_loaders[name] = DataLoader(self.val_datasets_dict[name],
+                                           batch_size=self.hparams["batch_size"],
+                                           shuffle=True,
+                                           pin_memory=self.hparams["pin_memory"],
+                                           num_workers=self.hparams["num_workers"],
+                                           )
+
+        combined_loaders = CombinedLoader(val_loaders, mode="max_size_cycle")
+        return combined_loaders
+
     def validation_step(self, batch, batch_num):
-        outputs = self({"input_ids": batch, "labels": batch})
-        loss = outputs[0]
-        return loss
-    
+        val_loss = {}
+        for name in self.val_dataset_names:
+            outputs = self({"input_ids": batch[name], "labels": batch[name]})
+            val_loss[name] = outputs[0]
+        return val_loss
+
     def validation_epoch_end(self, val_step_outputs):
-        val_loss = sum(val_step_outputs)/len(val_step_outputs)
-        self.log('val_loss', val_loss)
+        val_losses = {}
+        number_of_outputs = len(val_step_outputs)
+        for name in self.val_dataset_names:
+            val_loss = sum(out[name] for out in val_step_outputs) / number_of_outputs
+            self.log(name + '_val_loss', val_loss)
 
     def train_dataloader(self):
         return DataLoader(
@@ -54,16 +74,7 @@ class ATGTransformer(pl.LightningModule):
             pin_memory=self.hparams["pin_memory"],
             num_workers=self.hparams["num_workers"],
         )
-    
-    def val_dataloader(self):
-        return DataLoader(
-            self.val_dataset,
-            batch_size=self.hparams["batch_size"],
-            shuffle=True,
-            pin_memory=self.hparams["pin_memory"],
-            num_workers=self.hparams["num_workers"],
-        )
-    
+
     def configure_optimizers(self):
         "Prepare optimizer"
 
@@ -133,7 +144,7 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
-        
+
     @property
     def save_every_check(self):
         return self.save_every > 0 and self.steps % self.save_every == 0
@@ -162,12 +173,13 @@ class ATGProgressBar(ProgressBarBase):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
-        val_loss = trainer.logged_metrics['val_loss']
+        avg_val_loss = sum([trainer.logged_metrics[name + '_val_loss'] \
+                            for name in pl_module.val_dataset_names]) / len(pl_module.val_dataset_names)
         try:
             self.main_progress_bar.write(f"Train Avg Loss: {self.prev_avg_loss:.3f}")
-            self.main_progress_bar.write(f"Val Avg Loss: {val_loss:.3f}")
+            self.main_progress_bar.write(f"Val Avg Loss: {avg_val_loss:.3f}")
         except AttributeError:
-            print(f"Val Avg Loss: {val_loss:.3f}")
+            print(f"Val Avg Loss: {avg_val_loss:.3f}")
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -206,7 +218,7 @@ class ATGProgressBar(ProgressBarBase):
                 desc += f" — GPU Mem: {gpu_memory} MB"
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
-        
+
         if _TPU_AVAILABLE and self.save_every_check:
             did_unfreeze = False
             if self.enabled:
@@ -215,7 +227,7 @@ class ATGProgressBar(ProgressBarBase):
             self.save_pytorch_model(trainer, pl_module, tpu=True)
             if did_unfreeze:
                 self.freeze_layers(pl_module)
-        
+
         if self.enabled:
             did_unfreeze = False
             if not _TPU_AVAILABLE and self.save_every_check:

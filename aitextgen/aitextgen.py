@@ -591,7 +591,7 @@ class aitextgen:
         a string containing the text to be trained (shortcut instead of dataset) or a numpy array
         :param val_data: Either a TokenDataset containing the samples to be validated, or
         a string containing the text to be validated (shortcut instead of dataset) or a numpy array
-        :param validate_every: Number of steps for each time to run validation 
+        :param validate_every: Number of steps for each time to run validation
         :param output_dir: A string indicating where to store the resulting
         model file folder.
         :param fp16: Boolean whether to use fp16, assuming using a compatible GPU/TPU.
@@ -637,7 +637,7 @@ class aitextgen:
             logger.info(
                 f"Loading text from train_data with generation length of {block_size}."
             )
-            
+
             dataset_params = dict(
                 tokenizer=self.tokenizer,
                 bos_token=self.bos_token,
@@ -645,17 +645,17 @@ class aitextgen:
                 unk_token=self.unk_token,
                 block_size=block_size,
                 **kwargs)
-            
+
             if isinstance(train_data, str):
                 train_data = TokenDataset(**dict(dataset_params, file_path=train_data))
             else:
                 train_data = TokenDataset(**dict(dataset_params, texts=train_data))
-            
-        if isinstance(val_data, (str, list, np.ndarray)):
+
+        if isinstance(val_data, (str, list, np.ndarray, dict)):
             logger.info(
                 f"Loading text from val_data with generation length of {block_size}."
             )
-            
+
             dataset_params = dict(
                 tokenizer=self.tokenizer,
                 bos_token=self.bos_token,
@@ -664,12 +664,15 @@ class aitextgen:
                 block_size=block_size,
                 num_steps = val_num_steps,
                 **kwargs)
-            
-            if isinstance(val_data, str):
-                val_data = TokenDataset(**dict(dataset_params, file_path=val_data))
+
+            if isinstance(val_data, dict):
+                for name in val_data.keys():
+                    if isinstance(val_data[name], str):
+                        val_data[name] = TokenDataset(**dict(dataset_params, file_path=val_data[name]))
+                    else:
+                        val_data[name] = TokenDataset(**dict(dataset_params, texts=val_data[name]))
             else:
-                val_data = TokenDataset(**dict(dataset_params, texts=val_data))
-                
+                logger.error(f"Bad validation input type. validation input must be a dictionary.")
 
         setattr(self.model.config, "line_by_line", train_data.line_by_line)
 
@@ -796,7 +799,7 @@ class aitextgen:
 
         if seed:
             reset_seed()
-            
+
         return trainer, train_model
 
     def cross_train(
