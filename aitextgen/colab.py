@@ -27,9 +27,9 @@ def copy_file_to_gdrive(file_path, to_folder=None):
     is_mounted()
 
     if to_folder:
-        dest_path = os.path.join("/content/drive/My Drive/", to_folder, file_path)
+        dest_path = os.path.join("/content/drive/MyDrive/", to_folder, file_path)
     else:
-        dest_path = os.path.join("/content/drive/My Drive/", file_path)
+        dest_path = os.path.join("/content/drive/MyDrive/", file_path)
 
     shutil.copyfile(file_path, dest_path)
 
@@ -39,9 +39,9 @@ def copy_file_from_gdrive(file_path, from_folder=None):
     is_mounted()
 
     if from_folder:
-        source_path = os.path.join("/content/drive/My Drive/", from_folder, file_path)
+        source_path = os.path.join("/content/drive/MyDrive/", from_folder, file_path)
     else:
-        source_path = os.path.join("/content/drive/My Drive/", file_path)
+        source_path = os.path.join("/content/drive/MyDrive/", file_path)
 
     shutil.copyfile(source_path, file_path)
 
@@ -50,7 +50,7 @@ def create_gdrive_folder(folder_name):
     """Creates a folder in a mounted Google Drive."""
     is_mounted()
 
-    folder_path = os.path.join("/content/drive/My Drive/", folder_name)
+    folder_path = os.path.join("/content/drive/MyDrive/", folder_name)
 
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)

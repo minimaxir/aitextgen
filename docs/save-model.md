@@ -29,7 +29,7 @@ from aitextgen.colab import mount_gdrive, copy_file_to_gdrive
 mount_gdrive()
 ```
 
-You'll be asked for an auth code; input it and press enter, and a `My Drive` folder will appear in Colab Files view.
+You'll be asked for an auth code; input it and press enter, and a `MyDrive` folder will appear in Colab Files view.
 
 You can drag and drop the model files into the Google Drive, or use `copy_file_to_gdrive` to copy them programmatically.
 

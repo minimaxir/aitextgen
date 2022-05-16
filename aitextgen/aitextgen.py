@@ -759,7 +759,7 @@ class aitextgen:
             for pt_file in ["pytorch_model.bin", "config.json"]:
                 shutil.copyfile(
                     os.path.join(output_dir, pt_file),
-                    os.path.join("/content/drive/My Drive/", run_id, pt_file),
+                    os.path.join("/content/drive/MyDrive/", run_id, pt_file),
                 )
 
         if seed:
