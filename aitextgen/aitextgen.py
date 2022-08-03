@@ -709,7 +709,6 @@ class aitextgen:
             gpus=n_gpu,
             max_steps=num_steps,
             gradient_clip_val=max_grad_norm,
-            checkpoint_callback=False,
             logger=loggers if loggers else False,
             weights_summary=None,
             progress_bar_refresh_rate=progress_bar_refresh_rate,  # ignored
