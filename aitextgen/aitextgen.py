@@ -710,7 +710,6 @@ class aitextgen:
             max_steps=num_steps,
             gradient_clip_val=max_grad_norm,
             logger=loggers if loggers else False,
-            weights_summary=None,
             progress_bar_refresh_rate=progress_bar_refresh_rate,  # ignored
             callbacks=[
                 ATGProgressBar(
