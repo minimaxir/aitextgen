@@ -159,9 +159,9 @@ class ATGProgressBar(ProgressBarBase):
 #             )
 #             self.prev_avg_loss = avg_loss
 
-         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
+        desc = f"Loss: {12345:.3f} — Avg: {12345:.3f}"
 
-         if self.steps % self.progress_bar_refresh_rate == 0:
+        if self.steps % self.progress_bar_refresh_rate == 0:
             if self.gpu:
                 # via pytorch-lightning's get_gpu_memory_map()
                 result = subprocess.run(
