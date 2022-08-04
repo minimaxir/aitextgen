@@ -141,6 +141,12 @@ class ATGProgressBar(ProgressBarBase):
     def on_train_end(self, trainer, pl_module):
         self.main_progress_bar.close()
         self.unfreeze_layers(pl_module)
+        
+    def get_metrics(self, trainer, pl_module):
+        # don't show the version number
+        items = super().get_metrics(trainer, pl_module)
+        items.pop("v_num", None)
+        return items
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -150,7 +156,8 @@ class ATGProgressBar(ProgressBarBase):
         if self.steps == 0 and self.gpu:
             torch.cuda.empty_cache()
 
-        current_loss = float(trainer.progress_bar_dict["loss"])
+        metrics = self.get_metrics(trainer, pl_module)
+        current_loss = float(metrics["loss"])
         self.steps += 1
         avg_loss = 0
         if current_loss == current_loss:  # don't add if current_loss is NaN
