@@ -709,10 +709,9 @@ class aitextgen:
             gpus=n_gpu,
             max_steps=num_steps,
             gradient_clip_val=max_grad_norm,
-            checkpoint_callback=False,
+            enable_checkpointing=False, #checkpoint_callback deprecated in pytorch_lighning v1.7
             logger=loggers if loggers else False,
-            weights_summary=None,
-            progress_bar_refresh_rate=progress_bar_refresh_rate,  # ignored
+            enable_model_summary=None, #weights_summary and progress_bar_refresh_rate are removed in pytorch_lighning v1.7
             callbacks=[
                 ATGProgressBar(
                     save_every,
