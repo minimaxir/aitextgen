@@ -99,6 +99,9 @@ class ATGProgressBar(ProgressBarBase):
         progress_bar_refresh_rate,
         train_transformers_only,
         num_layers_freeze,
+        print_generated,
+        print_saved,
+        callbacks
     ):
         super().__init__()
         self.enabled = True
@@ -115,6 +118,9 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
+        self.print_generated = print_generated
+        self.print_saved = print_saved
+        self.callbacks = callbacks
         
     @property
     def save_every_check(self):
@@ -138,6 +144,9 @@ class ATGProgressBar(ProgressBarBase):
         )
         self.freeze_layers(pl_module)
 
+        # Call the on_train_start callback, if it exists
+        self.callbacks.get('on_train_start', lambda: None)()
+
     def on_train_end(self, trainer, pl_module):
         self.main_progress_bar.close()
         self.unfreeze_layers(pl_module)
@@ -147,6 +156,9 @@ class ATGProgressBar(ProgressBarBase):
         items = super().get_metrics(trainer, pl_module)
         items.pop("v_num", None)
         return items
+
+        # Call the on_train_end callback, if it exists
+        self.callbacks.get('on_train_end', lambda: None)()
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -167,6 +179,10 @@ class ATGProgressBar(ProgressBarBase):
             self.prev_avg_loss = avg_loss
 
         desc = f"Loss: {current_loss:.3f} — Avg: {avg_loss:.3f}"
+
+        # Call the on_batch_end callback, if it exists
+        trainer: pl.Trainer
+        self.callbacks.get('on_batch_end', lambda steps, max, curr, avg, trainer: None)(self.steps, trainer.max_steps, current_loss, avg_loss, trainer)
 
         if self.steps % self.progress_bar_refresh_rate == 0:
             if self.gpu:
@@ -212,9 +228,10 @@ class ATGProgressBar(ProgressBarBase):
                 self.freeze_layers(pl_module)
 
     def generate_sample_text(self, trainer, pl_module):
-        self.main_progress_bar.write(
-            f"\033[1m{self.steps:,} steps reached: generating sample texts.\033[0m"
-        )
+        if self.print_generated:
+            self.main_progress_bar.write(
+                f"\033[1m{self.steps:,} steps reached: generating sample texts.\033[0m"
+            )
 
         gen_length_max = getattr(
             pl_module.model.config, "n_positions", None
@@ -236,15 +253,19 @@ class ATGProgressBar(ProgressBarBase):
 
         gen_texts = pl_module.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-        for text in gen_texts:
-            self.main_progress_bar.write("=" * 10)
-            self.main_progress_bar.write(text)
+        if self.print_generated:
+            for text in gen_texts:
+                self.main_progress_bar.write("=" * 10)
+                self.main_progress_bar.write(text)
 
-        self.main_progress_bar.write("=" * 10)
+            self.main_progress_bar.write("=" * 10)
+
+        # Call the on_sample_text_generated callback, if it exists
+        self.callbacks.get('on_sample_text_generated', lambda texts: None)(gen_texts)
 
     def save_pytorch_model(self, trainer, pl_module, tpu=False):
         
-        if self.enabled:
+        if self.enabled and self.print_saved:
             self.main_progress_bar.write(
                 f"\033[1m{self.steps:,} steps reached: saving model to /{self.output_dir}\033[0m"
             )
@@ -260,6 +281,8 @@ class ATGProgressBar(ProgressBarBase):
                     os.path.join(self.output_dir, pt_file),
                     os.path.join("/content/drive/MyDrive/", self.run_id, pt_file),
                 )
+
+        self.callbacks.get('on_model_saved', lambda current_steps, max_steps, output: None)(self.steps, self.trainer.max_steps, self.output_dir)
 
     def average_loss(self, current_loss, prev_avg_loss, smoothing):
         if prev_avg_loss is None:

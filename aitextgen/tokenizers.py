@@ -1,6 +1,6 @@
 from tokenizers import ByteLevelBPETokenizer
 from typing import Union, List
-
+from os.path import join
 
 def train_tokenizer(
     files: Union[str, List[str]],
@@ -53,6 +53,6 @@ def train_tokenizer(
     )
 
     if serialize:
-        tokenizer.save(f"{prefix}.tokenizer.json")
+        tokenizer.save(join(save_path, f"{prefix}.tokenizer.json"))
     else:
         tokenizer.save_model(save_path, prefix)
