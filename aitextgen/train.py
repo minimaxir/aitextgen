@@ -11,7 +11,7 @@ from transformers import get_linear_schedule_with_warmup
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import ProgressBarBase
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.accelerators import TPUAccelerator
 
 
 class ATGTransformer(pl.LightningModule):
@@ -187,7 +187,7 @@ class ATGProgressBar(ProgressBarBase):
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
         
-        if _TPU_AVAILABLE and self.save_every_check:
+        if TPUAccelerator.is_available() and self.save_every_check:
             did_unfreeze = False
             if self.enabled:
                 self.unfreeze_layers(pl_module)
@@ -198,7 +198,7 @@ class ATGProgressBar(ProgressBarBase):
         
         if self.enabled:
             did_unfreeze = False
-            if not _TPU_AVAILABLE and self.save_every_check:
+            if not TPUAccelerator.is_available() and self.save_every_check:
                 self.unfreeze_layers(pl_module)
                 self.save_pytorch_model(trainer, pl_module)
                 did_unfreeze = True
