@@ -115,7 +115,7 @@ class ATGProgressBar(ProgressBarBase):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.train_transformers_only = train_transformers_only
         self.num_layers_freeze = num_layers_freeze
-        
+
     @property
     def save_every_check(self):
         return self.save_every > 0 and self.steps % self.save_every == 0
@@ -141,15 +141,15 @@ class ATGProgressBar(ProgressBarBase):
     def on_train_end(self, trainer, pl_module):
         self.main_progress_bar.close()
         self.unfreeze_layers(pl_module)
-        
+
     def get_metrics(self, trainer, pl_module):
         # don't show the version number
         items = super().get_metrics(trainer, pl_module)
         items.pop("v_num", None)
         return items
 
-    def on_batch_end(self, trainer, pl_module):
-        super().on_batch_end(trainer, pl_module)
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
 
         # clean up the GPU cache used for the benchmark
         # https://discuss.pytorch.org/t/about-torch-cuda-empty-cache/34232/4
@@ -186,7 +186,7 @@ class ATGProgressBar(ProgressBarBase):
                 desc += f" — GPU Mem: {gpu_memory} MB"
             self.main_progress_bar.update(self.progress_bar_refresh_rate)
             self.main_progress_bar.set_description(desc)
-        
+
         if TPUAccelerator.is_available() and self.save_every_check:
             did_unfreeze = False
             if self.enabled:
@@ -195,7 +195,7 @@ class ATGProgressBar(ProgressBarBase):
             self.save_pytorch_model(trainer, pl_module, tpu=True)
             if did_unfreeze:
                 self.freeze_layers(pl_module)
-        
+
         if self.enabled:
             did_unfreeze = False
             if not TPUAccelerator.is_available() and self.save_every_check:
@@ -243,13 +243,14 @@ class ATGProgressBar(ProgressBarBase):
         self.main_progress_bar.write("=" * 10)
 
     def save_pytorch_model(self, trainer, pl_module, tpu=False):
-        
+
         if self.enabled:
             self.main_progress_bar.write(
                 f"\033[1m{self.steps:,} steps reached: saving model to /{self.output_dir}\033[0m"
             )
         if tpu:
             import torch_xla.core.xla_model as xm
+
             pl_module.model.save_pretrained(self.output_dir, save_function=xm.save)
         else:
             pl_module.model.save_pretrained(self.output_dir)
