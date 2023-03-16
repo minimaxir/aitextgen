@@ -11,7 +11,7 @@ from typing import List, Optional, Union
 import pytorch_lightning as pl
 import torch
 from pkg_resources import resource_filename
-from pytorch_lightning.plugins import DeepSpeedPlugin
+# from pytorch_lightning.plugins import DeepSpeedPlugin
 from tqdm.auto import trange
 from transformers import (
     AutoConfig,
