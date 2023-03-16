@@ -11,7 +11,7 @@ import itertools
 from tqdm.auto import tqdm
 import numpy as np
 
-csv.field_size_limit(2 ** 31 - 1)
+csv.field_size_limit(2**31 - 1)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -79,7 +79,7 @@ class TokenDataset(Dataset):
 
         # Special case; load tokenized texts immediately
         if tokenized_texts:
-            self.tokens = tokenized_texts
+            self.tokens = np.asarray(tokenized_texts)
             self.num_subsets = self.tokens.shape[0] - block_size
             self.block_size = block_size
             self.file_path = "merged TokenDataset"
@@ -253,11 +253,11 @@ def get_dtype(vocab_size: int):
 
     The highest value for the dtype serves as a placeholder.
     """
-    if vocab_size < 2 ** 8 - 1:
+    if vocab_size < 2**8 - 1:
         return np.uint8
-    elif vocab_size < 2 ** 16 - 1:
+    elif vocab_size < 2**16 - 1:
         return np.uint16
-    elif vocab_size < 2 ** 32 - 1:
+    elif vocab_size < 2**32 - 1:
         return np.uint32
 
     return np.uint64
