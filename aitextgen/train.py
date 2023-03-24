@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 from transformers import get_linear_schedule_with_warmup
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress import ProgressBarBase
+from pytorch_lightning.callbacks.progress.progress_bar import ProgressBar
 from pytorch_lightning.accelerators import TPUAccelerator
 
 
@@ -83,7 +83,7 @@ class ATGTransformer(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-class ATGProgressBar(ProgressBarBase):
+class ATGProgressBar(ProgressBar):
     """A variant progress bar that works off of steps and prints periodically."""
 
     def __init__(
