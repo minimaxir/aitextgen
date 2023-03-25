@@ -156,8 +156,8 @@ class ATGProgressBar(ProgressBar):
         if self.steps == 0 and self.gpu:
             torch.cuda.empty_cache()
 
-        metrics = self.get_metrics(trainer, pl_module)
-        current_loss = float(metrics["loss"])
+        #metrics = self.get_metrics(trainer, pl_module)
+        current_loss = float(outputs["loss"])
         self.steps += 1
         avg_loss = 0
         if current_loss == current_loss:  # don't add if current_loss is NaN
