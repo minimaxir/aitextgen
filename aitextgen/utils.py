@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 import torch
 import numpy as np
 import random
-from transformers import GPT2Config, GPTNeoConfig, GPTNeoXConfig, GPTJConfig, BioGptConfig
+from transformers import GPT2Config, GPTNeoConfig, GPTNeoXConfig, GPTJConfig, BioGptConfig, OPTConfig, BloomConfig, CodeGenConfig
 
 
 def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None:
@@ -139,7 +139,7 @@ def GPT2ConfigCPU(
 
 
 def GPTNeoConfigCPU(
-    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, **kwargs
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, dropout: float = 0.0, n_embd: int = 256, n_layer: int = 4, n_head: int = 4, n_inner: int = 256, hidden_size: int = 256, window_size: int = 32, **kwargs
 ):
     """
     Returns a GPT Neo config more suitable for training on a regular consumer CPU.
@@ -148,19 +148,23 @@ def GPTNeoConfigCPU(
     return GPTNeoConfig(
         vocab_size=vocab_size,
         max_position_embeddings=max_length,
-        hidden_size=256,
-        window_size=32,
-        intermediate_size=256,
-        attention_types=[[["global", "local"], 2]],
-        num_layers=4,
-        num_heads=4,
+        hidden_size=hidden_size,
+        window_size=window_size,
+        intermediate_size=n_inner,
+        attention_types=[[["global", "local"], n_head]],
+        num_layers=n_layer,
+        num_heads=n_head,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
         bos_token_id=bos_token_id,
         eos_token_id=eos_token_id,
         **kwargs,
     )
-
+    
 def GPTNeoXConfigCPU(
-    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, n_layer: int = 4, n_head: int = 4, max_length: int = 1024, **kwargs
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, n_layer: int = 4, n_head: int = 4, max_length: int = 1024, n_embd: int = 256, n_inner: int = 2, dropout: float = 0.0, **kwargs
 ):
     """
     Returns a GPT NeoX config more suitable for training on a regular consumer CPU.
@@ -171,17 +175,21 @@ def GPTNeoXConfigCPU(
         max_position_embeddings=max_length,
         hidden_size=256,
         window_size=32,
-        intermediate_size=256,
-        attention_types=[[["global", "local"], 2]],
+        intermediate_size=n_inner,
+        attention_types=[[["global", "local"], n_head]],
         num_layers=n_layer,
         num_heads=n_head,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
         bos_token_id=bos_token_id,
         eos_token_id=eos_token_id,
         **kwargs,
     )
 
 def GPTJConfigCPU(
-    vocab_size: int = 1000, n_embd: int = 1024, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_inner: int = 14, n_layer: int = 4, n_head: int = 4, **kwargs
+    vocab_size: int = 1000, n_embd: int = 1024, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_inner: int = 14, n_layer: int = 4, n_head: int = 4, dropout: float = 0.0, **kwargs
 ):
     """
     Returns a GPT-J config more suitable for training on a regular consumer CPU.
@@ -195,13 +203,17 @@ def GPTJConfigCPU(
         n_layer=n_layer,
         n_head=n_head,
         n_inner=n_inner,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
         bos_token_id=bos_token_id,
         eos_token_id=eos_token_id,
         **kwargs,
     )
 
 def BioGptConfigCPU(
-    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_layer: int = 4, n_head: int = 4, **kwargs
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_embd: int = 128, n_layer: int = 4, n_head: int = 4, n_inner: int = 14, dropout: float = 0.0, **kwargs
 ):
     """
     Returns a BioGPT config more suitable for training on a regular consumer CPU.
@@ -211,9 +223,86 @@ def BioGptConfigCPU(
         vocab_size=vocab_size,
         n_positions=max_length,
         n_ctx=max_length,
-        n_embd=128,
+        n_embd=n_embd,
         n_layer=n_layer,
         n_head=n_head,
+        n_inner=n_inner,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
+    
+def OPTConfigCPU(
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_layer: int = 4, n_head: int = 4, dropout: float = 0.0, n_embd: int = 128, n_inner: int = 256, **kwargs
+):
+    """
+    Returns a OPT config more suitable for training on a regular consumer CPU.
+    """
+
+    return OPTConfig(
+        vocab_size=vocab_size,
+        n_positions=max_length,
+        n_ctx=max_length,
+        n_embd=n_embd,
+        n_layer=n_layer,
+        n_head=n_head,
+        n_inner=n_inner,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
+
+def BloomConfigCPU(
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_layer: int = 4, n_head: int = 4, dropout: float = 0.0, n_embd: int = 128, n_inner: int = 256, **kwargs
+):
+    """
+    Returns a Bloom config more suitable for training on a regular consumer CPU.
+    """
+
+    return BloomConfig(
+        vocab_size=vocab_size,
+        n_positions=max_length,
+        n_ctx=max_length,
+        n_embd=n_embd,
+        n_layer=n_layer,
+        n_head=n_head,
+        n_inner=n_inner,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
+
+def CodeGenConfigCPU(
+    vocab_size: int = 1000, bos_token_id: int = 0, eos_token_id: int = 0, max_length: int = 1024, n_layer: int = 4, n_head: int = 4, dropout: float = 0.0, n_embd: int = 128, n_inner: int = 256, **kwargs
+):
+    """
+    Returns a CodeGen config more suitable for training on a regular consumer CPU.
+    """
+
+    return CodeGenConfig(
+        vocab_size=vocab_size,
+        n_positions=max_length,
+        n_ctx=max_length,
+        n_embd=n_embd,
+        n_layer=n_layer,
+        n_head=n_head,
+        n_inner=n_inner,
+        resid_pdrop=dropout,
+        embd_pdrop=dropout,
+        attn_pdrop=dropout,
+        summary_first_dropout=dropout,
         bos_token_id=bos_token_id,
         eos_token_id=eos_token_id,
         **kwargs,
