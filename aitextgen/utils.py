@@ -4,7 +4,7 @@ from tqdm.auto import tqdm
 import torch
 import numpy as np
 import random
-from transformers import GPT2Config, GPTNeoConfig, GPTNeoXConfig, GPTJConfig, BioGptConfig, OPTConfig, BloomConfig, CodeGenConfig
+from transformers import GPT2Config, GPTNeoConfig, GPTNeoXConfig, GPTJConfig, BioGptConfig, OPTConfig, BloomConfig, CodeGenConfig, LlamaConfig, MBartConfig
 
 
 def download_gpt2(model_dir: str = "tf_model", model_name: str = "124M") -> None:
@@ -307,6 +307,104 @@ def CodeGenConfigCPU(
         eos_token_id=eos_token_id,
         **kwargs,
     )
+
+def LlamaConfigCPU(
+    vocab_size: int = 1000,
+    hidden_size: int = 4096,
+    intermediate_size: int = 11008,
+    num_hidden_layers: int = 32,
+    num_attention_heads: int = 32,
+    hidden_act: str = "silu",
+    max_position_embeddings: int = 2048,
+    initializer_range: float = 0.02,
+    rms_norm_eps: float = 1e-6,
+    use_cache: bool = True,
+    pad_token_id: int = 0,
+    bos_token_id: int = 1,
+    eos_token_id: int = 2,
+    tie_word_embeddings: bool = False,
+    **kwargs
+):
+    """
+    Returns a Llama config more suitable for training on a regular consumer CPU.
+    """
+
+    return LlamaConfig(
+        vocab_size=vocab_size,
+        n_positions=max_position_embeddings,
+        n_ctx=max_position_embeddings,
+        n_embd=hidden_size,
+        n_layer=num_hidden_layers,
+        n_head=num_attention_heads,
+        n_inner=intermediate_size,
+        resid_pdrop=initializer_range,
+        embd_pdrop=initializer_range,
+        attn_pdrop=initializer_range,
+        summary_first_dropout=initializer_range,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
+
+def MBartConfigCPU( 
+        vocab_size: int = 50265,
+        max_position_embeddings: int = 1024,
+        encoder_layers: int = 12,
+        encoder_ffn_dim: int = 4096,
+        encoder_attention_heads: int = 16,
+        decoder_layers: int = 12,
+        decoder_ffn_dim: int = 4096,
+        decoder_attention_heads: int = 16,
+        encoder_layerdrop: float = 0.0,
+        decoder_layerdrop: float = 0.0,
+        use_cache: bool = True,
+        is_encoder_decoder: bool = True,
+        activation_function: str = "gelu",
+        d_model: int = 1024,
+        dropout: float = 0.1,
+        attention_dropout: float = 0.0,
+        activation_dropout: float = 0.0,
+        init_std: float = 0.02,
+        classifier_dropout: float = 0.0,
+        scale_embedding: bool = False,
+        pad_token_id: int = 1,
+        bos_token_id: int = 0,
+        eos_token_id: int = 2,
+        forced_eos_token_id: int = 2,
+        **kwargs,
+):
+    """
+    Returns a MBartConfig config more suitable for training on a regular consumer CPU.
+    """
+
+    return MBartConfig(
+        vocab_size=vocab_size,
+        max_position_embeddings=max_position_embeddings,
+        encoder_layers=encoder_layers,
+        encoder_ffn_dim=encoder_ffn_dim,
+        encoder_attention_heads=encoder_attention_heads,
+        decoder_layers=decoder_layers,
+        decoder_ffn_dim=decoder_ffn_dim,
+        decoder_attention_heads=decoder_attention_heads,
+        encoder_layerdrop=encoder_layerdrop,
+        decoder_layerdrop=decoder_layerdrop,
+        use_cache=use_cache,
+        is_encoder_decoder=is_encoder_decoder,
+        activation_function=activation_function,
+        d_model=d_model,
+        dropout=dropout,
+        attention_dropout=attention_dropout,
+        activation_dropout=activation_dropout,
+        init_std=init_std,
+        classifier_dropout=classifier_dropout,
+        scale_embedding=scale_embedding,
+        pad_token_id=pad_token_id,
+        bos_token_id=bos_token_id,
+        eos_token_id=eos_token_id,
+        forced_eos_token_id=forced_eos_token_id,
+        **kwargs,
+    )
+
 
 
 def find_index_of_subset(large_list, small_list):
