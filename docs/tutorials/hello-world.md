@@ -23,7 +23,7 @@ aitextgen generate
 aitextgen generate --prompt "I believe in unicorns because" --to_file False
 ```
 
-Want to train your own mini GPT-2 model on your own computer? Download this [text file of Shakespeare plays](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt), cd to that directory in a Teriminal, open up a `python3` console and go:
+Want to train a mini GPT-2 model on your own computer? Download this [text file of Shakespeare plays](https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt), cd to that directory in a terminal, open up a `python3` console and go:
 
 ```py3
 from aitextgen.TokenDataset import TokenDataset
