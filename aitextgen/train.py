@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 from transformers import get_linear_schedule_with_warmup
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress import ProgressBarBase
+from pytorch_lightning.callbacks.progress.progress_bar import ProgressBar
 from pytorch_lightning.accelerators import TPUAccelerator
 
 
@@ -83,7 +83,7 @@ class ATGTransformer(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-class ATGProgressBar(ProgressBarBase):
+class ATGProgressBar(ProgressBar):
     """A variant progress bar that works off of steps and prints periodically."""
 
     def __init__(
@@ -156,8 +156,8 @@ class ATGProgressBar(ProgressBarBase):
         if self.steps == 0 and self.gpu:
             torch.cuda.empty_cache()
 
-        metrics = self.get_metrics(trainer, pl_module)
-        current_loss = float(metrics["loss"])
+        #metrics = self.get_metrics(trainer, pl_module)
+        current_loss = float(outputs["loss"])
         self.steps += 1
         avg_loss = 0
         if current_loss == current_loss:  # don't add if current_loss is NaN

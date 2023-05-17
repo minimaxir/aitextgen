@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="aitextgen",
     packages=["aitextgen"],  # this must be the same as the name above
-    version="0.6.0",
+    version="0.6.1",
     description="A robust Python tool for text-based AI training and generation using GPT-2.",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
@@ -17,9 +17,9 @@ setup(
     python_requires=">=3.6",
     include_package_data=True,
     install_requires=[
-        "transformers>=4.5.1",
-        "fire>=0.3.0",
-        "pytorch-lightning>=1.7.0",
-        "torch>=1.6.0",
+        "fire~=0.5.0",
+        "pytorch-lightning~=2.0.0",
+        "transformers~=4.26.0",
+        "torch~=1.13.0",
     ],
 )

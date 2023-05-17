@@ -6,3 +6,7 @@ test_notebooks/
 .vscode/settings.json
 /site
 .DS_Store
+
+/test
+/trained_model
+aitextgen.tokenizer.json
