@@ -10,7 +10,7 @@ aitextgen is a Python package that leverages [PyTorch](https://pytorch.org), [Hu
 - With pytorch-lightning, aitextgen trains models not just on CPUs and GPUs, but also _multiple_ GPUs and (eventually) TPUs! It also includes a pretty training progress bar, with the ability to add optional loggers.
 - The input dataset is its own object, allowing you to not only easily encode megabytes of data in seconds, cache, and compress it on a local computer before transporting to a remote server, but you are able to _merge_ datasets without biasing the resulting dataset, or _cross-train_ on multiple datasets to create blended output.
 
-You can read more about aitextgen [in the documentation](https://docs.aitextgen.io/)!
+You can read more about aitextgen [in the documentation](https://aitextgen.minimaxir.com/)!
 
 ## Demo
 
@@ -97,7 +97,7 @@ ai2 = aitextgen(model_folder="trained_model",
 ai2.generate(10, prompt="ROMEO:")
 ```
 
-Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or [follow the documentation](https://docs.aitextgen.io/) to get more information and learn some helpful tips!
+Want to run aitextgen and finetune GPT-2? Use the Colab notebooks in the Demos section, or [follow the documentation](https://aitextgen.minimaxir.com/) to get more information and learn some helpful tips!
 
 ## Known Issues
 
