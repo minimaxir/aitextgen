@@ -72,6 +72,7 @@ class aitextgen:
     tokenizer = None
     vocab_file = os.path.join(STATIC_PATH, "gpt2_vocab.json")
     merges_file = os.path.join(STATIC_PATH, "gpt2_merges.txt")
+    models = ["124M", "355M", "774M", "1558M"]
     bos_token = "<|endoftext|>"
     eos_token = "<|endoftext|>"
     unk_token = "<|endoftext|>"
@@ -123,12 +124,7 @@ class aitextgen:
             if not os.path.isfile(
                 os.path.join(cache_dir, f"pytorch_model_{tf_gpt2}.bin")
             ):
-                assert tf_gpt2 in [
-                    "124M",
-                    "355M",
-                    "774M",
-                    "1558M",
-                ], "Invalid TensorFlow GPT-2 model size."
+                assert tf_gpt2 in self.models, "Invalid TensorFlow GPT-2 model size."
 
                 logger.info(
                     f"Downloading the {tf_gpt2} GPT-2 TensorFlow weights/config "
@@ -863,3 +859,6 @@ class aitextgen:
         num_params_m = int(sum(p.numel() for p in self.model.parameters()) / 10 ** 6)
         model_name = type(self.model.config).__name__.replace("Config", "")
         return f"{model_name} loaded with {num_params_m}M parameters."
+
+    def list_models(self) -> None:
+        print("\n".join(self.models))
