@@ -32,7 +32,7 @@ class TokenDataset(Dataset):
     :param texts: A list of input texts (if providing texts manually)
     :param line_by_line: A boolean to indicate if the input file should be read
     line by line (True) or as a full text (False).
-    :param from_cache: A string indicating if loading from a pregenerated MsgPack
+    :param from_cache: A boolean indicating if loading from a pregenerated MsgPack
     dump.
     :param header: A boolean indicating if loading from a CSV, if it has a header.
     :param save_cache: A boolean indicating whether to save the tokenized
