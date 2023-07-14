@@ -90,6 +90,7 @@ class aitextgen:
         cache_dir: str = "aitextgen",
         tf_gpt2: str = None,
         to_gpu: bool = False,
+        to_gpu_mps: bool = False,
         to_fp16: bool = False,
         verbose: bool = False,
         gradient_checkpointing: bool = False,
@@ -840,6 +841,15 @@ class aitextgen:
         assert torch.cuda.is_available(), "CUDA is not installed."
 
         self.model.to(torch.device("cuda", index))
+
+
+    def to_gpu_mps(self, index: int = 0) -> None:
+        """Moves the model to the specified GPU."""
+
+        assert torch.backends.mps.is_available(), "MPS is not installed."
+
+        self.model.to(torch.device("mps", index))
+
 
     def to_cpu(self, index: int = 0) -> None:
         """Moves the model to the specified CPU."""
